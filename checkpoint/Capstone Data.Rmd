@@ -131,14 +131,18 @@ Below, we use our cleaned data to visualize our ethnic enclave predictors by nei
 # Load packages
 library(tidyverse)
 library(janitor)
-
+library(here)
 # themes
 theme_set(theme_minimal())
+
+```
+```{r}
+grocery <- read.csv(here("ethnic","Data","grocery.csv"))
+
 ```
 
 
 ```{r}
-grocery <- read_csv("/Users/freddy/Desktop/STAT 454/Transit/Data/grocery.csv")
 schools <- read_csv("/Users/freddy/Desktop/STAT 454/Transit/Data/schools.csv")
 green_space <- read_csv("/Users/freddy/Desktop/STAT 454/Transit/Data/parks.csv")
 evictions <- read_csv("/Users/freddy/Desktop/STAT 454/Transit/Data/evictions.csv")
