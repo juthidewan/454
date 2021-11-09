@@ -1,0 +1,179 @@
+Rank,Neighborhood,Jobs Accessible,Median Income,Borough,Population,ZIP
+1,Chelsea (North),"4,593,006","$81,671",Manhattan,"21,966",10001
+2,Hell's Kitchen (South),"4,542,251","$104,635",Manhattan,"7,021",10018
+3,Hell's Kitchen (Central),"4,389,002","$66,599",Manhattan,"23,132",10036
+4,Chelsea (South),"4,297,411","$104,238",Manhattan,"52,167",10011
+5,Midtown (North-East),"4,189,691","$109,019",Manhattan,"29,618",10022
+6,Midtown East (South),"4,180,797","$100,652",Manhattan,"16,129",10017
+7,Tribeca (South),"4,155,674","$216,037",Manhattan,"6,525",10007
+8,Tribeca (North),"4,122,632","$83,725",Manhattan,"26,065",10013
+9,Briarwood/ Jamaica Center,"4,119,763","$53,041",Queens,"53,542",11435
+10,Hell's Kitchen (North),"4,113,415","$84,424",Manhattan,"38,394",10019
+11,East Village/ Midtown (South),"4,047,421","$92,540",Manhattan,"57,310",10003
+12,Woodside,"4,026,663","$49,886",Queens,"86,316",11377
+13,SoHo,"4,018,809","$86,594",Manhattan,"26,145",10012
+14,Midtown (South-East),"4,010,138","$97,955",Manhattan,"30,670",10010
+15,Upper East Side (South),"3,987,897","$115,519",Manhattan,"32,797",10065
+16,Upper West Side (North-East),"3,981,379","$103,534",Manhattan,"61,315",10023
+17,Central Harlem/ Morningside Heights,"3,979,548","$37,872",Manhattan,"62,617",10027
+18,Kips Bay/ Murray Hill,"3,970,556","$105,324",Manhattan,"51,196",10016
+19,West Village,"3,930,940","$108,483",Manhattan,"30,597",10014
+20,Financial District (West),"3,908,266","$119,274",Manhattan,"2,507",10006
+21,Financial District (South),"3,857,633","$129,313",Manhattan,"2,807",10004
+22,Financial District (East),"3,855,442","$124,670",Manhattan,"6,822",10005
+23,Long Island City (Central),"3,854,725","$47,142",Queens,"25,537",11101
+24,Boerum Hill (East)/ Park Slope (North),"3,832,900","$81,862",Brooklyn,"38,787",11217
+25,Sunnyside,"3,811,568","$56,059",Queens,"25,729",11104
+26,Battery Park City (North),"3,776,445","$230,952",Manhattan,"6,217",10282
+27,Battery Park City (South),"3,757,781","$129,574",Manhattan,"8,685",10280
+28,Brooklyn Heights/Dumbo,"3,732,698","$95,369",Brooklyn,"54,668",11201
+29,Financial District (North-East),"3,727,941","$66,074",Manhattan,"20,082",10038
+30,Upper East Side (Central),"3,719,307","$102,941",Manhattan,"24,849",10075
+31,Williamsburg,"3,710,175","$46,848",Brooklyn,"93,271",11211
+32,Roosevelt Island,"3,704,793","$83,066",Manhattan,"12,346",10044
+33,Lower East Side,"3,697,552","$33,218",Manhattan,"82,191",10002
+34,Long Island City (West),"3,685,382","$125,871",Queens,"3,524",11109
+35,Bedford-Stuyvesant (South-West),"3,681,855","$43,996",Brooklyn,"53,783",11216
+36,Upper West Side (Central),"3,669,949","$109,956",Manhattan,"59,164",10024
+37,Upper East Side (South-Central),"3,659,211","$107,907",Manhattan,"40,862",10021
+38,East Harlem (North),"3,586,504","$24,533",Manhattan,"33,488",10035
+39,Forest Hills,"3,583,962","$72,000",Queens,"69,757",11375
+40,Harlem (South),"3,575,543","$43,107",Manhattan,"37,871",10026
+41,Kew Gardens,"3,553,922","$63,549",Queens,"19,145",11415
+42,Upper East Side (North-Central),"3,548,839","$104,638",Manhattan,"44,295",10028
+43,Upper West Side (North),"3,533,938","$68,516",Manhattan,"97,390",10025
+44,Alphabet City,"3,525,702","$59,929",Manhattan,"62,810",10009
+45,Lincoln Square (West),"3,472,382","$170,630",Manhattan,"5,118",10069
+46,Upper East Side (North),"3,447,727","$96,296",Manhattan,"60,121",10128
+47,Bushwick (North),"3,447,107","$40,372",Brooklyn,"55,478",11237
+48,Harlem (East),"3,445,270","$37,341",Manhattan,"17,377",10037
+49,Bed-Stuy (North)/ East Williamsburg,"3,442,749","$28,559",Brooklyn,"81,525",11206
+50,Bedford-Stuyvesant (East),"3,440,394","$34,492",Brooklyn,"68,599",11233
+51,Elmhurst,"3,433,338","$47,667",Queens,"99,159",11373
+52,Greenpoint,"3,393,961","$63,739",Brooklyn,"34,186",11222
+53,Prospect Heights/ Clinton Hill (South),"3,390,969","$65,315",Brooklyn,"51,895",11238
+54,East Harlem (South),"3,387,358","$31,888",Manhattan,"77,454",10029
+55,Harlem (Central),"3,354,041","$31,925",Manhattan,"28,472",10030
+56,Greenwood,"3,344,448","$43,595",Brooklyn,"28,824",11232
+57,Bushwick (South),"3,337,727","$39,178",Brooklyn,"81,321",11221
+58,Astoria (East),"3,332,220","$55,129",Queens,"37,745",11103
+59,Harlem (West),"3,321,673","$37,655",Manhattan,"59,092",10031
+60,Prospect Lefferts Gardens,"3,306,723","$42,922",Brooklyn,"59,182",11225
+61,Jackson Heights (South),"3,283,739","$48,683",Queens,"63,320",11372
+62,Washington Heights (South),"3,264,292","$34,568",Manhattan,"59,374",10032
+63,Inwood,"3,247,006","$41,171",Manhattan,"41,510",10034
+64,Sunset Park,"3,243,139","$37,580",Brooklyn,"103,089",11220
+65,Astoria (North),"3,232,285","$49,924",Queens,"34,529",11102
+66,Crown Heights (East),"3,231,258","$34,794",Brooklyn,"62,059",11213
+67,Richmond Hill (North),"3,230,753","$60,691",Queens,"36,828",11418
+68,Tremont,"3,227,508","$24,949",Bronx,"70,282",10457
+69,Astoria (Central),"3,224,075","$48,720",Queens,"36,869",11106
+70,Mott Haven/Port Morris,"3,220,643","$20,232",Bronx,"38,089",10454
+71,Washington Heights (North),"3,213,165","$41,556",Manhattan,"58,710",10033
+72,Carroll Gardens/ Red Hook,"3,168,829","$78,174",Brooklyn,"34,137",11231
+73,Longwood (South),"3,166,291","$22,609",Bronx,"38,576",10455
+74,Highbridge,"3,161,446","$25,979",Bronx,"74,931",10452
+75,East New York (West),"3,144,455","$32,945",Brooklyn,"92,491",11207
+76,Park Slope,"3,141,054","$95,654",Brooklyn,"68,891",11215
+77,Clinton Hill (North),"3,131,067","$44,688",Brooklyn,"43,002",11205
+78,Melrose/Mott Haven,"3,111,160","$26,754",Bronx,"47,069",10451
+79,Longwood (North),"3,098,160","$24,461",Bronx,"47,977",10459
+80,Bayside,"3,088,406","$75,335",Queens,"30,597",11361
+81,Rego Park,"3,085,494","$52,532",Queens,"42,297",11374
+82,Ditmars Steinway,"3,076,774","$57,525",Queens,"36,190",11105
+83,Harlem (North-East),"3,073,253","$33,595",Manhattan,"26,577",10039
+84,Woodhaven,"3,058,310","$60,897",Queens,"42,588",11421
+85,Borough Park,"3,055,478","$34,316",Brooklyn,"96,971",11219
+86,Kensington,"3,042,770","$52,445",Brooklyn,"74,758",11218
+87,Brownsville,"3,004,774","$28,348",Brooklyn,"84,520",11212
+88,Ditmas Park,"2,996,310","$40,734",Brooklyn,"98,325",11226
+89,Laurelton,"2,885,555","$78,667",Queens,"40,385",11413
+90,Fort George,"2,882,590","$42,721",Manhattan,"44,825",10040
+91,Bensonhurst,"2,857,202","$45,472",Brooklyn,"80,963",11204
+92,Bay Ridge,"2,797,143","$58,261",Brooklyn,"72,623",11209
+93,Glendale,"2,781,184","$50,799",Queens,"99,379",11385
+94,Corona,"2,757,910","$45,964",Queens,"107,962",11368
+95,Bedford Park,"2,751,904","$33,776",Bronx,"71,822",10468
+96,Ozone Park (South),"2,743,064","$62,086",Queens,"31,004",11417
+97,Midwood (East)/ Flatlands (West),"2,733,215","$55,429",Brooklyn,"65,302",11210
+98,Midwood,"2,690,146","$42,170",Brooklyn,"84,219",11230
+99,Morris Heights,"2,679,898","$25,470",Bronx,"79,793",10453
+100,Ozone Park (North),"2,655,404","$56,724",Queens,"25,950",11416
+101,Morrisania,"2,626,602","$23,452",Bronx,"87,723",10456
+102,East New York (East),"2,618,906","$35,079",Brooklyn,"93,107",11208
+103,Richmond Hill (South),"2,616,820","$56,735",Queens,"49,193",11419
+104,Maspeth,"2,571,530","$57,474",Queens,"32,268",11378
+105,West Farms,"2,569,311","$22,307",Bronx,"56,084",10460
+106,Norwood,"2,568,524","$36,048",Bronx,"98,754",10467
+107,Soundview,"2,469,395","$30,288",Bronx,"68,898",10472
+108,Gravesend,"2,459,471","$41,328",Brooklyn,"74,606",11223
+109,Jackson Heights (North),"2,366,147","$52,500",Queens,"37,244",11370
+110,Middle Village,"2,354,409","$69,843",Queens,"35,822",11379
+111,Jamaica Hills (North),"2,352,444","$50,450",Queens,"61,687",11432
+112,Fordham (North),"2,311,184","$24,618",Bronx,"74,859",10458
+113,Spuyten Duyvil/ Kingsbridge,"2,257,140","$54,258",Bronx,"70,420",10463
+114,Murray Hill (East),"2,249,339","$65,722",Queens,"38,317",11358
+115,Dyker Heights,"2,234,363","$61,893",Brooklyn,"43,929",11228
+116,Douglaston,"2,213,233","$90,799",Queens,"7,354",11363
+117,Woodlawn,"1,904,124","$58,600",Bronx,"14,850",10470
+118,Hollis,"1,900,012","$60,892",Queens,"31,625",11423
+119,East Elmhurst,"1,863,394","$53,617",Queens,"40,761",11369
+120,Flushing (South),"1,846,198","$41,884",Queens,"83,221",11355
+121,Williamsbridge/ Baychester,"1,844,808","$57,776",Bronx,"71,843",10469
+122,Kew Gardens Hills,"1,793,059","$56,608",Queens,"41,022",11367
+123,Hunts Point,"1,748,490","$25,676",Bronx,"12,519",10474
+124,Manhattan Beach,"1,587,191","$41,639",Brooklyn,"74,630",11235
+125,Rosedale,"1,539,656","$84,824",Queens,"33,280",11422
+126,Bath Beach,"1,534,141","$43,398",Brooklyn,"83,156",11214
+127,Canarsie,"1,524,134","$61,061",Brooklyn,"97,217",11236
+128,Flushing (Central),"1,521,194","$46,566",Queens,"56,258",11354
+129,Whitestone,"1,479,598","$71,978",Queens,"40,872",11357
+130,East Flatbush,"1,446,428","$48,400",Brooklyn,"79,572",11203
+131,Jamaica Hills (South),"1,443,063","$42,887",Queens,"32,821",11433
+132,College Point,"1,285,768","$58,465",Queens,"23,037",11356
+133,Sheepshead Bay,"1,270,116","$51,725",Brooklyn,"81,030",11229
+134,Fresh Meadows (South),"1,248,244","$71,350",Queens,"13,499",11366
+135,South Ozone Park (West),"1,201,171","$59,832",Queens,"48,449",11420
+136,South Ozone Park (East),"1,164,868","$62,114",Queens,"17,636",11436
+137,Coney Island,"1,120,071","$27,481",Brooklyn,"42,535",11224
+138,Queens Village (North),"1,104,744","$69,330",Queens,"20,307",11428
+139,Parkchester/ Van Nest,"1,097,589","$45,864",Bronx,"77,369",10462
+140,Fresh Meadows/ Utopia,"1,066,412","$55,492",Queens,"41,924",11365
+141,Arrochar/Shore Acres,"1,062,189","$70,758",Staten Island,"42,006",10305
+142,Hammels,"1,033,867","$50,570",Queens,"11,335",11693
+143,Stapleton/Clifton,"977,862","$53,168",Staten Island,"43,084",10304
+144,Morris Park,"972,229","$52,347",Bronx,"51,730",10461
+145,Oakland Gardens,"920,930","$72,909",Queens,"34,751",11364
+146,Bay Terrace,"889,208","$76,183",Queens,"19,865",11360
+147,Bellaire,"865,057","$68,890",Queens,"28,311",11429
+148,Bellerose/Floral Park,"727,542","$82,301",Queens,"19,575",11426
+149,Howard Beach,"726,623","$66,790",Queens,"28,094",11414
+150,Hollis Hills,"726,295","$70,108",Queens,"24,877",11427
+151,Riverdale/ Fieldston,"713,734","$71,798",Bronx,"22,030",10471
+152,St. Albans,"713,520","$70,672",Queens,"37,176",11412
+153,Glen Oaks,"684,920","$81,709",Queens,"14,500",11004
+154,Springfield Gardens/Rochdale,"629,016","$59,229",Queens,"62,809",11434
+155,Arverne,"569,033","$43,354",Queens,"17,674",11692
+156,Cambria Heights,"485,002","$83,099",Queens,"18,722",11411
+157,Edenwald,"468,871","$44,012",Bronx,"70,609",10466
+158,Little Neck,"468,367","$82,332",Queens,"17,865",11362
+159,Clason Point,"449,405","$35,866",Bronx,"58,660",10473
+160,West Staten Island,"377,103","$77,242",Staten Island,"87,276",10314
+161,Far Rockaway,"271,012","$39,409",Queens,"61,091",11691
+162,Co-Op City,"267,187","$43,629",Bronx,"43,231",10475
+163,Belle Harbor,"241,161","$76,944",Queens,"21,725",11694
+164,Throggs Neck,"233,590","$65,450",Bronx,"44,862",10465
+165,Port Richmond,"220,249","$61,925",Staten Island,"25,227",10310
+166,Oakwood,"201,473","$75,807",Staten Island,"55,902",10306
+167,Flatlands,"201,422","$68,431",Brooklyn,"94,259",11234
+168,North Staten Island,"181,994","$56,848",Staten Island,"38,885",10301
+169,East New York (South),"180,235","$26,275",Brooklyn,"12,879",11239
+170,Great Kills,"180,062","$88,075",Staten Island,"28,939",10308
+171,Elm Park,"151,435","$56,841",Staten Island,"16,811",10302
+172,City Island,"100,000","$70,078",Bronx,"4,248",10464
+173,Mariners Harbor,"94,405","$51,537",Staten Island,"24,537",10303
+174,Annadale/Arden Heights,"63,657","$85,324",Staten Island,"60,081",10312
+175,Tottenville,"60,135","$86,457",Staten Island,"14,829",10307
+176,South Staten Island,"46,509","$86,297",Staten Island,"32,646",10309
+177,Breezy Point,"42,623","$87,636",Queens,"4,223",11697
+,AVERAGE NYC NEIGHBORHOOD,"2,477,488","$63,146",Manhattan,"46,664",
