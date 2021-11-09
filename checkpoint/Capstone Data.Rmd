@@ -136,19 +136,15 @@ library(here)
 theme_set(theme_minimal())
 
 ```
+
 ```{r}
 grocery <- read.csv(here("ethnic","Data","grocery.csv"))
-
-```
-
-
-```{r}
-schools <- read_csv("/Users/freddy/Desktop/STAT 454/Transit/Data/schools.csv")
-green_space <- read_csv("/Users/freddy/Desktop/STAT 454/Transit/Data/parks.csv")
-evictions <- read_csv("/Users/freddy/Desktop/STAT 454/Transit/Data/evictions.csv")
-access_income <- read_csv("/Users/freddy/Desktop/STAT 454/Transit/Data/transit_income.csv")
-demographics <- read_csv("/Users/freddy/Desktop/STAT 454/Transit/Data/demographics.csv")
-rental_price <- read_csv("/Users/freddy/Desktop/STAT 454/Transit/Data/median_rent.csv")
+schools <- read_csv(here("ethnic","Data","schools.csv"))
+green_space <- read_csv(here("ethnic","Data","parks.csv"))
+evictions <- read_csv(here("ethnic","Data","evictions.csv"))
+access_income <- read_csv(here("ethnic","Data","transit_income.csv"))
+demographics <- read_csv(here("ethnic","Data","demographics.csv"))
+rental_price <- read_csv(here("ethnic","Data","median_rent.csv"))
 ```
 
 ```{r}
