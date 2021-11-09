@@ -25,9 +25,6 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE,
                       fig.align = 'center', fig.pos = 'H')
 ```
 
-```{r}
-setwd("/Users/freddy/Desktop/STAT 454/Transit/")
-```
 
 
 # 1: Group Members
@@ -138,7 +135,7 @@ theme_set(theme_minimal())
 ```
 
 ```{r}
-grocery <- read.csv(here("ethnic","Data","grocery.csv"))
+grocery <- read_csv(here("ethnic","Data","grocery.csv"))
 schools <- read_csv(here("ethnic","Data","schools.csv"))
 green_space <- read_csv(here("ethnic","Data","parks.csv"))
 evictions <- read_csv(here("ethnic","Data","evictions.csv"))
@@ -148,6 +145,8 @@ rental_price <- read_csv(here("ethnic","Data","median_rent.csv"))
 ```
 
 ```{r}
+
+names(grocery)
 grocery <- grocery %>% 
   dplyr::select(`License Number`, County, `Zip Code`) %>% 
   rename_all(tolower) %>%
@@ -253,7 +252,7 @@ cleaned_nyc <- access_income %>%
 library(sf)
 
 # read shapefiles
-boundary_nyc <- st_read("/Users/freddy/Desktop/STAT 454/Transit/Data/zip_code_boundaries/ZIP_CODE_040114.shp", quiet = TRUE)
+boundary_nyc <- st_read(here("ethnic", "Data", "zip_code_boundaries","ZIP_CODE_040114.shp"), quiet = TRUE)
 ```
 
 ```{r}
