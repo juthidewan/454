@@ -253,6 +253,7 @@ library(sf)
 
 # read shapefiles
 boundary_nyc <- st_read(here("ethnic", "Data", "zip_code_boundaries","ZIP_CODE_040114.shp"), quiet = TRUE)
+transit_points <- read_csv(here("transit","Data","grocery.csv"))
 ```
 
 ```{r}
