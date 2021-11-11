@@ -145,8 +145,6 @@ rental_price <- read_csv(here("ethnic","Data","median_rent.csv"))
 ```
 
 ```{r}
-
-names(grocery)
 grocery <- grocery %>% 
   dplyr::select(`License Number`, County, `Zip Code`) %>% 
   rename_all(tolower) %>%
@@ -251,22 +249,95 @@ cleaned_nyc <- access_income %>%
 ```{r}
 library(sf)
 
-# read shapefiles
-boundary_nyc <- st_read(here("ethnic", "Data", "zip_code_boundaries","ZIP_CODE_040114.shp"), quiet = TRUE)
+# read shapefiles of NYC Zip Codes
+boundary_nyc <- st_read(here("ethnic", "Data", "zip_code_boundaries","ZIP_CODE_040114.shp"), 
+                        quiet = TRUE) %>%
+  st_transform(26915)
+
+library(zipcodeR)
+# read ridership
 transit_points <- read_csv(here("transit","ridership_points.csv"))%>%
-  separate(Position, into=c("Point", "latitude", "longitude"), " ") %>%
-  mutate(latitude = str_remove_all(latitude, "[(]"),
-         longitude = str_remove_all(longitude, "[)]"),
+  separate(Position, into=c("Point", "longitude", "latitude"), " ") %>%
+  mutate(latitude = str_remove_all(latitude, "[)]"),
+         longitude = str_remove_all(longitude, "[()]"),
          ) %>%
-  dplyr::select(-c(Point)) %>% mutate(latitude=as.numeric(latitude),
-         longitude = as.numeric(longitude))
-  
-  
+  dplyr::select(-c(Point)) %>% 
+  mutate(latitude = as.numeric(latitude),
+         longitude = as.numeric(longitude)) %>%
+  mutate(search = paste(round(latitude,3), round(longitude,3), ".1", sep=","))%>%
+  st_as_sf(coords = c("longitude", "latitude"), crs = 26915, agr = "constant")
+
+# zip_ridership <- c()
+# for(i in transit_points$search){
+#   zip_ridership <- cbind(search_radius("40.813,-73.93,.1"), zip_ridership)
+#   
+#   
+# cmd_table <- paste0()
+# 
+# eval(parse(text = cmd_table), envir=.GlobalEnv)
+# 
+# 
+# gene_by_gene_table <<- c(gene_by_gene_table, paste0("cox_", de_sym))  
+# }
+# 
+# paste("")
+# 
+# 
+# 
+# cmd_table <- paste0('_', de_sym, '<-', 
+#               "coxph(Surv(survival_years, Vital.Status) ~ ",
+#                   de_sym, "+ inferred_SIRE + Sex + 
+#                   age_risk + WBC_risk + CNS_risk + 
+#                   testes_risk + subtype_category_unknown, 
+#                 
+#                 singular.ok = TRUE, data = survival_clinical_f) %>% 
+#   
+#         tbl_regression(exponentiate = TRUE, pvalue_fun = ~style_pvalue(.x, digits = 2)) %>% 
+#     as_tibble() %>%
+#     dplyr::slice(-c(2:nrow(.)))   %>%
+#   magrittr::set_colnames(c('DE Gene', 'HR', '95% CI', 'p-value')) %>%
+#   mutate('95% CI' = paste0('(',`95% CI`,')'))")
+# 
+# 
+# eval(parse(text = cmd_table), envir=.GlobalEnv)
+# 
+# 
+# search_radius("40.813,-73.93,.1")
 ```
+
+```{r}
+head(boundary_nyc)
+```
+
 
 ```{r}
 nyc_join <- merge(boundary_nyc, cleaned_nyc)
 ```
+
+
+```{r}
+# simple plot shows all locations
+st_bbox(transit_points)
+st_bbox(boundary_nyc)
+
+#plot locations over map
+ggplot() +
+  geom_sf(data = transit_points) + 
+  geom_sf(data = nyc_join, fill = NA, color = "black", size = 0.15, alpha = 0) +
+  coord_sf(datum = st_crs(26915)) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Ridership in NYC")+ 
+    theme(#panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 15, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+```
+
+
 
 
 ```{r}
