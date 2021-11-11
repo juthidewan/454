@@ -151,8 +151,8 @@ grocery <- grocery %>%
   clean_names()  %>%
   group_by(zip_code) %>%
   tally()%>%
-  rename(zip = zip_code) %>%
-  rename(grocery_stores = n)%>%
+  dplyr::rename(zip = zip_code) %>%
+  dplyr::rename("grocery_stores" = "n")%>%
   mutate(zip = as.factor(zip))
 
 schools <- schools %>% 
@@ -167,11 +167,11 @@ schools <- schools %>%
   mutate(latitude=as.numeric(latitude),
          longitude = as.numeric(longitude)) %>%
   dplyr::select(-c(location_1))%>%
-  rename(zip = postcode)%>%
+  dplyr::rename(zip = postcode)%>%
   mutate(zip = as.factor(zip)) %>%
   group_by(zip) %>%
   tally()%>%
-  rename(schools = n)
+  dplyr::rename(schools = n)
 
 green_space <- green_space %>% 
   dplyr::select(GlobalID, ZIPCODE)  %>% 
@@ -179,8 +179,8 @@ green_space <- green_space %>%
   clean_names() %>%
   group_by(zipcode) %>%
   tally()%>%
-  rename(zip = zipcode)%>%
-  rename(parks = n)%>%
+  dplyr::rename(zip = zipcode)%>%
+  dplyr::rename(parks = n)%>%
   mutate(zip = as.factor(zip))
 
 evictions<- evictions %>% 
@@ -189,8 +189,8 @@ evictions<- evictions %>%
   clean_names()  %>%
   group_by(eviction_postcode) %>%
   tally() %>%
-  rename(zip = eviction_postcode)%>%  
-  rename(evictions = n)%>%
+  dplyr::rename(zip = eviction_postcode)%>%  
+  dplyr::rename(evictions = n)%>%
   mutate(zip = as.factor(zip))
 
 access_income<- access_income  %>% 
@@ -206,7 +206,7 @@ demographics <- demographics %>%
   rename_all(tolower) %>%
   clean_names() %>% 
   mutate(percent_nonwhite = 1-percent_white_non_hispanic, .before=2)%>%
-  rename(zip = jurisdiction_name)%>%
+  dplyr::rename(zip = jurisdiction_name)%>%
   mutate(zip = as.factor(zip))
 
 rental_price <- rental_price %>% 
@@ -238,8 +238,7 @@ cleaned_nyc <- access_income %>%
   left_join(., grocery, by="zip") %>%
   mutate(grocery_stores = ifelse(is.na(grocery_stores), 0, grocery_stores)) %>%
   filter(!is.na(percent_nonwhite)) %>%
-  mutate(ZIPCODE = zip, .before=1)
-
+  mutate(modzcta = zip, .before=1)
 # cleaned_nyc %>%
 #   dplyr::select(neighborhood, ZIPCODE) %>%
 #   fuzzyjoin::stringdist_inner_join(., rental_price_clean, by=c("neighborhood"="areaname"))
@@ -250,11 +249,12 @@ cleaned_nyc <- access_income %>%
 library(sf)
 
 # read shapefiles of NYC Zip Codes
-boundary_nyc <- st_read(here("ethnic", "Data", "zip_code_boundaries","ZIP_CODE_040114.shp"), 
-                        quiet = TRUE) %>%
-  st_transform(26915)
+
+boundary_nyc <- st_read(here("ethnic", "Data", "modzcta_bounds","geo_export_27a93715-f9a7-451d-bf54-fe2faa45cb1e.shp"), 
+                        quiet = TRUE) 
 
 library(zipcodeR)
+
 # read ridership
 transit_points <- read_csv(here("transit","ridership_points.csv"))%>%
   separate(Position, into=c("Point", "longitude", "latitude"), " ") %>%
@@ -264,8 +264,7 @@ transit_points <- read_csv(here("transit","ridership_points.csv"))%>%
   dplyr::select(-c(Point)) %>% 
   mutate(latitude = as.numeric(latitude),
          longitude = as.numeric(longitude)) %>%
-  mutate(search = paste(round(latitude,3), round(longitude,3), ".1", sep=","))%>%
-  st_as_sf(coords = c("longitude", "latitude"), crs = 26915, agr = "constant")
+  st_as_sf(coords = c("longitude", "latitude"), crs = st_crs(boundary_nyc), agr = "constant")
 
 # zip_ridership <- c()
 # for(i in transit_points$search){
@@ -305,43 +304,94 @@ transit_points <- read_csv(here("transit","ridership_points.csv"))%>%
 # search_radius("40.813,-73.93,.1")
 ```
 
-```{r}
-head(boundary_nyc)
-```
 
 
 ```{r}
 nyc_join <- merge(boundary_nyc, cleaned_nyc)
+
+
+transit_ridership_neighborhood <- transit_points %>% mutate(
+  intersection = as.integer(st_intersects(geometry, nyc_join)), 
+  modzcta = if_else(is.na(intersection), "", nyc_join$modzcta[intersection]), .before=1
+) %>%
+  rownames_to_column(.) %>%
+  group_by(modzcta) %>%
+  dplyr::summarise(stops = n(),
+            median_ridership = mean(`2018Ridership`)) %>%
+  filter(modzcta  != "") %>% 
+  data.frame() %>%
+  dplyr::select(-c(geometry)) 
+
+
+
+full_nyc <- merge(nyc_join, transit_ridership_neighborhood, all=TRUE)
+
 ```
 
 
-```{r}
+```{r, fig.height=5*1.2, fig.width=5*1.2}
 # simple plot shows all locations
-st_bbox(transit_points)
-st_bbox(boundary_nyc)
+library(s2)
 
 #plot locations over map
-ggplot() +
-  geom_sf(data = transit_points) + 
-  geom_sf(data = nyc_join, fill = NA, color = "black", size = 0.15, alpha = 0) +
-  coord_sf(datum = st_crs(26915)) +
+subway_loc <- ggplot() +
+  geom_sf(data = nyc_join, fill = "#EBF6FF", color = "#D48DD8", size = 0.15, alpha = .2) +
+  geom_sf(data = transit_points, color="#3F123C", size=2) + 
+  coord_sf(datum = st_crs(boundary_nyc)) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
-  ggtitle("Ridership in NYC")+ 
+  ggtitle("Subway Stop Locations \nin NYC")+ 
     theme(#panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 15, face = "bold"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+stops <- full_nyc %>%
+  ggplot() +
+  geom_sf(aes(fill = stops), color = "#8f98aa") +
+  scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
+                      guide = guide_legend(title = "Number of Stops") ,na.value="#D6D6D6") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Subway Stop Counts \nin NYC")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+ridership <- full_nyc %>%
+  ggplot() +
+  geom_sf(aes(fill = median_ridership), color = "#8f98aa") +
+  scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
+                      guide = guide_legend(title = "Mean Ridership") ,na.value="#D6D6D6") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Mean Subway Turnstile \nRidership in 2018 \nfor NYC")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
           legend.title = element_text(size = 8), 
           legend.text = element_text(size = 8)) + 
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 ```
 
+```{r, fig.height=3*1.2, fig.width=9*1.2}
+library(egg)
+ggarrange(subway_loc, stops, ridership, ncol=3)
+```
+
 
 
 
 ```{r}
-red <- ggplot(nyc_join) +
+red <- ggplot(full_nyc) +
   geom_sf(aes(fill = percent_female), color = "#8f98aa") +
   scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Percent Female")) +
   theme_minimal() +
@@ -355,7 +405,7 @@ red <- ggplot(nyc_join) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-yellow <- ggplot(nyc_join) +
+yellow <- ggplot(full_nyc) +
   geom_sf(aes(fill = median_income), color = "#8f98aa") +
   scale_fill_gradient(low = "#FCF5EE", high = "#F3D24E", guide = guide_legend(title = "Median Income")) +
   theme_minimal() +
@@ -369,7 +419,7 @@ yellow <- ggplot(nyc_join) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-teal <- ggplot(nyc_join) +
+teal <- ggplot(full_nyc) +
   geom_sf(aes(fill = jobs_accessible), color = "#8f98aa") +
   scale_fill_gradient(low = "#FCF5EE", high = "#2DBDC7", guide = guide_legend(title = "Number of Jobs")) +
   theme_minimal() +
@@ -383,7 +433,7 @@ teal <- ggplot(nyc_join) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-purple <- ggplot(nyc_join) +
+purple <- ggplot(full_nyc) +
   geom_sf(aes(fill = evictions), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#7826C0", guide = guide_legend(title = "Number of Evictions")) +
   theme_minimal() +
@@ -397,7 +447,7 @@ purple <- ggplot(nyc_join) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-orange <- ggplot(nyc_join) +
+orange <- ggplot(full_nyc) +
   geom_sf(aes(fill = percent_receives_public_assistance), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#FC9228", guide = guide_legend(title = "Percent on \nPublic Assistance")) +
   theme_minimal() +
@@ -411,7 +461,7 @@ orange <- ggplot(nyc_join) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-green <- ggplot(nyc_join) +
+green <- ggplot(full_nyc) +
   geom_sf(aes(fill = grocery_stores), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#326902", guide = guide_legend(title = "Number of Stores")) +
   theme_minimal() +
@@ -425,7 +475,7 @@ green <- ggplot(nyc_join) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-yellow_green <- ggplot(nyc_join) +
+yellow_green <- ggplot(full_nyc) +
   geom_sf(aes(fill = parks), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#939E28", guide = guide_legend(title = "Number of Parks")) +
   theme_minimal() +
@@ -439,7 +489,7 @@ yellow_green <- ggplot(nyc_join) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-blue <- ggplot(nyc_join) +
+blue <- ggplot(full_nyc) +
   geom_sf(aes(fill = schools), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#5372C4", guide = guide_legend(title = "Number of Schools")) +
   theme_minimal() +
@@ -453,8 +503,8 @@ blue <- ggplot(nyc_join) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-pink <- ggplot(nyc_join) +
-  geom_sf(aes(fill = POPULATION), color = "#8f98aa")+
+pink <- ggplot(full_nyc) +
+  geom_sf(aes(fill = pop_est), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#F450E1", guide = guide_legend(title = "Number of People")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
@@ -469,7 +519,6 @@ pink <- ggplot(nyc_join) +
 ```
 
 ```{r, fig.height=9*1.2, fig.width=9*1.2}
-library(egg)
 ggarrange(red, orange, yellow, yellow_green, green, teal, blue, purple, pink, ncol=3)
 ```
 
@@ -477,7 +526,7 @@ Next, we use the same dataset to look at how our population demographic outcomes
 
 
 ```{r}
-white <- ggplot(nyc_join) +
+white <- ggplot(full_nyc) +
   geom_sf(aes(fill = percent_white_non_hispanic), color = "#8f98aa") +
   scale_fill_gradient(low = "#FCF5EE", high = "#7B435B", guide = guide_legend(title = "Percent White")) +
   theme_minimal() +
@@ -491,7 +540,7 @@ white <- ggplot(nyc_join) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-black <- ggplot(nyc_join) +
+black <- ggplot(full_nyc) +
   geom_sf(aes(fill = percent_black_non_hispanic), color = "#8f98aa") +
   scale_fill_gradient(low = "#FCF5EE", high = "#F25F5C", guide = guide_legend(title = "Percent Black")) +
   theme_minimal() +
@@ -505,7 +554,7 @@ black <- ggplot(nyc_join) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-asian <- ggplot(nyc_join) +
+asian <- ggplot(full_nyc) +
   geom_sf(aes(fill = percent_asian_non_hispanic), color = "#8f98aa") +
   scale_fill_gradient(low = "#FCF5EE", high = "#717EC3", guide = guide_legend(title = "Percent Asian")) +
   theme_minimal() +
@@ -519,7 +568,7 @@ asian <- ggplot(nyc_join) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-latinx <- ggplot(nyc_join) +
+latinx <- ggplot(full_nyc) +
   geom_sf(aes(fill = percent_hispanic_latino), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#FC9A38", guide = guide_legend(title = "Percent Latinx")) +
   theme_minimal() +
@@ -533,7 +582,7 @@ latinx <- ggplot(nyc_join) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-native <- ggplot(nyc_join) +
+native <- ggplot(full_nyc) +
   geom_sf(aes(fill = percent_american_indian), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#5DA271", guide = guide_legend(title = "Percent Native")) +
   theme_minimal() +
@@ -547,7 +596,7 @@ native <- ggplot(nyc_join) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-pacific <- ggplot(nyc_join) +
+pacific <- ggplot(full_nyc) +
   geom_sf(aes(fill = percent_pacific_islander), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#16BAC5", guide = guide_legend(title = "Percent Pacific Islander")) +
   theme_minimal() +
