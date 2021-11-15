@@ -34,6 +34,10 @@ theme_set(theme_minimal())
 ```{r}
 #NTA shape file -> https://data.cityofnewyork.us/City-Government/NTA-map/d3qk-pfyz
 #Census tracts shape file -> https://www1.nyc.gov/site/planning/data-maps/open-data/census-download-metadata.page
+
+#NTA mapping https://www1.nyc.gov/assets/planning/download/pdf/planning-level/nyc-population/census2010/ntas.pdf 
+
+#census 2010-2020 data -> https://www1.nyc.gov/site/planning/planning-level/nyc-population/2020-census.page
 ```
 
 
@@ -159,11 +163,67 @@ nyc_m %>%
 
 ```{r}
 nta_ct <-read_csv("demographics/nta_ct.csv")
-boundary_nta <- st_read("demographics/nynta_14d/nynta.shp", quiet = TRUE)
-boundary <- st_read("demographics/nyct2020_21c/nyct2020.shp", quiet = TRUE)
+boundary_nta <- st_read("demographics/nynta_14d/nynta.shp", quiet = TRUE) %>%
+  rename(Name = NTAName)
 
-nyc_join <- merge(boundary_ct, demographics) 
 
+dem_nta <- 
+  demographics %>%
+  drop_na(`NTA Type`)
+  
+
+nyc_join <- merge(boundary_nta, dem_nta, by="Name") 
+
+ggplot(boundary_nta) +
+  geom_sf(aes(fill = Shape_Leng)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Staten Island Population")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
+```
+
+
+
+```{r}
+ridership <- read_csv("transit/ridership_points.csv")
+
+
+ggplot(ridership) +
+  geom_sf() +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Staten Island Population")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+```
+
+```{r}
+install.packages("remotes")
+remotes::install_github("mfherman/nycgeo")
+```
+
+
+```{r}
+library(nycgeo)
+library(sf)
+nta_sf
+nta_acs_data
 ```
 
 
