@@ -34,9 +34,13 @@ library(here)
 # themes
 theme_set(theme_minimal())
 
+##---- Install custom library from Github: `nycgeo` -------
+# install.packages("remotes")
+# remotes::install_github("mfherman/nycgeo")
+##---------------------------------------------------------
+
 library(nycgeo)
 library(sf)
-library(tidyverse)
 
 nyc_join <- merge(nta_sf,nta_acs_data)
 
