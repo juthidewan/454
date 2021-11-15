@@ -5,10 +5,302 @@ date: "11/8/2021"
 output: html_document
 ---
 
-#token number: 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
+<style>
+.list-group-item.active, .list-group-item.active:focus, .list-group-item.active:hover {
+z-index: 2;
+color: #FFFFFF;
+background-color: #000000;
+border-color: #000000;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, 
+                      fig.height = 4, fig.width = 7,
+                      fig.align = 'center', fig.pos = 'H')
+```
 
 
 ```{r}
+# Load packages
+library(tidyverse)
+library(janitor)
+library(here)
+# themes
+theme_set(theme_minimal())
+```
+
+```{r}
+#NTA shape file -> https://data.cityofnewyork.us/City-Government/NTA-map/d3qk-pfyz
+#Census tracts shape file -> https://www1.nyc.gov/site/planning/data-maps/open-data/census-download-metadata.page
+
+#NTA mapping https://www1.nyc.gov/assets/planning/download/pdf/planning-level/nyc-population/census2010/ntas.pdf 
+
+#census 2010-2020 data -> https://www1.nyc.gov/site/planning/planning-level/nyc-population/2020-census.page
+```
+
+
+```{r}
+demographics <- read_csv(here("demographics","demographics.csv")) %>%
+  rename(census_tract = BCT2020) 
+```
+
+
+```{r}
+library(dplyr)
+library(sf)
+demographics_ct <- demographics %>%
+  drop_na(census_tract)
+
+boundary_ct <- st_read("demographics/nyct2020_21c/nyct2020.shp", quiet = TRUE) %>%
+    rename(census_tract = BoroCT2020)  %>%
+  select(census_tract, Shape_Area, Shape_Leng, geometry, GEOID, NTAName)
+
+
+nyc_m <- merge(boundary_ct, demographics) %>% filter(Borough == "Manhattan")
+nyc_q <- merge(boundary_ct, demographics) %>% filter(Borough == "Queens")
+nyc_bk <- merge(boundary_ct, demographics) %>% filter(Borough == "Brooklyn")
+nyc_bx <- merge(boundary_ct, demographics) %>% filter(Borough == "Bronx")
+nyc_si <- merge(boundary_ct, demographics) %>% filter(Borough == "Staten Island")
+```
+
+
+
+```{r}
+manhattan_pop <- ggplot(nyc_m) +
+  geom_sf(aes(fill = Pop_20)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Manhattan Population")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
+queens_pop <- ggplot(nyc_q) +
+  geom_sf(aes(fill = Pop_20)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Queens Population")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+bronx_pop <- ggplot(nyc_bx) +
+  geom_sf(aes(fill = Pop_20)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Bronx Population")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
+
+bk_pop <- ggplot(nyc_bk) +
+  geom_sf(aes(fill = Pop_20)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Bk Population")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
+staten_pop <- ggplot(nyc_si) +
+  geom_sf(aes(fill = Pop_20)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Staten Island Population")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
 
 ```
+
+
+
+
+```{r, fig.height=10, fig.width=20}
+library(egg)
+ggarrange(staten_pop, manhattan_pop, queens_pop, bk_pop, bronx_pop, ncol=3)
+```
+
+```{r}
+nyc_m %>%
+  group_by(NTAName) %>%
+  count(census_tract)
+```
+
+
+```{r}
+nta_ct <-read_csv("demographics/nta_ct.csv")
+boundary_nta <- st_read("demographics/nynta_14d/nynta.shp", quiet = TRUE) %>%
+  rename(Name = NTAName)
+
+
+dem_nta <- 
+  demographics %>%
+  drop_na(`NTA Type`)
+  
+
+nyc_join <- merge(boundary_nta, dem_nta, by="Name") 
+
+ggplot(boundary_nta) +
+  geom_sf(aes(fill = Shape_Leng)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Staten Island Population")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
+```
+
+
+
+```{r}
+ridership <- read_csv("transit/ridership_points.csv")
+
+
+ggplot(ridership) +
+  geom_sf() +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Staten Island Population")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+```
+
+```{r}
+install.packages("remotes")
+remotes::install_github("mfherman/nycgeo")
+```
+
+
+```{r}
+library(nycgeo)
+library(sf)
+nta_sf
+nta <- nta_sf
+
+nta_bk <- nta %>%
+  filter(borough_name == "Brooklyn")
+
+nta_m <- nta %>%
+  filter(borough_name == "Manhattan")
+
+nta_q <- nta %>%
+  filter(borough_name == "Queens")
+
+nta_acs_data <- nta_acs_data
+
+merge_bk <- merge(nta_bk, nta_acs_data)
+merge_m <- merge(nta_m, nta_acs_data)
+merge_q <- merge(nta_q, nta_acs_data)
+  
+
+ggplot(merge_bk) +
+  geom_sf(aes(fill = pop_black_pct_est)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Black Population Estimate")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
+ggplot(merge_m) +
+  geom_sf(aes(fill = pop_black_pct_est)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Black Population Estimate")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
+ggplot(merge_q) +
+  geom_sf(aes(fill = pop_black_pct_est)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Black Population Estimate")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
+ggplot(ridership) +
+  geom_sf(aes(fill = Rank2018)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Black Population Estimate")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+```
+
+
 
