@@ -1,5 +1,5 @@
 ---
-title: "STAT 454: Capstone Checkpoint 2"
+title: "STAT 454: Capstone Cleaning Work"
 author: Freddy Barragan, Juthi Dewan, Sam Ding, Vichy Meas
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
@@ -26,104 +26,6 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE,
 ```
 
 
-
-# 1: Group Members
-
-**Transportation Deserts and Transportation Accessibility:** Sam Ding and Vichy Meas
-**Ethnic Enclaves and City Demographics:** Juthi Dewan and Freddy Barragan
-
-							
-# 2: Summarize the broad area of interest and potential research questions.
-
-Given the size of our group, we decided to split our capstone project into two related analyses where each sub-group has more control over the development of the project while maintaing our meaningful collaboration. Broadly, we are interested in characterizing New York City's (NYC) internal racial segregation using demography, geographic mobility, community health, and economic outcomes. First, we want to identify transportation inaccess across neighborhoods in NYC. Then, we consider what neighborhoods racial enclaves in NYC are forming in and what they imply about racial segregation in NYC. Below we've included specific outlines of each subanalysis.
-
-> **Specific Aim:** Classify transportation deserts using ridership, demographics, and socioeconomic status.
->
-> **Outcome:** Transportation Desertification (Low, Medium, High). This will be calculated via ridership measures per neighborhood.
->
-> **Grouping Variables:** Neighborhood & Zip Code
->
-> **Covariates:** 
->
-- Number of Bus Stops (Transportation Access) 
-- Number of Jobs Accessible by Transit (Transportation Access) 
-- Percent on Public Assistance (demographic) 
-- Median Income (socioeconomic)
->
-> **Limitations:** 
->
-- Temporally correlated
-- Imperfect nesting of zip code in neighborhood
-- The existence of transportation hubs that allow large groups of people to cross erratically.
-
-----------
-
-> **Specific Aim:** How are the densities of nonwhite communities distributed by neighborhood associated with transportation desertification, when accounting for differences in socioeconomic status, community health, and demographics by neighborhood?
->
-> **Outcome:** Proportion of the community that is not white. This is calculated by subtracting the proportion of the white population from 1.
->
-Predictor of Interest: Transportation Desert Status (Low, Medium, High)
->
-> **Grouping Variables:** Neighborhood & Zip Code
->
-> **Covariates:** 
->
-- Socioeconomic Status (by Neighborhood):
-    + Median Asking Price of Craigslist/Street Easy Rentals
-    + Percent on Public Assistance 
-    + Median Income
-    + Number of Evictions 
-- Community Health (by Neighborhood):
-    + Number of Parks
-    + Number of Schools
-    + Number of Evictions 
-    + Number of Food Retailers
-- Transportation Access (by Neighborhood):
-    + Number of Jobs Accessible by Transit
-- Demographics (by Neighborhood):
-    + Percent Female
-    + Percent Non-citizen
->
->
-> **Limitations:** 
->
-- Rental Prices are temporally correlated and vary by month
-- Racial/Ethnic demographic data only measures predominant racial groups (e.g. White, Black, Latinx, Native, Asian, and Pacific Islander).
-- Imperfect nesting of zip code in neighborhood
-- Differences in years of observation (e.g. Outcome data is from 2021, but other necessary data may be from 2018)
->
->
-> **NOTE:** We intend to first study nonwhite population density, then reproduce in stratified analyses for each racial group (e.g. White, Black, Latinx, Native, Asian, and Pacific Islander) to see what may affect community density differently by group.
-
-	
-
-				
-# 3: Summarize your project’s connection to Bayesian statistics.
-
-We’re attempting to extend Raven McKnight’s capstone on transit ridership in the Twin Cities (McKnight, 2020), reports on neighborhood-level health disparities (Gracia et al., 2014; Ji et al, 2020), and previous work on gentrification, transportation deserts, urban displacement in NYC (Chapple et al.) to study the socioeconomic relationships between race, income, transportation, and class-based disparities in NYC under a Bayesian framework. Specifically, we intend to fit spatial hierarchical models to identify gaps in transportation access and how they may be associated with racial density and segregation of NYC. Our question is particularly suited for a Bayesian analysis, given the relative computational efficiency of Bayesian hierarchical models when studying data with nested structures as we have in NYC's neighborhoods. Further, a Bayesian framework allows us posterior information across zip-codes, even with relatively sparse, missing, or asymmetrical data that is certainly present by neighborhood. With respect to the workflow of our data analysis, we intend to select and test multiple prior distributions for our models. Prior selection will be first done using flat-priors, then specified using previous models of these relationships or previous reports on NYC’s demographics.
- 
-
-# 4: List at least 2 blogs, articles, readings, etc that you will use as starting resources in this project.
-
-## Readings and Theory:
-
-- Chapple, K., Waddell, P., Chatman, D., Zuk, M., Loukaitou-Sideris, A., Ong, P., et al. (2017). Developing a New Methodology for Analyzing Potential Displacement. UC Berkeley. Retrieved from https://escholarship.org/uc/item/6xb465cq
-- Gracia, E., López-Quílez, A., Marco, M., Lladosa, S., & Lila, M. (2014). Exploring neighborhood influences on small-area variations in intimate partner violence risk: a Bayesian random-effects modeling approach. International journal of environmental research and public health, 11(1), 866–882. https://doi.org/10.3390/ijerph110100866
-- Ji, J., Hu, L., Liu, B., & Li, Y. (2020). Identifying and assessing the impact of key neighborhood-level determinants on geographic variation in stroke: a machine learning and multilevel modeling approach. BMC Public Health, 20(1). 10.1186/s12889-020-09766-3
-- Kaufman, S.M., Moss, M.L., Tyndall, J., & Hernandez, J. (2014). Mobility, Economic Opportunity and New York City Neighborhoods. Housing & Community Development Law eJournal. Retrieve from https://wagner.nyu.edu/files/faculty/publications/JobAccessNov2015.pdf
-Limone, O., & Sanchez, N. (2019, December 16). Mapping Food Deserts (and Swamps) In Manhattan And The Bronx. Medium. https://medium.com/@olivialimone/mapping-food-deserts-and-swamps-in-manhattan-and-the-bronx-46c6d8fc0804
-- McKnight, Raven, "Twin Cities Bus Ridership: A Spatial Bayesian Analysis" (2020). Mathematics, Statistics, and Computer Science Honors Projects. 63. https://digitalcommons.macalester.edu/mathcs_honors/63
-- Shichao Sun, Dongyuan Yang, "Identifying Public Transit Commuters Based on Both the Smartcard Data and Survey Data: A Case Study in Xiamen, China", Journal of Advanced Transportation, vol. 2018, Article ID 9693272, 10 pages, 2018. https://doi.org/10.1155/2018/9693272
-https://downloads.hindawi.com/journals/jat/2018/9693272.pdf (article) (2020). Mathematics, Statistics, and Computer Science Honors Projects. 63. https://digitalcommons.macalester.edu/mathcs_honors/63
-
-## Data Sets:
-
-NYC Open Data is our largest source of data, given that it has detailed datasets from all of NYC’s divisions at the neighborhood level. However, turnstile data and rental data was generated from the MTA and Craigslist/StreetEasy, respectively. 
-
-
-
-Below, we use our cleaned data to visualize our ethnic enclave predictors by neighborhood. Note, rental price data has taken substantially longer to join, so it is excluded here.
-
 ```{r}
 # Load packages
 library(tidyverse)
@@ -132,130 +34,120 @@ library(here)
 # themes
 theme_set(theme_minimal())
 
-```
-
-```{r}
-grocery <- read_csv(here("ethnic","Data","grocery.csv")) # coordinate
-schools <- read_csv(here("ethnic","Data","schools.csv")) # censuse
-green_space <- read_csv(here("ethnic","Data","parks.csv")) # coordinate
-evictions <- read_csv(here("ethnic","Data","evictions.csv")) # census
-access_income <- read_csv(here("ethnic","Data","transit_income.csv"))
-demographics <- read_csv(here("ethnic","Data","demographics.csv"))
-rental_price <- read_csv(here("ethnic","Data","median_rent.csv"))
-```
-
-```{r}
-grocery <- grocery %>% 
-  dplyr::select(`License Number`, County, `Zip Code`) %>% 
-  rename_all(tolower) %>%
-  clean_names()  %>%
-  group_by(zip_code) %>%
-  tally()%>%
-  dplyr::rename(zip = zip_code) %>%
-  dplyr::rename("grocery_stores" = "n")%>%
-  mutate(zip = as.factor(zip))
-
-schools <- schools %>% 
-  dplyr::select(`Location 1`, CENSUS_TRACT, NTA)  %>% 
-  rename_all(tolower) %>%
-  clean_names() %>%
-  mutate(postcode = sub(".*NY ", "", location_1), .before=1) %>%
-  mutate(postcode = sub("(\n).*", "", postcode), .before=1)%>%
-  mutate(new_coord = str_extract_all(location_1, "\\([^()]+\\)"), .before=2) %>%
-  mutate(new_coord = substring(new_coord, 2, nchar(new_coord)-1), .before=2) %>%
-  separate(new_coord, into = c("latitude", "longitude"), sep = "[,]") %>%
-  mutate(latitude=as.numeric(latitude),
-         longitude = as.numeric(longitude)) %>%
-  dplyr::select(-c(location_1))%>%
-  dplyr::rename(zip = postcode)%>%
-  mutate(zip = as.factor(zip)) %>%
-  group_by(zip) %>%
-  tally()%>%
-  dplyr::rename(schools = n)
-
-green_space <- green_space %>% 
-  dplyr::select(GlobalID, ZIPCODE)  %>% 
-  rename_all(tolower) %>%
-  clean_names() %>%
-  group_by(zipcode) %>%
-  tally()%>%
-  dplyr::rename(zip = zipcode)%>%
-  dplyr::rename(parks = n)%>%
-  mutate(zip = as.factor(zip))
-
-evictions<- evictions %>% 
-  dplyr::select(BOROUGH, `Eviction Postcode`, `Census Tract`, NTA)  %>% 
-  rename_all(tolower) %>%
-  clean_names()  %>%
-  group_by(eviction_postcode) %>%
-  tally() %>%
-  dplyr::rename(zip = eviction_postcode)%>%  
-  dplyr::rename(evictions = n)%>%
-  mutate(zip = as.factor(zip))
-
-access_income<- access_income  %>% 
-  rename_all(tolower) %>%
-  clean_names() %>%
-  mutate(median_income = str_remove(median_income, "[$]")) %>%
-  mutate(median_income = str_remove(median_income, "[,]")) %>%
-  mutate(median_income = as.double(median_income)) %>%
-  mutate(zip = as.factor(zip)) 
-
-demographics <- demographics %>% 
-  dplyr::select(`JURISDICTION NAME`, `PERCENT FEMALE`, `PERCENT PACIFIC ISLANDER`, `PERCENT HISPANIC LATINO`, `PERCENT AMERICAN INDIAN`, `PERCENT WHITE NON HISPANIC`, `PERCENT ASIAN NON HISPANIC`, `PERCENT BLACK NON HISPANIC`, `PERCENT OTHER ETHNICITY`, `PERCENT ETHNICITY UNKNOWN`, `PERCENT US CITIZEN`, `PERCENT RECEIVES PUBLIC ASSISTANCE`, `PERCENT NRECEIVES PUBLIC ASSISTANCE`)  %>%
-  rename_all(tolower) %>%
-  clean_names() %>% 
-  mutate(percent_nonwhite = 1-percent_white_non_hispanic, .before=2)%>%
-  dplyr::rename(zip = jurisdiction_name)%>%
-  mutate(zip = as.factor(zip))
-
-rental_price <- rental_price %>% 
-  rename_all(tolower) %>%
-  clean_names() 
-
-names(rental_price) <- names(rental_price)%>%
-  stringr::str_replace_all("x","")
-
-rental_price_clean <- rental_price %>% 
-  filter(areatype=="neighborhood") %>%
-  dplyr::select(areaname, starts_with("2021")) %>%
-  na.omit() %>%
-  rowwise(areaname) %>%
-  filter(!grepl("All ",areaname)) %>%
-  mutate(yearly_median = rowMeans(na.rm = TRUE, across(where(is.numeric)))) %>%
-  dplyr::select(areaname, yearly_median)
-```
-
-
-
-```{r}
-cleaned_nyc <- access_income %>% 
-  filter(neighborhood != "AVERAGE NYC NEIGHBORHOOD") %>%
-  left_join(., demographics, by="zip") %>%
-  left_join(., evictions, by="zip") %>%
-  left_join(., schools, by="zip")  %>%
-  left_join(., green_space, by="zip")  %>%
-  left_join(., grocery, by="zip") %>%
-  mutate(grocery_stores = ifelse(is.na(grocery_stores), 0, grocery_stores)) %>%
-  filter(!is.na(percent_nonwhite)) %>%
-  mutate(modzcta = zip, .before=1)
-# cleaned_nyc %>%
-#   dplyr::select(neighborhood, ZIPCODE) %>%
-#   fuzzyjoin::stringdist_inner_join(., rental_price_clean, by=c("neighborhood"="areaname"))
-```
-
-
-```{r}
+library(nycgeo)
 library(sf)
+library(tidyverse)
 
-# read shapefiles of NYC Zip Codes
+nyc_join <- merge(nta_sf,nta_acs_data)
 
-boundary_nyc <- st_read(here("ethnic", "Data", "modzcta_bounds","geo_export_27a93715-f9a7-451d-bf54-fe2faa45cb1e.shp"), 
-                        quiet = TRUE) 
 
-library(zipcodeR)
+nyc_join <- nyc_join %>%
+  st_transform(., 4269)
 
-# read ridership
+county_list <- nyc_join %>% pull(county_name) %>% unique()
+
+library(tidycensus)
+census_api_key("0cc07f06386e317f312adef5e0892b0d002b7254")
+census_data <- get_acs(state = "NY", 
+        county = c(county_list), 
+        geography = "tract", 
+        variables = c(medincome = "B19013_001", 
+                      total_pop1 = "B01003_001",
+                      below_poverty_100 = "B06012_002", 
+                      below_poverty_100to150 = "B06012_003",
+                      median_rent = "B25031_001", 
+                      hholds_snap = "B22003_002", 
+                      hholds_disability ="B22010_003",
+                      unemployed = "B23025_005", 
+                      latinx = "B03002_012", 
+                      white = "B03002_003", 
+                      black = "B03002_004", 
+                      native = "B03002_005",
+                      asian = "B03002_006",
+                      under19_noinsurance = "B27010_017",
+                      age19_34_noinsurance = "B27010_033",
+                      age35_64_noinsurance = "B27010_050",
+                      age65plus_noinsurance = "B27010_066",
+                      naturalized_citizen = "B05001_005",
+                      noncitizen ="B05001_006"),
+        year = 2019,
+        output = "wide",
+        survey = "acs5",
+        geometry = TRUE) %>% 
+  dplyr::select(-c(NAME, ends_with("M"))) %>%
+         rename_at(vars(ends_with("E")), .funs = list(~str_sub(., end = -2)))
+
+library(openxlsx)
+nta_to_census <- openxlsx::read.xlsx(here("ethnic", "Data", "census_to_nta.xlsx")) %>%
+  dplyr::select(GEOID, NTACode)
+
+census_nta <- census_data %>%
+  merge(., nta_to_census) %>%
+  mutate(uninsured = under19_noinsurance + age19_34_noinsurance + age35_64_noinsurance + age65plus_noinsurance) %>%
+  dplyr::select(-c(under19_noinsurance, age19_34_noinsurance, age35_64_noinsurance, age65plus_noinsurance)) %>%
+  mutate(NTACode = as.character(NTACode),
+         NTACode = ifelse(is.na(NTACode), "NA", NTACode)) %>%
+  group_by(NTACode) %>%
+  summarize(geometry = st_union(geometry),
+            total_pop = sum(total_pop1), 
+            mean_income = mean(medincome, na.rm = TRUE),
+            below_poverty_line_count = sum(below_poverty_100),
+            below_poverty_line_and_50_count = sum(below_poverty_100to150),
+            mean_rent = mean(median_rent, na.rm = TRUE),
+            unemployment_count = sum(unemployed),
+            latinx_count = sum(latinx),
+            white_count = sum(white),
+            black_count = sum(black),
+            native_count = sum(native),
+            asian_count = sum(asian),
+            naturalized_citizen_count = sum(naturalized_citizen),
+            noncitizen_count = sum(noncitizen),
+            uninsured_count = sum(uninsured))  %>%
+  filter(total_pop != 0) %>%
+  mutate(below_poverty_line_count = below_poverty_line_count/total_pop,
+         below_poverty_line_and_50_count = below_poverty_line_and_50_count/total_pop,
+         unemployment_count = unemployment_count/total_pop,
+         latinx_count = latinx_count/total_pop,
+         white_count = white_count/total_pop,
+         black_count = black_count/total_pop,
+         native_count = native_count/total_pop,
+         asian_count = asian_count/total_pop,
+         naturalized_citizen_count = naturalized_citizen_count/total_pop,
+         noncitizen_count = noncitizen_count/total_pop,
+         uninsured_count = uninsured_count/total_pop) %>%
+  dplyr::rename(nta_id = NTACode)
+
+names(census_nta) <- gsub(names(census_nta), pattern = "_count", replacement = "_percent")
+
+
+```
+
+```{r}
+grocery <- read_csv(here("ethnic","Data","grocery.csv")) %>%
+  drop_na(Georeference) %>%
+  separate(Georeference, into=c("Point", "longitude", "latitude"), " ") %>%
+  mutate(latitude = str_remove_all(latitude, "[)]"),
+         longitude = str_remove_all(longitude, "[()]"),
+         ) %>%
+  dplyr::select(-c(Point)) %>% 
+  mutate(latitude = as.numeric(latitude),
+         longitude = as.numeric(longitude)) %>%
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4269)
+
+public_schools <- st_read(here("ethnic","Data","schools", "Public_Schools_Points_2011-2012A.shp")) %>%
+  st_transform(., 4269)
+
+subway_stations <- st_read(here("ethnic","Data","stations", "geo_export_85568705-efba-4456-bdc0-3d70ff2cf8e5.shp")) %>%
+  st_transform(., 4269)
+
+bus_stations <- st_read(here("ethnic","Data","bus", "bus_stops_nyc_may2020.shp")) %>%
+  st_transform(., 4269)
+
+evictions <- read_csv(here("ethnic","Data","evictions.csv")) %>%
+  drop_na(Longitude) %>%
+  drop_na(Latitude) %>%
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 4269)
+
 transit_points <- read_csv(here("transit","ridership_points.csv"))%>%
   separate(Position, into=c("Point", "longitude", "latitude"), " ") %>%
   mutate(latitude = str_remove_all(latitude, "[)]"),
@@ -264,69 +156,40 @@ transit_points <- read_csv(here("transit","ridership_points.csv"))%>%
   dplyr::select(-c(Point)) %>% 
   mutate(latitude = as.numeric(latitude),
          longitude = as.numeric(longitude)) %>%
-  st_as_sf(coords = c("longitude", "latitude"), crs = st_crs(boundary_nyc), agr = "constant")
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4269)
 
-# zip_ridership <- c()
-# for(i in transit_points$search){
-#   zip_ridership <- cbind(search_radius("40.813,-73.93,.1"), zip_ridership)
-#   
-#   
-# cmd_table <- paste0()
-# 
-# eval(parse(text = cmd_table), envir=.GlobalEnv)
-# 
-# 
-# gene_by_gene_table <<- c(gene_by_gene_table, paste0("cox_", de_sym))  
-# }
-# 
-# paste("")
-# 
-# 
-# 
-# cmd_table <- paste0('_', de_sym, '<-', 
-#               "coxph(Surv(survival_years, Vital.Status) ~ ",
-#                   de_sym, "+ inferred_SIRE + Sex + 
-#                   age_risk + WBC_risk + CNS_risk + 
-#                   testes_risk + subtype_category_unknown, 
-#                 
-#                 singular.ok = TRUE, data = survival_clinical_f) %>% 
-#   
-#         tbl_regression(exponentiate = TRUE, pvalue_fun = ~style_pvalue(.x, digits = 2)) %>% 
-#     as_tibble() %>%
-#     dplyr::slice(-c(2:nrow(.)))   %>%
-#   magrittr::set_colnames(c('DE Gene', 'HR', '95% CI', 'p-value')) %>%
-#   mutate('95% CI' = paste0('(',`95% CI`,')'))")
-# 
-# 
-# eval(parse(text = cmd_table), envir=.GlobalEnv)
-# 
-# 
-# search_radius("40.813,-73.93,.1")
+#green_space <- head(read_csv(here("ethnic","Data","parks.csv"))) # coordinate
+#access_income <- read_csv(here("ethnic","Data","transit_income.csv"))
+#rental_price <- read_csv(here("ethnic","Data","median_rent.csv"))
 ```
-
 
 
 ```{r}
-nyc_join <- merge(boundary_nyc, cleaned_nyc)
+nyc_schools_join <- st_join(census_nta, public_schools) %>%
+  group_by(nta_id) %>%
+  summarize(school_count=n())
 
+nyc_grocery_join <- st_join(census_nta, grocery) %>%
+  group_by(nta_id) %>%
+  summarize(store_count=n())
 
-transit_ridership_neighborhood <- transit_points %>% mutate(
-  intersection = as.integer(st_intersects(geometry, nyc_join)), 
-  modzcta = if_else(is.na(intersection), "", nyc_join$modzcta[intersection]), .before=1
-) %>%
-  rownames_to_column(.) %>%
-  group_by(modzcta) %>%
-  dplyr::summarise(stops = n(),
-            median_ridership = mean(`2018Ridership`)) %>%
-  filter(modzcta  != "") %>% 
-  data.frame() %>%
-  dplyr::select(-c(geometry)) 
+nyc_evictions_join <- st_join(census_nta, evictions)%>%
+  group_by(nta_id) %>%
+  summarize(eviction_count=n())
 
+nyc_stop_join <- st_join(census_nta, subway_stations)%>%
+  group_by(nta_id) %>%
+  summarize(sub_count=n())
 
+nyc_bus_stop_join <- st_join(census_nta, bus_stations)%>%
+  group_by(nta_id) %>%
+  summarize(bus_count=n())
 
-full_nyc <- merge(nyc_join, transit_ridership_neighborhood, all=TRUE)
-
+nyc_ridership_join <- st_join(census_nta, transit_points) %>%
+  group_by(nta_id) %>%
+  summarize(mean_ridership = mean(`2018Ridership`))
 ```
+
 
 
 ```{r, fig.height=5*1.2, fig.width=5*1.2}
@@ -335,9 +198,9 @@ library(s2)
 
 #plot locations over map
 subway_loc <- ggplot() +
-  geom_sf(data = nyc_join, fill = "#EBF6FF", color = "#D48DD8", size = 0.15, alpha = .2) +
-  geom_sf(data = transit_points, color="#3F123C", size=2) + 
-  coord_sf(datum = st_crs(boundary_nyc)) +
+  geom_sf(data = census_nta, fill = "#EBF6FF", color = "#D48DD8", size = 0.15, alpha = .8) +
+  geom_sf(data = subway_stations, color="#3F123C", size=1) + 
+  coord_sf(datum = st_crs(subway_stations)) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -349,11 +212,27 @@ subway_loc <- ggplot() +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-stops <- full_nyc %>%
+bus_loc <- ggplot() +
+  geom_sf(data = census_nta, fill = "#EBF6FF", color = "#D48DD8", size = 0.15, alpha = .8) +
+  geom_sf(data = bus_stations, color="#3F123C", size=.5, alpha=.5) + 
+  coord_sf(datum = st_crs(subway_stations)) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Bus Stop Locations \nin NYC")+ 
+    theme(#panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
+stops <- nyc_stop_join %>%
   ggplot() +
-  geom_sf(aes(fill = stops), color = "#8f98aa") +
+  geom_sf(aes(fill = sub_count), color = "#8f98aa") +
   scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
-                      guide = guide_legend(title = "Number of Stops") ,na.value="#D6D6D6") +
+                      guide = guide_legend(title = "Number of Subway Stops") ,na.value="#D6D6D6") +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -365,9 +244,26 @@ stops <- full_nyc %>%
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-ridership <- full_nyc %>%
+bus_stops <- nyc_bus_stop_join %>%
   ggplot() +
-  geom_sf(aes(fill = median_ridership), color = "#8f98aa") +
+  geom_sf(aes(fill = bus_count), color = "#8f98aa") +
+  scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
+                      guide = guide_legend(title = "Number of Bus Stops") ,na.value="#D6D6D6") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Bus Stop Counts \nin NYC")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
+ridership <- nyc_ridership_join %>%
+  ggplot() +
+  geom_sf(aes(fill = mean_ridership), color = "#8f98aa") +
   scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
                       guide = guide_legend(title = "Mean Ridership") ,na.value="#D6D6D6") +
   theme_minimal() +
@@ -382,22 +278,22 @@ ridership <- full_nyc %>%
            color = guide_legend(override.aes = list(size = 4)))
 ```
 
-```{r, fig.height=3*1.2, fig.width=9*1.2}
+```{r, fig.height=12*1.2, fig.width=12*1.2}
 library(egg)
-ggarrange(subway_loc, stops, ridership, ncol=3)
+ggarrange(subway_loc, bus_loc, stops, bus_stops, ridership, ncol=2)
 ```
 
 
 
 
 ```{r}
-red <- ggplot(full_nyc) +
-  geom_sf(aes(fill = percent_female), color = "#8f98aa") +
-  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Percent Female")) +
+red <- ggplot(census_nta) +
+  geom_sf(aes(fill = below_poverty_line_percent), color = "#8f98aa") +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Percent Below \nPoverty Line")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
-  ggtitle("Female Population")+ 
+  ggtitle("Impoverished Populations")+ 
     theme(panel.grid.major = element_line("transparent"),
           plot.title = element_text(size = 13, face = "bold"),
           legend.title = element_text(size = 8), 
@@ -405,36 +301,36 @@ red <- ggplot(full_nyc) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-yellow <- ggplot(full_nyc) +
-  geom_sf(aes(fill = median_income), color = "#8f98aa") +
-  scale_fill_gradient(low = "#FCF5EE", high = "#F3D24E", guide = guide_legend(title = "Median Income")) +
+yellow <- ggplot(census_nta) +
+  geom_sf(aes(fill = mean_income), color = "#8f98aa") +
+  scale_fill_gradient(low = "#FCF5EE", high = "#F3D24E", guide = guide_legend(title = "Mean Income")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
-  ggtitle("Median Income")+ 
+  ggtitle("Mean Income")+
     theme(panel.grid.major = element_line("transparent"),
           plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
+          legend.title = element_text(size = 8),
+          legend.text = element_text(size = 8)) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-teal <- ggplot(full_nyc) +
-  geom_sf(aes(fill = jobs_accessible), color = "#8f98aa") +
-  scale_fill_gradient(low = "#FCF5EE", high = "#2DBDC7", guide = guide_legend(title = "Number of Jobs")) +
+teal <- ggplot(census_nta) +
+  geom_sf(aes(fill = mean_rent), color = "#8f98aa") +
+  scale_fill_gradient(low = "#FCF5EE", high = "#2DBDC7", guide = guide_legend(title = "Dollars")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
-  ggtitle("Job Access via Public Transit")+ 
+  ggtitle("Mean Rent")+
     theme(panel.grid.major = element_line("transparent"),
           plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
+          legend.title = element_text(size = 8),
+          legend.text = element_text(size = 8)) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-purple <- ggplot(full_nyc) +
-  geom_sf(aes(fill = evictions), color = "#8f98aa")+
+purple <- ggplot(nyc_evictions_join) +
+  geom_sf(aes(fill = eviction_count), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#7826C0", guide = guide_legend(title = "Number of Evictions")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
@@ -447,22 +343,22 @@ purple <- ggplot(full_nyc) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-orange <- ggplot(full_nyc) +
-  geom_sf(aes(fill = percent_receives_public_assistance), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#FC9228", guide = guide_legend(title = "Percent on \nPublic Assistance")) +
+orange <- ggplot(census_nta) +
+  geom_sf(aes(fill = unemployment_percent), color = "#8f98aa")+
+  scale_fill_gradient(low = "#FCF5EE", high = "#FC9228", guide = guide_legend(title = "Percent on \nUnemployment")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
-  ggtitle("Public Assistance")+ 
+  ggtitle("Unemployment")+
     theme(panel.grid.major = element_line("transparent"),
           plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
+          legend.title = element_text(size = 8),
+          legend.text = element_text(size = 8)) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-green <- ggplot(full_nyc) +
-  geom_sf(aes(fill = grocery_stores), color = "#8f98aa")+
+green <- ggplot(nyc_grocery_join) +
+  geom_sf(aes(fill = store_count), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#326902", guide = guide_legend(title = "Number of Stores")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
@@ -475,23 +371,24 @@ green <- ggplot(full_nyc) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-yellow_green <- ggplot(full_nyc) +
-  geom_sf(aes(fill = parks), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#939E28", guide = guide_legend(title = "Number of Parks")) +
+yellow_green <- ggplot(census_nta) +
+  geom_sf(aes(fill = uninsured_percent), color = "#8f98aa")+
+  scale_fill_gradient(low = "#FCF5EE", high = "#939E28", guide = guide_legend(title = "Percent Uninsured")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
-  ggtitle("Green Space")+ 
+  ggtitle("Green Space")+
     theme(panel.grid.major = element_line("transparent"),
           plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
+          legend.title = element_text(size = 8),
+          legend.text = element_text(size = 8)) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-blue <- ggplot(full_nyc) +
-  geom_sf(aes(fill = schools), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#5372C4", guide = guide_legend(title = "Number of Schools")) +
+blue <- ggplot(nyc_schools_join) +
+  geom_sf(aes(fill = school_count), color = "#8f98aa")+
+  scale_fill_gradient(low = "#FCF5EE", high = "#5372C4", 
+                      guide = guide_legend(title = "Number of Schools")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -503,8 +400,8 @@ blue <- ggplot(full_nyc) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-pink <- ggplot(full_nyc) +
-  geom_sf(aes(fill = pop_est), color = "#8f98aa")+
+pink <- ggplot(census_nta) +
+  geom_sf(aes(fill = total_pop), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#F450E1", guide = guide_legend(title = "Number of People")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
@@ -516,18 +413,33 @@ pink <- ggplot(full_nyc) +
           legend.text = element_text(size = 8)) + 
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
+
+
+brown <- ggplot(census_nta) +
+  geom_sf(aes(fill = uninsured_percent), color = "#8f98aa")+
+  scale_fill_gradient(low = "#FCF5EE", high = "#F450E1", guide = guide_legend(title = "Percent of People without Insurance Coverage")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Insurance Coverage")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
 ```
 
 ```{r, fig.height=9*1.2, fig.width=9*1.2}
-ggarrange(red, orange, yellow, yellow_green, green, teal, blue, purple, pink, ncol=3)
+ggarrange(red, orange, yellow, yellow_green, green, teal, blue, purple, pink, brown, ncol=3)
 ```
 
 Next, we use the same dataset to look at how our population demographic outcomes vary by neighborhood.
 
 
 ```{r}
-white <- ggplot(full_nyc) +
-  geom_sf(aes(fill = percent_white_non_hispanic), color = "#8f98aa") +
+white <- ggplot(nyc_join) +
+  geom_sf(aes(fill = pop_white_pct_est), color = "#8f98aa") +
   scale_fill_gradient(low = "#FCF5EE", high = "#7B435B", guide = guide_legend(title = "Percent White")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
@@ -540,8 +452,8 @@ white <- ggplot(full_nyc) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-black <- ggplot(full_nyc) +
-  geom_sf(aes(fill = percent_black_non_hispanic), color = "#8f98aa") +
+black <- ggplot(nyc_join) +
+  geom_sf(aes(fill = pop_black_pct_est), color = "#8f98aa") +
   scale_fill_gradient(low = "#FCF5EE", high = "#F25F5C", guide = guide_legend(title = "Percent Black")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
@@ -554,8 +466,8 @@ black <- ggplot(full_nyc) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-asian <- ggplot(full_nyc) +
-  geom_sf(aes(fill = percent_asian_non_hispanic), color = "#8f98aa") +
+asian <- ggplot(nyc_join) +
+  geom_sf(aes(fill = pop_asian_pct_est), color = "#8f98aa") +
   scale_fill_gradient(low = "#FCF5EE", high = "#717EC3", guide = guide_legend(title = "Percent Asian")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
@@ -568,8 +480,8 @@ asian <- ggplot(full_nyc) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-latinx <- ggplot(full_nyc) +
-  geom_sf(aes(fill = percent_hispanic_latino), color = "#8f98aa")+
+latinx <- ggplot(nyc_join) +
+  geom_sf(aes(fill = pop_hisp_pct_est), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#FC9A38", guide = guide_legend(title = "Percent Latinx")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
@@ -581,72 +493,8 @@ latinx <- ggplot(full_nyc) +
           legend.text = element_text(size = 8)) + 
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
-
-native <- ggplot(full_nyc) +
-  geom_sf(aes(fill = percent_american_indian), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#5DA271", guide = guide_legend(title = "Percent Native")) +
-  theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("American Native Population")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 15, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
-
-pacific <- ggplot(full_nyc) +
-  geom_sf(aes(fill = percent_pacific_islander), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#16BAC5", guide = guide_legend(title = "Percent Pacific Islander")) +
-  theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Pacific Islander Population")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 15, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
 ```
 
-```{r, fig.height=9*1.2, fig.width=9*1.2}
-ggarrange(white, black, latinx, asian, native, pacific, ncol=2)
+```{r, fig.height=6*1.2, fig.width=6*1.2}
+ggarrange(white, black, latinx, asian, ncol=2)
 ```
-
-
-
-							
-# 5:  Challenge, creativity, and teamwork
- 							
-**Challenge:** What do you anticipate to be the difficulty level of your current project? What new tools/skills will you need to pick up for this project?
-
-> The largest conceptual hurdle will be learning how to use hierarchical models and understanding when they're appropriate. However, a major burden of this project will largely be the cleaning and joining process of our different disparate datasets.
- 								
-**Creativity:** In what ways will your project be unique? Can you imagine creative visualizations/presentations/modes of communication/modes of distribution that will enhance your project?
-
-> Previous measurements of NYC racial segregation and neighborhood-specific racial composition have occurred, but almost universally did they happen under a frequentist mode of analysis. Our project is thus atypical within urban studies on NYC. However, the atypicalities extend even into our project format. Because our major goal is to communicate these justice issues to a broader public, we want to create a zine or pamphlet that explains the racial composition of NYC and study how structural issues are associated with demographics.
-
-
-**Teamwork:** Agree upon and identify the following.
-
-> We will meet for an hour on MWF afternoons. With respect to document sharing, we are currently sharing documents and data via a shared google drive, but intend to use a github repository to share code between us, so that we can stay up to date. 
- 								
-						
-							
-# 6:  Communication.
-
-When presenting our work, our intended audience is students who have taken 155, largely because many non-statisticians and/or non-mathematicians attend Capstone days, but most have not taken 454.  When writing our work, our intended audience is for students who may have encountered statistics or geography, but do not neccesarily know extensive background information. Again, because our group is fairly large, we are hoping to use two formats to present our work and sub-work:
-
-- A zine that is structured like a formal written report of the project, but is artistic and communicable enough that we can give paper-copies to students and attendees at capstone days.
-- A shiny app that shows what is important in classifying an arbitrary neighborhood as a transportation desert.
-
-
-
-
-
-
-
-
-
