@@ -188,6 +188,18 @@ nyc_bus_stop_join <- st_join(census_nta, bus_stations)%>%
 nyc_ridership_join <- st_join(census_nta, transit_points) %>%
   group_by(nta_id) %>%
   summarize(mean_ridership = mean(`2018Ridership`))
+
+
+#eveyrthing is a tibble, dplyr join commands by nta. st_as_sf to convert to shapefiles
+
+data <- as.data.frame(nyc_schools_join) %>% 
+  full_join(., (as.data.frame(nyc_evictions_join)), by= "nta_id") %>%
+  full_join(., (as.data.frame(nyc_grocery_join)), by= "nta_id") %>%
+  full_join(., (as.data.frame(nyc_stop_join)), by= "nta_id") %>%
+  full_join(., (as.data.frame(nyc_bus_stop_join)), by= "nta_id") %>%
+  full_join(., (as.data.frame(nyc_ridership_join)), by= "nta_id")
+
+merge
 ```
 
 
