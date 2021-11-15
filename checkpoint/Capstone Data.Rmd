@@ -371,19 +371,19 @@ green <- ggplot(nyc_grocery_join) +
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
 
-yellow_green <- ggplot(census_nta) +
-  geom_sf(aes(fill = uninsured_percent), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#939E28", guide = guide_legend(title = "Percent Uninsured")) +
-  theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Green Space")+
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8),
-          legend.text = element_text(size = 8)) +
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+# yellow_green <- ggplot(census_nta) +
+#   geom_sf(aes(fill = uninsured_percent), color = "#8f98aa")+
+#   scale_fill_gradient(low = "#FCF5EE", high = "#939E28", guide = guide_legend(title = "Percent Uninsured")) +
+#   theme_minimal() +
+#   theme(panel.grid.major = element_line("transparent"),
+#         axis.text = element_blank()) +
+#   ggtitle("Green Space")+
+#     theme(panel.grid.major = element_line("transparent"),
+#           plot.title = element_text(size = 13, face = "bold"),
+#           legend.title = element_text(size = 8),
+#           legend.text = element_text(size = 8)) +
+#     guides(shape = guide_legend(override.aes = list(size = 4)),
+#            color = guide_legend(override.aes = list(size = 4)))
 
 blue <- ggplot(nyc_schools_join) +
   geom_sf(aes(fill = school_count), color = "#8f98aa")+
@@ -417,7 +417,7 @@ pink <- ggplot(census_nta) +
 
 brown <- ggplot(census_nta) +
   geom_sf(aes(fill = uninsured_percent), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#F450E1", guide = guide_legend(title = "Percent of People without Insurance Coverage")) +
+  scale_fill_gradient(low = "#F8E3DD", high = "#6A4D39", guide = guide_legend(title = "Percent of People without Insurance Coverage")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -430,8 +430,8 @@ brown <- ggplot(census_nta) +
            color = guide_legend(override.aes = list(size = 4)))
 ```
 
-```{r, fig.height=9*1.2, fig.width=9*1.2}
-ggarrange(red, orange, yellow, yellow_green, green, teal, blue, purple, pink, brown, ncol=3)
+```{r, fig.height=20*1.2, fig.width=20*1.2}
+ggarrange(red, orange, yellow, green, teal, blue, purple, pink, brown, ncol=2)
 ```
 
 Next, we use the same dataset to look at how our population demographic outcomes vary by neighborhood.
