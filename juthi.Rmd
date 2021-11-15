@@ -223,7 +223,83 @@ remotes::install_github("mfherman/nycgeo")
 library(nycgeo)
 library(sf)
 nta_sf
-nta_acs_data
+nta <- nta_sf
+
+nta_bk <- nta %>%
+  filter(borough_name == "Brooklyn")
+
+nta_m <- nta %>%
+  filter(borough_name == "Manhattan")
+
+nta_q <- nta %>%
+  filter(borough_name == "Queens")
+
+nta_acs_data <- nta_acs_data
+
+merge_bk <- merge(nta_bk, nta_acs_data)
+merge_m <- merge(nta_m, nta_acs_data)
+merge_q <- merge(nta_q, nta_acs_data)
+  
+
+ggplot(merge_bk) +
+  geom_sf(aes(fill = pop_black_pct_est)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Black Population Estimate")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
+ggplot(merge_m) +
+  geom_sf(aes(fill = pop_black_pct_est)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Black Population Estimate")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
+ggplot(merge_q) +
+  geom_sf(aes(fill = pop_black_pct_est)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Black Population Estimate")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
+ggplot(ridership) +
+  geom_sf(aes(fill = Rank2018)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Black Population Estimate")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(" Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 13, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
 ```
 
 
