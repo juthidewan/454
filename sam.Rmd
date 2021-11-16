@@ -317,4 +317,14 @@ read_csv(here("transit","ridership_points.csv"))%>%
   write_sf("transit.shp")
 ```
 
+```{r}
+transit_area <- read_csv("transit/transit_area_perc.csv")
+
+ggplot(transit_area) +
+  geom_sf(aes(fill = perc_covered_by_transit)) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Black Population Estimate")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank())
+```
 
