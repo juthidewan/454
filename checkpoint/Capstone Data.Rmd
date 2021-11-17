@@ -275,19 +275,20 @@ bus_stops <- nyc_bus_stop_join %>%
 
 ridership <- nyc_ridership_join %>%
   ggplot() +
-  geom_sf(aes(fill = mean_ridership), color = "#8f98aa") +
+  geom_sf(aes(fill = log2(mean_ridership)), color = "#8f98aa") +
   scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
-                      guide = guide_legend(title = "Mean Ridership") ,na.value="#D6D6D6") +
+                      guide = guide_legend(title = "Log2 Mean Ridership") ,na.value="#D6D6D6") +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
-  ggtitle("Mean Subway Turnstile \nRidership in 2018 \nfor NYC")+ 
+  ggtitle("Mean (Log2) Subway Turnstile \nRidership in 2018 \nfor NYC")+ 
     theme(panel.grid.major = element_line("transparent"),
           plot.title = element_text(size = 13, face = "bold"),
           legend.title = element_text(size = 8), 
           legend.text = element_text(size = 8)) + 
     guides(shape = guide_legend(override.aes = list(size = 4)),
            color = guide_legend(override.aes = list(size = 4)))
+
 ```
 
 ```{r, fig.height=12*1.2, fig.width=12*1.2}
@@ -307,11 +308,11 @@ red <- ggplot(census_nta) +
         axis.text = element_blank()) +
   ggtitle("Impoverished Populations")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
 yellow <- ggplot(census_nta) +
   geom_sf(aes(fill = mean_income), color = "#8f98aa") +
@@ -321,11 +322,11 @@ yellow <- ggplot(census_nta) +
         axis.text = element_blank()) +
   ggtitle("Mean Income")+
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8),
-          legend.text = element_text(size = 8)) +
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 12)) +
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
 teal <- ggplot(census_nta) +
   geom_sf(aes(fill = mean_rent), color = "#8f98aa") +
@@ -335,11 +336,11 @@ teal <- ggplot(census_nta) +
         axis.text = element_blank()) +
   ggtitle("Mean Rent")+
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8),
-          legend.text = element_text(size = 8)) +
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 12)) +
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
 purple <- ggplot(nyc_evictions_join) +
   geom_sf(aes(fill = eviction_count), color = "#8f98aa")+
@@ -349,11 +350,11 @@ purple <- ggplot(nyc_evictions_join) +
         axis.text = element_blank()) +
   ggtitle("Evictions")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
 orange <- ggplot(census_nta) +
   geom_sf(aes(fill = unemployment_percent), color = "#8f98aa")+
@@ -363,11 +364,11 @@ orange <- ggplot(census_nta) +
         axis.text = element_blank()) +
   ggtitle("Unemployment")+
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8),
-          legend.text = element_text(size = 8)) +
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 12)) +
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
 green <- ggplot(nyc_grocery_join) +
   geom_sf(aes(fill = store_count), color = "#8f98aa")+
@@ -377,11 +378,11 @@ green <- ggplot(nyc_grocery_join) +
         axis.text = element_blank()) +
   ggtitle("Retail Food Stores")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
 # yellow_green <- ggplot(census_nta) +
 #   geom_sf(aes(fill = uninsured_percent), color = "#8f98aa")+
@@ -392,10 +393,10 @@ green <- ggplot(nyc_grocery_join) +
 #   ggtitle("Green Space")+
 #     theme(panel.grid.major = element_line("transparent"),
 #           plot.title = element_text(size = 13, face = "bold"),
-#           legend.title = element_text(size = 8),
-#           legend.text = element_text(size = 8)) +
-#     guides(shape = guide_legend(override.aes = list(size = 4)),
-#            color = guide_legend(override.aes = list(size = 4)))
+#           legend.title = element_text(size = 12),
+#           legend.text = element_text(size = 12)) +
+#     guides(shape = guide_legend(override.aes = list(size = 8)),
+#            color = guide_legend(override.aes = list(size = 8)))
 
 blue <- ggplot(nyc_schools_join) +
   geom_sf(aes(fill = school_count), color = "#8f98aa")+
@@ -406,11 +407,11 @@ blue <- ggplot(nyc_schools_join) +
         axis.text = element_blank()) +
   ggtitle("Number of Schools")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
 pink <- ggplot(census_nta) +
   geom_sf(aes(fill = total_pop), color = "#8f98aa")+
@@ -420,30 +421,30 @@ pink <- ggplot(census_nta) +
         axis.text = element_blank()) +
   ggtitle("Population")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
 
 brown <- ggplot(census_nta) +
   geom_sf(aes(fill = uninsured_percent), color = "#8f98aa")+
-  scale_fill_gradient(low = "#F8E3DD", high = "#6A4D39", guide = guide_legend(title = "Percent of People without Insurance Coverage")) +
+  scale_fill_gradient(low = "#F8E3DD", high = "#6A4D39", guide = guide_legend(title = "Percent of People \n without Insurance Coverage")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
   ggtitle("Insurance Coverage")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 ```
 
 ```{r, fig.height=20*1.2, fig.width=20*1.2}
-ggarrange(red, orange, yellow, green, teal, blue, purple, pink, brown, ncol=2)
+ggarrange(red, orange, yellow, green, teal, blue, purple, pink, brown, ncol=3)
 ```
 
 Next, we use the same dataset to look at how our population demographic outcomes vary by neighborhood.
