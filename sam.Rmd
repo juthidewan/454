@@ -318,9 +318,7 @@ read_csv(here("transit","ridership_points.csv"))%>%
 ```
 
 ```{r}
-transit <- read_csv("transit/nyc_compiled.csv")
-
-transit %>% st_write(., "transit/shapefile_out.shp")  # create to a shapefile 
+transit <- read_csv("nyc_compiled.csv")
 
 ggplot(transit_area) +
   geom_sf(aes(fill = perc_covered_by_transit)) +
