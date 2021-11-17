@@ -34,13 +34,9 @@ library(here)
 # themes
 theme_set(theme_minimal())
 
-##---- Install custom library from Github: `nycgeo` -------
-# install.packages("remotes")
-# remotes::install_github("mfherman/nycgeo")
-##---------------------------------------------------------
-
 library(nycgeo)
 library(sf)
+library(tidyverse)
 
 nyc_join <- merge(nta_sf,nta_acs_data)
 
@@ -107,21 +103,21 @@ census_nta <- census_data %>%
             naturalized_citizen_count = sum(naturalized_citizen),
             noncitizen_count = sum(noncitizen),
             uninsured_count = sum(uninsured))  %>%
-  # filter(total_pop != 0) %>%
-  # mutate(below_poverty_line_count = below_poverty_line_count/total_pop,
-  #        below_poverty_line_and_50_count = below_poverty_line_and_50_count/total_pop,
-  #        unemployment_count = unemployment_count/total_pop,
-  #        latinx_count = latinx_count/total_pop,
-  #        white_count = white_count/total_pop,
-  #        black_count = black_count/total_pop,
-  #        native_count = native_count/total_pop,
-  #        asian_count = asian_count/total_pop,
-  #        naturalized_citizen_count = naturalized_citizen_count/total_pop,
-  #        noncitizen_count = noncitizen_count/total_pop,
-  #        uninsured_count = uninsured_count/total_pop) %>%
+  filter(total_pop != 0) %>%
+  mutate(below_poverty_line_count = below_poverty_line_count/total_pop,
+         below_poverty_line_and_50_count = below_poverty_line_and_50_count/total_pop,
+         unemployment_count = unemployment_count/total_pop,
+         latinx_count = latinx_count/total_pop,
+         white_count = white_count/total_pop,
+         black_count = black_count/total_pop,
+         native_count = native_count/total_pop,
+         asian_count = asian_count/total_pop,
+         naturalized_citizen_count = naturalized_citizen_count/total_pop,
+         noncitizen_count = noncitizen_count/total_pop,
+         uninsured_count = uninsured_count/total_pop) %>%
   dplyr::rename(nta_id = NTACode)
 
-# names(census_nta) <- gsub(names(census_nta), pattern = "_count", replacement = "_percent")
+names(census_nta) <- gsub(names(census_nta), pattern = "_count", replacement = "_percent")
 
 
 ```
@@ -192,28 +188,6 @@ nyc_bus_stop_join <- st_join(census_nta, bus_stations)%>%
 nyc_ridership_join <- st_join(census_nta, transit_points) %>%
   group_by(nta_id) %>%
   summarize(mean_ridership = mean(`2018Ridership`))
-
-
-#eveyrthing is a tibble, dplyr join commands by nta. st_as_sf to convert to shapefiles
-
-data <- as.data.frame(nyc_schools_join) %>% 
-  full_join(., (as.data.frame(nyc_evictions_join)), by= "nta_id") %>%
-  full_join(., (as.data.frame(nyc_grocery_join)), by= "nta_id") %>%
-  full_join(., (as.data.frame(nyc_stop_join)), by= "nta_id") %>%
-  full_join(., (as.data.frame(nyc_bus_stop_join)), by= "nta_id") %>%
-  full_join(., (as.data.frame(nyc_ridership_join)), by= "nta_id") %>%
-  select(-c(geometry.x, geometry.y, geometry.x.x, geometry.y.y, geometry.x.x.x, geometry.y.y.y))
-
-nyc_compiled <- merge(census_nta, data, by = "nta_id")
-
-```
-
-```{r}
-transit_area <- read_csv("transit/transit_area_perc.csv") %>%
-  select(NTA2020, perc_covered_by_transit) %>%
-  dplyr::rename(nta_id= NTA2020)
-nyc_compiled2 <- merge(nyc_compiled, transit_area, by=("nta_id"))
-nyc_compiled2 %>% write_csv("transit/nyc_compiled.csv")
 ```
 
 
@@ -307,8 +281,11 @@ ridership <- nyc_ridership_join %>%
 
 ```{r, fig.height=12*1.2, fig.width=12*1.2}
 library(egg)
-transitmap <- ggarrange(subway_loc, bus_loc, stops, bus_stops, ridership, ncol=2)
+ggarrange(subway_loc, bus_loc, stops, bus_stops, ridership, ncol=2)
 ```
+
+
+
 
 ```{r}
 red <- ggplot(census_nta) +
@@ -455,8 +432,11 @@ brown <- ggplot(census_nta) +
 ```
 
 ```{r, fig.height=20*1.2, fig.width=20*1.2}
-predictormap <- ggarrange(red, orange, yellow, green, teal, blue, purple, pink, brown, ncol=3)
+predictors_map <- ggarrange(red, orange, yellow, green, teal, blue, purple, pink, brown, ncol=3)
 ```
+
+Next, we use the same dataset to look at how our population demographic outcomes vary by neighborhood.
+
 
 ```{r}
 white <- ggplot(nyc_join) +
@@ -517,5 +497,27 @@ latinx <- ggplot(nyc_join) +
 ```
 
 ```{r, fig.height=6*1.2, fig.width=6*1.2}
-demographicsmap <- ggarrange(white, black, latinx, asian, ncol=2)
+demographicMap <- ggarrange(white, black, latinx, asian, ncol=2)
+```
+
+
+
+```{r}
+colnames(nyc_compiled)
+library(rstan)
+library(rstanarm)
+
+pois_model_white <- stan_glmer(
+  white_count ~  mean_ridership + sub_count + (1 | nta_id),
+  data = nyc_compiled,
+  family = poisson,
+  chains = 4, iter = 2000*2, seed = 84735, refresh = 0
+)
+
+negbin_model_white <- stan_glmer(
+  white_count ~  mean_ridership + sub_count + (1 | nta_id),
+  data = nyc_compiled,
+  family = negativebin,
+  chains = 4, iter = 2000*2, seed = 84735, refresh = 0
+)
 ```
