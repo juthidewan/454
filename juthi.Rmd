@@ -201,8 +201,15 @@ data <- as.data.frame(nyc_schools_join) %>%
   select(-c(geometry.x, geometry.y, geometry.x.x, geometry.y.y, geometry.x.x.x, geometry.y.y.y))
 
 nyc_compiled <- merge(census_nta, data, by = "nta_id")
+
 ```
 
+```{r}
+transit_area <- read_csv("transit/transit_area_perc.csv") %>%
+  select(NTA2020, perc_covered_by_transit) %>%
+  dplyr::rename(nta_id= NTA2020)
+nyc_compiled2 <- merge(nyc_compiled, transit_area, by=("nta_id") )
+```
 
 ```{r}
 ggplot(nyc_compiled) +
