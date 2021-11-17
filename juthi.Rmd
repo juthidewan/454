@@ -225,12 +225,14 @@ ggplot(nyc_compiled) +
 
 ```{r}
 colnames(nyc_compiled)
+library(rstan)
+library(rstanarm)
 
 model_white <- stan_glmer(
-  white_count ~ mean_income + unemployment_count + uninsured_count+ eviction_count + mean_ridership + sub_count + mean_rent+ school_count + store_count + (1 | nta_id),
+  white_count ~  mean_ridership + sub_count + (1 | nta_id),
   data = nyc_compiled,
   family = poisson,
-  chains = 4, iter = 5000*2, seed = 84735, refresh = 0
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
 )
 ```
 
