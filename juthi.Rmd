@@ -103,21 +103,21 @@ census_nta <- census_data %>%
             naturalized_citizen_count = sum(naturalized_citizen),
             noncitizen_count = sum(noncitizen),
             uninsured_count = sum(uninsured))  %>%
-  filter(total_pop != 0) %>%
-  mutate(below_poverty_line_count = below_poverty_line_count/total_pop,
-         below_poverty_line_and_50_count = below_poverty_line_and_50_count/total_pop,
-         unemployment_count = unemployment_count/total_pop,
-         latinx_count = latinx_count/total_pop,
-         white_count = white_count/total_pop,
-         black_count = black_count/total_pop,
-         native_count = native_count/total_pop,
-         asian_count = asian_count/total_pop,
-         naturalized_citizen_count = naturalized_citizen_count/total_pop,
-         noncitizen_count = noncitizen_count/total_pop,
-         uninsured_count = uninsured_count/total_pop) %>%
+  # filter(total_pop != 0) %>%
+  # mutate(below_poverty_line_count = below_poverty_line_count/total_pop,
+  #        below_poverty_line_and_50_count = below_poverty_line_and_50_count/total_pop,
+  #        unemployment_count = unemployment_count/total_pop,
+  #        latinx_count = latinx_count/total_pop,
+  #        white_count = white_count/total_pop,
+  #        black_count = black_count/total_pop,
+  #        native_count = native_count/total_pop,
+  #        asian_count = asian_count/total_pop,
+  #        naturalized_citizen_count = naturalized_citizen_count/total_pop,
+  #        noncitizen_count = noncitizen_count/total_pop,
+  #        uninsured_count = uninsured_count/total_pop) %>%
   dplyr::rename(nta_id = NTACode)
 
-names(census_nta) <- gsub(names(census_nta), pattern = "_count", replacement = "_percent")
+# names(census_nta) <- gsub(names(census_nta), pattern = "_count", replacement = "_percent")
 
 
 ```
@@ -220,5 +220,17 @@ ggplot(nyc_compiled) +
            color = guide_legend(override.aes = list(size = 4)))
 
 
+```
+
+
+```{r}
+colnames(nyc_compiled)
+
+model_white <- stan_glmer(
+  white_count ~ mean_income + unemployment_count + uninsured_count+ eviction_count + mean_ridership + sub_count + mean_rent+ school_count + store_count + (1 | nta_id),
+  data = nyc_compiled,
+  family = poisson,
+  chains = 4, iter = 5000*2, seed = 84735, refresh = 0
+)
 ```
 
