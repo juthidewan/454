@@ -209,7 +209,6 @@ transit_area <- read_csv("transit/transit_area_perc.csv") %>%
   select(NTA2020, perc_covered_by_transit) %>%
   dplyr::rename(nta_id= NTA2020)
 nyc_compiled2 <- merge(nyc_compiled, transit_area, by=("nta_id") )
-nyc_compiled2 %>% write_csv("transit/nyc_compiled.csv")
 ```
 
 ```{r}
