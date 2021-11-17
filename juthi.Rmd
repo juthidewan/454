@@ -234,6 +234,19 @@ ggplot(nyc_compiled) +
 colnames(nyc_compiled)
 library(rstan)
 library(rstanarm)
+library(bayesrules)
+library(tidyverse)
+library(rstanarm)
+library(broom.mixed)
+library(tidybayes)
+library(bayesplot)
+library(bayesrules)
+library(tidyverse)
+library(rstanarm)
+library(broom.mixed)
+library(tidybayes)
+library(forcats)
+library(bayesplot)
 
 model_white <- stan_glmer(
   white_count ~  mean_ridership + sub_count + (1 | nta_id),
@@ -241,5 +254,79 @@ model_white <- stan_glmer(
   family = poisson,
   chains = 4, iter = 500*2, seed = 84735, refresh = 0
 )
+
+#freddy look here
+poisson_non_hierarchical <- stan_glmer(
+  white_count ~  sub_count + perc_covered_by_transit,
+  data = nyc_compiled2,
+  family = poisson,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
+
+
+poisson_non_hierarchical_1 <- stan_glmer(
+  white_count ~  mean_income + mean_rent + unemployment_count + sub_count + perc_covered_by_transit + school_count + store_count + sub_count + bus_count + eviction_count + uninsured_count,
+  data = nyc_compiled2,
+  family = poisson,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
+
+poisson_hierarchical <- stan_glmer(
+  white_count ~  total_pop + sub_count + perc_covered_by_transit + (1 | nta_id),
+  data = nyc_compiled2,
+  family = poisson,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
+
+poisson_hierarchical_1 <- stan_glmer(
+  white_count ~  total_pop + mean_income + mean_rent + unemployment_count + sub_count +  perc_covered_by_transit + (1 | nta_id),
+  data = nyc_compiled2,
+  family = poisson,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
+
+poisson_hierarchical_2 <- stan_glmer(
+  white_count ~  total_pop + mean_income + mean_rent + unemployment_count + sub_count + perc_covered_by_transit + school_count + store_count + sub_count + bus_count + eviction_count + uninsured_count + (1 | nta_id),
+  data = nyc_compiled2,
+  family = poisson,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
+```
+
+
+```{r}
+pp_check(model_white)
+
+tidy(model_white, effects = "ran_pars")
+#this gives the differences in white_count between nta_id
+
+tidy(model_white, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+exp(0.00002465229)
+
+#mean 
+```
+
+
+
+
+```{r}
+nyc_compiled_clean <-
+  nyc_compiled %>% drop_na(mean_ridership)
+
+set.seed(84735)
+predictions <-  posterior_predict(
+  model_white, newdata = nyc_compiled_clean)
+
+# Plot posterior prediction intervals for each artist
+ppc_intervals(nyc_compiled_clean$white_count, yrep = predictions,
+              prob_outer = 0.95) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_compiled_clean$nta_id,
+    breaks = 1:nrow(nyc_compiled_clean)) +
+  xaxis_text(angle = 90, hjust = 1)
+
+
+ggplot(nyc_compiled_clean, aes(x =white_count)) + 
+  geom_density()
 ```
 
