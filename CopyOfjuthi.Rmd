@@ -1,0 +1,341 @@
+---
+title: "Juthi"
+author: "Juthi Dewan"
+date: "11/8/2021"
+output: html_document
+---
+
+<style>
+.list-group-item.active, .list-group-item.active:focus, .list-group-item.active:hover {
+z-index: 2;
+color: #FFFFFF;
+background-color: #000000;
+border-color: #000000;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, 
+                      fig.height = 4, fig.width = 7,
+                      fig.align = 'center', fig.pos = 'H')
+```
+
+
+```{r}
+# Load packages
+library(tidyverse)
+library(janitor)
+library(here)
+# themes
+theme_set(theme_minimal())
+
+##---- Install custom library from Github: `nycgeo` -------
+# install.packages("remotes")
+# remotes::install_github("mfherman/nycgeo")
+##---------------------------------------------------------
+
+library(nycgeo)
+library(sf)
+
+nyc_join <- merge(nta_sf,nta_acs_data)
+
+
+nyc_join <- nyc_join %>%
+  st_transform(., 4269)
+
+county_list <- nyc_join %>% pull(county_name) %>% unique()
+
+library(tidycensus)
+census_api_key("0cc07f06386e317f312adef5e0892b0d002b7254")
+census_data <- get_acs(state = "NY", 
+        county = c(county_list), 
+        geography = "tract", 
+        variables = c(medincome = "B19013_001", 
+                      total_pop1 = "B01003_001",
+                      below_poverty_100 = "B06012_002", 
+                      below_poverty_100to150 = "B06012_003",
+                      median_rent = "B25031_001", 
+                      hholds_snap = "B22003_002", 
+                      hholds_disability ="B22010_003",
+                      unemployed = "B23025_005", 
+                      latinx = "B03002_012", 
+                      white = "B03002_003", 
+                      black = "B03002_004", 
+                      native = "B03002_005",
+                      asian = "B03002_006",
+                      under19_noinsurance = "B27010_017",
+                      age19_34_noinsurance = "B27010_033",
+                      age35_64_noinsurance = "B27010_050",
+                      age65plus_noinsurance = "B27010_066",
+                      naturalized_citizen = "B05001_005",
+                      noncitizen ="B05001_006"),
+        year = 2019,
+        output = "wide",
+        survey = "acs5",
+        geometry = TRUE) %>% 
+  dplyr::select(-c(NAME, ends_with("M"))) %>%
+         rename_at(vars(ends_with("E")), .funs = list(~str_sub(., end = -2)))
+
+library(openxlsx)
+nta_to_census <- openxlsx::read.xlsx(here("ethnic", "Data", "census_to_nta.xlsx")) %>%
+  dplyr::select(GEOID, NTACode)
+
+census_nta <- census_data %>%
+  merge(., nta_to_census) %>%
+  mutate(uninsured = under19_noinsurance + age19_34_noinsurance + age35_64_noinsurance + age65plus_noinsurance) %>%
+  dplyr::select(-c(under19_noinsurance, age19_34_noinsurance, age35_64_noinsurance, age65plus_noinsurance)) %>%
+  mutate(NTACode = as.character(NTACode),
+         NTACode = ifelse(is.na(NTACode), "NA", NTACode)) %>%
+  group_by(NTACode) %>%
+  summarize(geometry = st_union(geometry),
+            total_pop = sum(total_pop1), 
+            mean_income = mean(medincome, na.rm = TRUE),
+            below_poverty_line_count = sum(below_poverty_100),
+            below_poverty_line_and_50_count = sum(below_poverty_100to150),
+            mean_rent = mean(median_rent, na.rm = TRUE),
+            unemployment_count = sum(unemployed),
+            latinx_count = sum(latinx),
+            white_count = sum(white),
+            black_count = sum(black),
+            native_count = sum(native),
+            asian_count = sum(asian),
+            naturalized_citizen_count = sum(naturalized_citizen),
+            noncitizen_count = sum(noncitizen),
+            uninsured_count = sum(uninsured))  %>%
+  # filter(total_pop != 0) %>%
+  # mutate(below_poverty_line_count = below_poverty_line_count/total_pop,
+  #        below_poverty_line_and_50_count = below_poverty_line_and_50_count/total_pop,
+  #        unemployment_count = unemployment_count/total_pop,
+  #        latinx_count = latinx_count/total_pop,
+  #        white_count = white_count/total_pop,
+  #        black_count = black_count/total_pop,
+  #        native_count = native_count/total_pop,
+  #        asian_count = asian_count/total_pop,
+  #        naturalized_citizen_count = naturalized_citizen_count/total_pop,
+  #        noncitizen_count = noncitizen_count/total_pop,
+  #        uninsured_count = uninsured_count/total_pop) %>%
+  dplyr::rename(nta_id = NTACode)
+
+# names(census_nta) <- gsub(names(census_nta), pattern = "_count", replacement = "_percent")
+
+
+```
+
+```{r}
+grocery <- read_csv(here("ethnic","Data","grocery.csv")) %>%
+  drop_na(Georeference) %>%
+  separate(Georeference, into=c("Point", "longitude", "latitude"), " ") %>%
+  mutate(latitude = str_remove_all(latitude, "[)]"),
+         longitude = str_remove_all(longitude, "[()]"),
+         ) %>%
+  dplyr::select(-c(Point)) %>% 
+  mutate(latitude = as.numeric(latitude),
+         longitude = as.numeric(longitude)) %>%
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4269)
+
+public_schools <- st_read(here("ethnic","Data","schools", "Public_Schools_Points_2011-2012A.shp")) %>%
+  st_transform(., 4269)
+
+subway_stations <- st_read(here("ethnic","Data","stations", "geo_export_85568705-efba-4456-bdc0-3d70ff2cf8e5.shp")) %>%
+  st_transform(., 4269)
+
+bus_stations <- st_read(here("ethnic","Data","bus", "bus_stops_nyc_may2020.shp")) %>%
+  st_transform(., 4269)
+
+evictions <- read_csv(here("ethnic","Data","evictions.csv")) %>%
+  drop_na(Longitude) %>%
+  drop_na(Latitude) %>%
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 4269)
+
+transit_points <- read_csv(here("transit","ridership_points.csv"))%>%
+  separate(Position, into=c("Point", "longitude", "latitude"), " ") %>%
+  mutate(latitude = str_remove_all(latitude, "[)]"),
+         longitude = str_remove_all(longitude, "[()]"),
+         ) %>%
+  dplyr::select(-c(Point)) %>% 
+  mutate(latitude = as.numeric(latitude),
+         longitude = as.numeric(longitude)) %>%
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4269)
+
+#green_space <- head(read_csv(here("ethnic","Data","parks.csv"))) # coordinate
+#access_income <- read_csv(here("ethnic","Data","transit_income.csv"))
+#rental_price <- read_csv(here("ethnic","Data","median_rent.csv"))
+```
+
+
+```{r}
+nyc_schools_join <- st_join(census_nta, public_schools) %>%
+  group_by(nta_id) %>%
+  summarize(school_count=n())
+
+nyc_grocery_join <- st_join(census_nta, grocery) %>%
+  group_by(nta_id) %>%
+  summarize(store_count=n())
+
+nyc_evictions_join <- st_join(census_nta, evictions)%>%
+  group_by(nta_id) %>%
+  summarize(eviction_count=n())
+
+nyc_stop_join <- st_join(census_nta, subway_stations)%>%
+  group_by(nta_id) %>%
+  summarize(sub_count=n())
+
+nyc_bus_stop_join <- st_join(census_nta, bus_stations)%>%
+  group_by(nta_id) %>%
+  summarize(bus_count=n())
+
+nyc_ridership_join <- st_join(census_nta, transit_points) %>%
+  group_by(nta_id) %>%
+  summarize(mean_ridership = mean(`2018Ridership`))
+
+
+#eveyrthing is a tibble, dplyr join commands by nta. st_as_sf to convert to shapefiles
+
+data <- as.data.frame(nyc_schools_join) %>% 
+  full_join(., (as.data.frame(nyc_evictions_join)), by= "nta_id") %>%
+  full_join(., (as.data.frame(nyc_grocery_join)), by= "nta_id") %>%
+  full_join(., (as.data.frame(nyc_stop_join)), by= "nta_id") %>%
+  full_join(., (as.data.frame(nyc_bus_stop_join)), by= "nta_id") %>%
+  full_join(., (as.data.frame(nyc_ridership_join)), by= "nta_id") %>%
+  select(-c(geometry.x, geometry.y, geometry.x.x, geometry.y.y, geometry.x.x.x, geometry.y.y.y))
+
+nyc_compiled <- merge(census_nta, data, by = "nta_id")
+write_sf(nyc_compiled, "nyc_compiled.shp")
+```
+
+```{r}
+library(raster)
+transit_area <- read_csv("transit/transit_area_perc.csv") %>%
+  select(NTA2020, perc_covered_by_transit) %>%
+  dplyr::rename(nta_id= NTA2020)
+
+a <- st_read("nyc_compiled.shp")
+nyc_compiled2 <- left_join(a, transit_csv, by="nta_id" )
+
+ggplot(nyc_compiled2)+
+    geom_sf(aes(fill= perc))+
+    scale_fill_gradient(low= "#56B1F7", high = "#132B43")
+
+
+```
+
+```{r}
+ggplot(nyc_compiled) +
+  geom_sf(aes(fill = school_count), color = "#8f98aa") +
+  scale_fill_gradient(low = "#FCF5EE", high = "#717EC3", guide = guide_legend(title = "Percent Asian")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Asian Population")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 15, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
+```
+
+
+```{r}
+colnames(nyc_compiled)
+library(rstan)
+library(rstanarm)
+library(bayesrules)
+library(tidyverse)
+library(rstanarm)
+library(broom.mixed)
+library(tidybayes)
+library(bayesplot)
+library(bayesrules)
+library(tidyverse)
+library(rstanarm)
+library(broom.mixed)
+library(tidybayes)
+library(forcats)
+library(bayesplot)
+
+model_white <- stan_glmer(
+  white_count ~  mean_ridership + sub_count + (1 | nta_id),
+  data = nyc_compiled,
+  family = poisson,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
+
+#freddy look here
+poisson_non_hierarchical <- stan_glmer(
+  white_count ~  sub_count + perc_covered_by_transit,
+  data = nyc_compiled2,
+  family = poisson,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
+
+
+poisson_non_hierarchical_1 <- stan_glmer(
+  white_count ~  mean_income + mean_rent + unemployment_count + sub_count + perc_covered_by_transit + school_count + store_count + sub_count + bus_count + eviction_count + uninsured_count,
+  data = nyc_compiled2,
+  family = poisson,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
+
+poisson_hierarchical <- stan_glmer(
+  white_count ~  total_pop + sub_count + perc_covered_by_transit + (1 | nta_id),
+  data = nyc_compiled2,
+  family = poisson,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
+
+poisson_hierarchical_1 <- stan_glmer(
+  white_count ~  total_pop + mean_income + mean_rent + unemployment_count + sub_count +  perc_covered_by_transit + (1 | nta_id),
+  data = nyc_compiled2,
+  family = poisson,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
+
+poisson_hierarchical_2 <- stan_glmer(
+  white_count ~  total_pop + mean_income + mean_rent + unemployment_count + sub_count + perc_covered_by_transit + school_count + store_count + sub_count + bus_count + eviction_count + uninsured_count + (1 | nta_id),
+  data = nyc_compiled2,
+  family = poisson,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
+```
+
+
+```{r}
+pp_check(model_white)
+
+tidy(model_white, effects = "ran_pars")
+#this gives the differences in white_count between nta_id
+
+tidy(model_white, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+exp(0.00002465229)
+
+#mean 
+```
+
+
+
+
+```{r}
+nyc_compiled_clean <-
+  nyc_compiled %>% drop_na(mean_ridership)
+
+set.seed(84735)
+predictions <-  posterior_predict(
+  model_white, newdata = nyc_compiled_clean)
+
+# Plot posterior prediction intervals for each artist
+ppc_intervals(nyc_compiled_clean$white_count, yrep = predictions,
+              prob_outer = 0.95) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_compiled_clean$nta_id,
+    breaks = 1:nrow(nyc_compiled_clean)) +
+  xaxis_text(angle = 90, hjust = 1)
+
+
+ggplot(nyc_compiled_clean, aes(x =white_count)) + 
+  geom_density()
+```
+
