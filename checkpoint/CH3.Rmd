@@ -181,6 +181,15 @@ ggarrange(subway_loc, bus_loc, stops, bus_stops, ridership, access, ncol=2)
 
 # Add transit area covered
 
+```{r}
+ggplot(nyc_compiled)+
+    geom_sf(aes(fill= perc),alpha=0.8)+
+    scale_fill_gradient(low= "lavender", high = "maroon", guide = guide_legend(title = "Percent Covered by Transit")) +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+   theme(panel.grid.major = element_line("transparent"))
+```
+
 
 ```{r}
 red <- ggplot(nyc_clean) +
@@ -416,6 +425,17 @@ Our demographic and socioeconomic data are drawn from the American Community Sur
 - `bus_count`: Number of Bus Stations by Neighborhood
 >
 > Lastly, we acquired subway ridership from Metropolitan Transportation Authority’s turnstile data for the week of September 7, 2019. For each station, entry/exit of each turnstile is recorded. Then, we aggregated this information by taking the station-specific average of subway ridership across the 7 days in the week. Finally, we geotagged each listed station, then took the mean of ridership at all subway stations in each neighborhood.
+
+
+## Data Summaries
+
+```{r eval = FALSE}
+dim(nyc_clean)
+names(nyc_clean)
+head(nyc_clean)
+summary(nyc_clean)
+```
+
 
 
 ## Data Visuals
