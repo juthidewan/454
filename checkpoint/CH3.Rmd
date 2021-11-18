@@ -507,17 +507,31 @@ colnames(nyc_compiled)
 library(rstan)
 library(rstanarm)
 
-pois_model_white <- stan_glmer(
-  white_count ~  mean_ridership + sub_count + (1 | nta_id),
+pois_model_white <- stan_glm(
+  white_count ~  mean_ridership + sub_count,
   data = nyc_compiled,
   family = poisson,
   chains = 4, iter = 2000*2, seed = 84735, refresh = 0
 )
 
-negbin_model_white <- stan_glmer(
-  white_count ~  mean_ridership + sub_count + (1 | nta_id),
+negbin_model_white <- stan_glm(
+  white_count ~  mean_ridership + sub_count,
   data = nyc_compiled,
-  family = negativebin,
+  family = neg_binomial_2,
   chains = 4, iter = 2000*2, seed = 84735, refresh = 0
 )
+
+normal_model_transit <- stan_glm(
+  perc_covered_by_transit ~ totl_pp + unmply_,
+  data = nyc_compiled2,
+  family = gaussian,
+  chains = 4, iter = 2000*2, seed = 84735, refresh = 0
+)
+
+
 ```
+
+```{r}
+pp_check(normal_model_transit)
+```
+
