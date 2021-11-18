@@ -298,6 +298,15 @@ ggarrange(subway_loc, bus_loc, stops, bus_stops, ridership, ncol=2)
 
 # Add transit area covered
 
+```{r}
+ggplot(nyc_compiled)+
+    geom_sf(aes(fill= perc),alpha=0.8)+
+    scale_fill_gradient(low= "lavender", high = "maroon", guide = guide_legend(title = "Percent Covered by Transit")) +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+   theme(panel.grid.major = element_line("transparent"))
+```
+
 
 ```{r}
 red <- ggplot(census_nta) +
