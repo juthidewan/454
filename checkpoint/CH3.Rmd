@@ -50,7 +50,6 @@ library(s2)
 ```{r}
 # themes
 theme_set(theme_minimal())
-                      hholds_snap = "B22003_002", 
 vari_names <- read_csv(here("clean_data", "nyc_names.csv"))
 nyc_clean <- st_read(here("clean_data", "nyc_data.shp"), crs = 4269) 
 colnames(nyc_clean) <- colnames(vari_names)
