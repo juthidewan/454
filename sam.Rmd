@@ -331,4 +331,16 @@ transit_csv <- transit_csv %>%
   rename(nta_id = NTA2020)
 ```
 
+```{r}
+library(dplyr)
+clean <- read.csv("clean_data/nyc_names.csv")
+clean <- clean %>% select(nta_id, perc_covered_by_transit)
+
+set.seed(86437)
+hier_model <- hclust(dist(clean), method = "centroid")
+kmeans(clean, centers = 3)
+library(ggplot2)
+ggplot(clean, aes(x=perc_covered_by_transit)) + geom_histogram()
+```
+
 
