@@ -50,118 +50,18 @@ library(s2)
 ```{r}
 # themes
 theme_set(theme_minimal())
-
-
-nyc_join <- merge(nta_sf,nta_acs_data)
-
-
-nyc_join <- nyc_join %>%
-  st_transform(., 4269)
-
-county_list <- nyc_join %>% pull(county_name) %>% unique()
-
-census_api_key("0cc07f06386e317f312adef5e0892b0d002b7254")
-census_data <- get_acs(state = "NY", 
-        county = c(county_list), 
-        geography = "tract", 
-        variables = c(medincome = "B19013_001", 
-                      total_pop1 = "B01003_001",
-                      below_poverty_100 = "B06012_002", 
-                      below_poverty_100to150 = "B06012_003",
-                      median_rent = "B25031_001", 
                       hholds_snap = "B22003_002", 
-                      hholds_disability ="B22010_003",
-                      unemployed = "B23025_005", 
-                      latinx = "B03002_012", 
-                      white = "B03002_003", 
-                      black = "B03002_004", 
-                      native = "B03002_005",
-                      asian = "B03002_006",
-                      under19_noinsurance = "B27010_017",
-                      age19_34_noinsurance = "B27010_033",
-                      age35_64_noinsurance = "B27010_050",
-                      age65plus_noinsurance = "B27010_066",
-                      naturalized_citizen = "B05001_005",
-                      noncitizen ="B05001_006"),
-        year = 2019,
-        output = "wide",
-        survey = "acs5",
-        geometry = TRUE) %>% 
-  dplyr::select(-c(NAME, ends_with("M"))) %>%
-         rename_at(vars(ends_with("E")), .funs = list(~str_sub(., end = -2)))
-
-nta_to_census <- openxlsx::read.xlsx(here("ethnic", "Data", "census_to_nta.xlsx")) %>%
-  dplyr::select(GEOID, NTACode)
-
-census_nta <- census_data %>%
-  merge(., nta_to_census) %>%
-  mutate(uninsured = under19_noinsurance + age19_34_noinsurance + age35_64_noinsurance + age65plus_noinsurance) %>%
-  dplyr::select(-c(under19_noinsurance, age19_34_noinsurance, age35_64_noinsurance, age65plus_noinsurance)) %>%
-  mutate(NTACode = as.character(NTACode),
-         NTACode = ifelse(is.na(NTACode), "NA", NTACode)) %>%
-  group_by(NTACode) %>%
-  summarize(geometry = st_union(geometry),
-            total_pop = sum(total_pop1), 
-            mean_income = mean(medincome, na.rm = TRUE),
-            below_poverty_line_count = sum(below_poverty_100),
-            below_poverty_line_and_50_count = sum(below_poverty_100to150),
-            mean_rent = mean(median_rent, na.rm = TRUE),
-            unemployment_count = sum(unemployed),
-            latinx_count = sum(latinx),
-            white_count = sum(white),
-            black_count = sum(black),
-            native_count = sum(native),
-            asian_count = sum(asian),
-            naturalized_citizen_count = sum(naturalized_citizen),
-            noncitizen_count = sum(noncitizen),
-            uninsured_count = sum(uninsured))  %>%
-  filter(total_pop != 0) %>%
-  mutate(below_poverty_line_count = below_poverty_line_count/total_pop,
-         below_poverty_line_and_50_count = below_poverty_line_and_50_count/total_pop,
-         unemployment_count = unemployment_count/total_pop,
-         latinx_count = latinx_count/total_pop,
-         white_count = white_count/total_pop,
-         black_count = black_count/total_pop,
-         native_count = native_count/total_pop,
-         asian_count = asian_count/total_pop,
-         naturalized_citizen_count = naturalized_citizen_count/total_pop,
-         noncitizen_count = noncitizen_count/total_pop,
-         uninsured_count = uninsured_count/total_pop) %>%
-  dplyr::rename(nta_id = NTACode)
-
-names(census_nta) <- gsub(names(census_nta), pattern = "_count", replacement = "_percent")
-
-nyc_compiled <- st_read(here("nyc_compiled2", "nyc_compiled2.shp")) %>%
-  st_transform(., 4269)
-
-
+vari_names <- read_csv(here("clean_data", "nyc_names.csv"))
+nyc_clean <- st_read(here("clean_data", "nyc_data.shp"), crs = 4269) 
+colnames(nyc_clean) <- colnames(vari_names)
 ```
 
 ```{r}
-grocery <- read_csv(here("ethnic","Data","grocery.csv")) %>%
-  drop_na(Georeference) %>%
-  separate(Georeference, into=c("Point", "longitude", "latitude"), " ") %>%
-  mutate(latitude = str_remove_all(latitude, "[)]"),
-         longitude = str_remove_all(longitude, "[()]"),
-         ) %>%
-  dplyr::select(-c(Point)) %>% 
-  mutate(latitude = as.numeric(latitude),
-         longitude = as.numeric(longitude)) %>%
-  st_as_sf(coords = c("longitude", "latitude"), crs = 4269)
-
-public_schools <- st_read(here("ethnic","Data","schools", "Public_Schools_Points_2011-2012A.shp")) %>%
-  st_transform(., 4269)
-
 subway_stations <- st_read(here("ethnic","Data","stations", "geo_export_85568705-efba-4456-bdc0-3d70ff2cf8e5.shp")) %>%
   st_transform(., 4269)
 
 bus_stations <- st_read(here("ethnic","Data","bus", "bus_stops_nyc_may2020.shp")) %>%
   st_transform(., 4269)
-
-evictions <- read_csv(here("ethnic","Data","evictions.csv")) %>%
-  drop_na(Longitude) %>%
-  drop_na(Latitude) %>%
-  st_as_sf(coords = c("Longitude", "Latitude"), crs = 4269)
 
 transit_points <- read_csv(here("transit","ridership_points.csv"))%>%
   separate(Position, into=c("Point", "longitude", "latitude"), " ") %>%
@@ -172,45 +72,13 @@ transit_points <- read_csv(here("transit","ridership_points.csv"))%>%
   mutate(latitude = as.numeric(latitude),
          longitude = as.numeric(longitude)) %>%
   st_as_sf(coords = c("longitude", "latitude"), crs = 4269)
-
-#green_space <- head(read_csv(here("ethnic","Data","parks.csv"))) # coordinate
-#access_income <- read_csv(here("ethnic","Data","transit_income.csv"))
-#rental_price <- read_csv(here("ethnic","Data","median_rent.csv"))
 ```
-
-
-```{r}
-nyc_schools_join <- st_join(census_nta, public_schools) %>%
-  group_by(nta_id) %>%
-  summarize(school_count=n())
-
-nyc_grocery_join <- st_join(census_nta, grocery) %>%
-  group_by(nta_id) %>%
-  summarize(store_count=n())
-
-nyc_evictions_join <- st_join(census_nta, evictions)%>%
-  group_by(nta_id) %>%
-  summarize(eviction_count=n())
-
-nyc_stop_join <- st_join(census_nta, subway_stations)%>%
-  group_by(nta_id) %>%
-  summarize(sub_count=n())
-
-nyc_bus_stop_join <- st_join(census_nta, bus_stations)%>%
-  group_by(nta_id) %>%
-  summarize(bus_count=n())
-
-nyc_ridership_join <- st_join(census_nta, transit_points) %>%
-  group_by(nta_id) %>%
-  summarize(mean_ridership = mean(`2018Ridership`))
-```
-
 
 
 ```{r, fig.height=5*1.2, fig.width=5*1.2}
 #plot locations over map
 subway_loc <- ggplot() +
-  geom_sf(data = census_nta, fill = "#EBF6FF", color = "#D48DD8", size = 0.15, alpha = .8) +
+  geom_sf(data = nyc_clean, fill = "#EBF6FF", color = "#D48DD8", size = 0.15, alpha = .8) +
   geom_sf(data = subway_stations, color="#3F123C", size=1) + 
   coord_sf(datum = st_crs(subway_stations)) +
   theme_minimal() +
@@ -218,14 +86,14 @@ subway_loc <- ggplot() +
         axis.text = element_blank()) +
   ggtitle("Subway Stop Locations \nin NYC")+ 
     theme(#panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
 bus_loc <- ggplot() +
-  geom_sf(data = census_nta, fill = "#EBF6FF", color = "#D48DD8", size = 0.15, alpha = .8) +
+  geom_sf(data = nyc_clean, fill = "#EBF6FF", color = "#D48DD8", size = 0.15, alpha = .8) +
   geom_sf(data = bus_stations, color="#3F123C", size=.5, alpha=.5) + 
   coord_sf(datum = st_crs(subway_stations)) +
   theme_minimal() +
@@ -233,14 +101,14 @@ bus_loc <- ggplot() +
         axis.text = element_blank()) +
   ggtitle("Bus Stop Locations \nin NYC")+ 
     theme(#panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
 
-stops <- nyc_stop_join %>%
+stops <- nyc_clean %>%
   ggplot() +
   geom_sf(aes(fill = sub_count), color = "#8f98aa") +
   scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
@@ -250,13 +118,13 @@ stops <- nyc_stop_join %>%
         axis.text = element_blank()) +
   ggtitle("Subway Stop Counts \nin NYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
-bus_stops <- nyc_bus_stop_join %>%
+bus_stops <- nyc_clean %>%
   ggplot() +
   geom_sf(aes(fill = bus_count), color = "#8f98aa") +
   scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
@@ -266,14 +134,14 @@ bus_stops <- nyc_bus_stop_join %>%
         axis.text = element_blank()) +
   ggtitle("Bus Stop Counts \nin NYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
 
-ridership <- nyc_ridership_join %>%
+ridership <- nyc_clean%>%
   ggplot() +
   geom_sf(aes(fill = log2(mean_ridership)), color = "#8f98aa") +
   scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
@@ -283,26 +151,42 @@ ridership <- nyc_ridership_join %>%
         axis.text = element_blank()) +
   ggtitle("Mean (Log2) Subway Turnstile \nRidership in 2018 \nfor NYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 13, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
+
+access <- nyc_clean %>%
+  ggplot() +
+  geom_sf(aes(fill = perc_covered_by_transit), color = "#8f98aa") +
+  scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
+                      guide = guide_legend(title = "Percent of Neighborhood within \n walking distance of a transit station") ,na.value="#D6D6D6") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Transit Accessibility")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 ```
 
 ```{r, fig.height=12*1.2, fig.width=12*1.2}
 library(egg)
-ggarrange(subway_loc, bus_loc, stops, bus_stops, ridership, ncol=2)
+ggarrange(subway_loc, bus_loc, stops, bus_stops, ridership, access, ncol=2)
 ```
 
 # Add transit area covered
 
 
 ```{r}
-red <- ggplot(census_nta) +
-  geom_sf(aes(fill = below_poverty_line_percent), color = "#8f98aa") +
-  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Percent Below \nPoverty Line")) +
+red <- ggplot(nyc_clean) +
+  geom_sf(aes(fill = below_poverty_line_count), color = "#8f98aa") +
+  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Number Below \nPoverty Line")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -314,7 +198,7 @@ red <- ggplot(census_nta) +
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
 
-yellow <- ggplot(census_nta) +
+yellow <- ggplot(nyc_clean) +
   geom_sf(aes(fill = mean_income), color = "#8f98aa") +
   scale_fill_gradient(low = "#FCF5EE", high = "#F3D24E", guide = guide_legend(title = "Mean Income")) +
   theme_minimal() +
@@ -328,7 +212,7 @@ yellow <- ggplot(census_nta) +
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
 
-teal <- ggplot(census_nta) +
+teal <- ggplot(nyc_clean) +
   geom_sf(aes(fill = mean_rent), color = "#8f98aa") +
   scale_fill_gradient(low = "#FCF5EE", high = "#2DBDC7", guide = guide_legend(title = "Dollars")) +
   theme_minimal() +
@@ -342,7 +226,7 @@ teal <- ggplot(census_nta) +
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
 
-purple <- ggplot(nyc_evictions_join) +
+purple <- ggplot(nyc_clean) +
   geom_sf(aes(fill = eviction_count), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#7826C0", guide = guide_legend(title = "Number of Evictions")) +
   theme_minimal() +
@@ -356,9 +240,9 @@ purple <- ggplot(nyc_evictions_join) +
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
 
-orange <- ggplot(census_nta) +
-  geom_sf(aes(fill = unemployment_percent), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#FC9228", guide = guide_legend(title = "Percent on \nUnemployment")) +
+orange <- ggplot(nyc_clean) +
+  geom_sf(aes(fill = unemployment_count), color = "#8f98aa")+
+  scale_fill_gradient(low = "#FCF5EE", high = "#FC9228", guide = guide_legend(title = "Number on \nUnemployment")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -370,7 +254,7 @@ orange <- ggplot(census_nta) +
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
 
-green <- ggplot(nyc_grocery_join) +
+green <- ggplot(nyc_clean) +
   geom_sf(aes(fill = store_count), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#326902", guide = guide_legend(title = "Number of Stores")) +
   theme_minimal() +
@@ -384,21 +268,7 @@ green <- ggplot(nyc_grocery_join) +
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
 
-# yellow_green <- ggplot(census_nta) +
-#   geom_sf(aes(fill = uninsured_percent), color = "#8f98aa")+
-#   scale_fill_gradient(low = "#FCF5EE", high = "#939E28", guide = guide_legend(title = "Percent Uninsured")) +
-#   theme_minimal() +
-#   theme(panel.grid.major = element_line("transparent"),
-#         axis.text = element_blank()) +
-#   ggtitle("Green Space")+
-#     theme(panel.grid.major = element_line("transparent"),
-#           plot.title = element_text(size = 13, face = "bold"),
-#           legend.title = element_text(size = 12),
-#           legend.text = element_text(size = 12)) +
-#     guides(shape = guide_legend(override.aes = list(size = 8)),
-#            color = guide_legend(override.aes = list(size = 8)))
-
-blue <- ggplot(nyc_schools_join) +
+blue <- ggplot(nyc_clean) +
   geom_sf(aes(fill = school_count), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#5372C4", 
                       guide = guide_legend(title = "Number of Schools")) +
@@ -413,7 +283,7 @@ blue <- ggplot(nyc_schools_join) +
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
 
-pink <- ggplot(census_nta) +
+pink <- ggplot(nyc_clean) +
   geom_sf(aes(fill = total_pop), color = "#8f98aa")+
   scale_fill_gradient(low = "#FCF5EE", high = "#F450E1", guide = guide_legend(title = "Number of People")) +
   theme_minimal() +
@@ -428,9 +298,9 @@ pink <- ggplot(census_nta) +
            color = guide_legend(override.aes = list(size = 8)))
 
 
-brown <- ggplot(census_nta) +
-  geom_sf(aes(fill = uninsured_percent), color = "#8f98aa")+
-  scale_fill_gradient(low = "#F8E3DD", high = "#6A4D39", guide = guide_legend(title = "Percent of People \n without Insurance Coverage")) +
+brown <- ggplot(nyc_clean) +
+  geom_sf(aes(fill = uninsured_count), color = "#8f98aa")+
+  scale_fill_gradient(low = "#F8E3DD", high = "#6A4D39", guide = guide_legend(title = "Number of People \n without Insurance Coverage")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -451,61 +321,61 @@ Next, we use the same dataset to look at how our population demographic outcomes
 
 
 ```{r}
-white <- ggplot(nyc_join) +
-  geom_sf(aes(fill = pop_white_pct_est), color = "#8f98aa") +
-  scale_fill_gradient(low = "#FCF5EE", high = "#7B435B", guide = guide_legend(title = "Percent White")) +
+white <- ggplot(nyc_clean) +
+  geom_sf(aes(fill = white_count), color = "#8f98aa") +
+  scale_fill_gradient(low = "#FCF5EE", high = "#7B435B", guide = guide_legend(title = "Number White")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
   ggtitle("White Population")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 15, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
-black <- ggplot(nyc_join) +
-  geom_sf(aes(fill = pop_black_pct_est), color = "#8f98aa") +
-  scale_fill_gradient(low = "#FCF5EE", high = "#F25F5C", guide = guide_legend(title = "Percent Black")) +
+black <- ggplot(nyc_clean) +
+  geom_sf(aes(fill = black_count), color = "#8f98aa") +
+  scale_fill_gradient(low = "#FCF5EE", high = "#F25F5C", guide = guide_legend(title = "Number Black")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
   ggtitle("Black Population")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 15, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
-asian <- ggplot(nyc_join) +
-  geom_sf(aes(fill = pop_asian_pct_est), color = "#8f98aa") +
-  scale_fill_gradient(low = "#FCF5EE", high = "#717EC3", guide = guide_legend(title = "Percent Asian")) +
+asian <- ggplot(nyc_clean) +
+  geom_sf(aes(fill = asian_count), color = "#8f98aa") +
+  scale_fill_gradient(low = "#FCF5EE", high = "#717EC3", guide = guide_legend(title = "Number Asian")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
   ggtitle("Asian Population")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 15, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 
-latinx <- ggplot(nyc_join) +
-  geom_sf(aes(fill = pop_hisp_pct_est), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#FC9A38", guide = guide_legend(title = "Percent Latinx")) +
+latinx <- ggplot(nyc_clean) +
+  geom_sf(aes(fill = latinx_count), color = "#8f98aa")+
+  scale_fill_gradient(low = "#FCF5EE", high = "#FC9A38", guide = guide_legend(title = "Number Latinx")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
   ggtitle("Latinx Population")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 15, face = "bold"),
-          legend.title = element_text(size = 8), 
-          legend.text = element_text(size = 8)) + 
-    guides(shape = guide_legend(override.aes = list(size = 4)),
-           color = guide_legend(override.aes = list(size = 4)))
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 ```
 
 ```{r, fig.height=6*1.2, fig.width=6*1.2}
@@ -560,97 +430,179 @@ Our demographic and socioeconomic data are drawn from the American Community Sur
 We fit ungrouped poisson and negative binomial models below:
 
 
-```{r}
-nyc_model_2_poisson <- stan_glmer(
-  white_count ~ mean_income + 
-    mean_rent + 
-    sub_count +
-    school_count + 
-    below_poverty_line_count + 
-    bus_count + 
-    eviction_count + 
-    uninsured_count, 
-  data = nyc_compiled , 
+```{r, cache=TRUE}
+poisson_non_hierarchical <- stan_glm(
+  white_count ~  total_pop + mean_income + mean_rent + 
+    unemployment_count + sub_count + 
+    perc_covered_by_transit + school_count + 
+    store_count + sub_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = nyc_clean,
   family = poisson,
-  chains = 4, iter = 5000*2, seed = 84735
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
 )
-pp_check(nyc_model_2_poisson)
+
+negbin_non_hierarchical <- stan_glm(
+  white_count ~  total_pop + mean_income + mean_rent + 
+    unemployment_count + sub_count + 
+    perc_covered_by_transit + school_count + 
+    store_count + sub_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = nyc_clean,
+  family = neg_binomial_2,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
 ```
 
+```{r, fig.width=6, fig.height=3}
+check_1 <- pp_check(poisson_non_hierarchical) + 
+  xlab("White Resident Count") +
+  labs(title = "Poisson")+
+  xlim(0,100000)+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+check_2 <- pp_check(negbin_non_hierarchical) + 
+  xlab("White Resident Count") +
+  labs(title = "Negative Binomial")+
+  xlim(0,100000)+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
 
-
-
-
-
-```{r}
-colnames(nyc_compiled)
-library(rstan)
-library(rstanarm)
-
-pois_model_white <- stan_glmer(
-  white_count ~ mean_income + 
-    mean_rent + 
-    sub_count +
-    school_count + 
-    below_poverty_line_count + 
-    bus_count + 
-    eviction_count + 
-    uninsured_count + (1 | nta_id), 
-  data = nyc_compiled , 
-  family = poisson,
-  chains = 4, iter = 5000*2, seed = 84735
-)
-
-negbin_model_white <-stan_glmer(
-  white_count ~ mean_income + 
-    mean_rent + 
-    sub_count +
-    school_count + 
-    below_poverty_line_count + 
-    bus_count + 
-    eviction_count + 
-    uninsured_count + (1 | nta_id), 
-  data = nyc_compiled, 
-  family = neg_binomial_2(),
-  chains = 4, iter = 5000*2, seed = 84735
-)
-
+ggpubr::ggarrange(check_1, check_2, ncol=2, common.legend=TRUE, legend = "right")
 ```
 
 ```{r}
-pp_check(pois_model_white)
-pp_check(negbin_model_white)
-
-```
-
-```{r}
-nyc_compiled_clean <- nyc_compiled %>%
-  drop_na(mean_ridership)
+nyc_predict_clean <- nyc_clean %>%
+  na.omit()
 set.seed(84735)
 
 predictions_poisson <-  posterior_predict(
-  pois_model_white, newdata = nyc_compiled_clean)
+  poisson_non_hierarchical, newdata = nyc_predict_clean)
 
 predictions_negbin <-  posterior_predict(
-  negbin_model_white, newdata = nyc_compiled_clean)
+  poisson_non_hierarchical, newdata = nyc_predict_clean)
+
+library(tidybayes)
+library(bayesplot)
+
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
+              prob_outer = 0.95) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+  xaxis_text(angle = 90, hjust = 1) +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank())+
+  coord_flip()
+
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
+              prob_outer = 0.95) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+	xaxis_text(angle = 90,  hjust = 1) +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank())+
+  coord_flip()
+```
+
+
+### Models 2 & 3: Hierarchy by Neighborhood
+
+```{r,  cache=TRUE}
+poisson_hierarchical <- stan_glmer(
+ white_count ~  total_pop + mean_income + mean_rent + 
+    unemployment_count + sub_count + 
+    perc_covered_by_transit + school_count + 
+    store_count + sub_count + bus_count + 
+    eviction_count + uninsured_count + (1|nta_id),
+  data = nyc_clean,
+  family = poisson,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
+
+negbin_hierarchical <- stan_glmer(
+ white_count ~  total_pop + mean_income + mean_rent + 
+    unemployment_count + sub_count + 
+    perc_covered_by_transit + school_count + 
+    store_count + sub_count + bus_count + 
+    eviction_count + uninsured_count + (1|nta_id),
+  data = nyc_clean,
+  family = neg_binomial_2,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
+```
+
+```{r, fig.width=6, fig.height=3}
+check_1 <- pp_check(poisson_hierarchical) + 
+  xlab("White Resident Count") +
+  labs(title = "Poisson")+
+  xlim(0,100000)+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+check_2 <- pp_check(negbin_hierarchical) + 
+  xlab("White Resident Count") +
+  xlim(0,100000)+
+  labs(title = "Negative Binomial")+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+
+ggpubr::ggarrange(check_1, check_2, ncol=2, common.legend=TRUE, legend = "right")
+```
+
+```{r}
+library(kableExtra)
+tidy(poisson_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.95) %>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Hierarchicahl Poisson - Model Summary") %>% 
+  kable_styling()
+
+
+tidy(negbin_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.95)%>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Hierarchichal Negative Binomial - Model Summary") %>% 
+  kable_styling()
 
 ```
 
 ```{r}
+nyc_predict_clean <- nyc_clean %>%
+  na.omit()
+set.seed(84735)
+
+predictions_poisson <-  posterior_predict(
+  poisson_hierarchical, newdata = nyc_predict_clean)
+
+predictions_negbin <-  posterior_predict(
+  negbin_hierarchical, newdata = nyc_predict_clean)
+
 library(tidybayes)
 library(bayesplot)
-ppc_intervals(nyc_compiled_clean$white_count, yrep = predictions_poisson,
+
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
               prob_outer = 0.95) +
   ggplot2::scale_x_continuous(
-    labels = nyc_compiled_clean$nta_id,
-    breaks = 1:nrow(nyc_compiled_clean)) +
-  xaxis_text(angle = 90, hjust = 1)
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+  xaxis_text(angle = 90, hjust = 1) +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank())+
+  coord_flip()
 
-ppc_intervals(nyc_compiled_clean$white_count, yrep = predictions_negbin,
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
               prob_outer = 0.95) +
   ggplot2::scale_x_continuous(
-    labels = nyc_compiled_clean$nta_id,
-    breaks = 1:nrow(nyc_compiled_clean)) +
-  xaxis_text(angle = 90, hjust = 1)
-
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+	xaxis_text(angle = 90,  hjust = 1) +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank())+
+  coord_flip()
 ```
+
+
+
