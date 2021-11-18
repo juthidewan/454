@@ -575,9 +575,6 @@ set.seed(84735)
 predictions_poisson <-  posterior_predict(
   poisson_hierarchical, newdata = nyc_predict_clean)
 
-predictions_negbin <-  posterior_predict(
-  negbin_hierarchical, newdata = nyc_predict_clean)
-
 library(tidybayes)
 library(bayesplot)
 
