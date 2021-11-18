@@ -85,7 +85,7 @@ subway_loc <- ggplot() +
         axis.text = element_blank()) +
   ggtitle("Subway Stop Locations \nin NYC")+ 
     theme(#panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -100,7 +100,7 @@ bus_loc <- ggplot() +
         axis.text = element_blank()) +
   ggtitle("Bus Stop Locations \nin NYC")+ 
     theme(#panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -110,14 +110,14 @@ bus_loc <- ggplot() +
 stops <- nyc_clean %>%
   ggplot() +
   geom_sf(aes(fill = sub_count), color = "#8f98aa") +
-  scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
+  scale_fill_gradient(low= "lavender", high = "maroon",
                       guide = guide_legend(title = "Number of Subway Stops") ,na.value="#D6D6D6") +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
   ggtitle("Subway Stop Counts \nin NYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -126,14 +126,14 @@ stops <- nyc_clean %>%
 bus_stops <- nyc_clean %>%
   ggplot() +
   geom_sf(aes(fill = bus_count), color = "#8f98aa") +
-  scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
+  scale_fill_gradient(low= "lavender", high = "maroon",
                       guide = guide_legend(title = "Number of Bus Stops") ,na.value="#D6D6D6") +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
   ggtitle("Bus Stop Counts \nin NYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -143,14 +143,14 @@ bus_stops <- nyc_clean %>%
 ridership <- nyc_clean%>%
   ggplot() +
   geom_sf(aes(fill = log2(mean_ridership)), color = "#8f98aa") +
-  scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
+  scale_fill_gradient(low= "lavender", high = "maroon",
                       guide = guide_legend(title = "Log2 Mean Ridership") ,na.value="#D6D6D6") +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
   ggtitle("Mean (Log2) Subway Turnstile \nRidership in 2018 \nfor NYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -160,14 +160,14 @@ ridership <- nyc_clean%>%
 access <- nyc_clean %>%
   ggplot() +
   geom_sf(aes(fill = perc_covered_by_transit), color = "#8f98aa") +
-  scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
-                      guide = guide_legend(title = "Percent of Neighborhood within \n walking distance of a transit station") ,na.value="#D6D6D6") +
+  scale_fill_gradient(low= "lavender", high = "maroon",
+                      guide = guide_legend(title = "Percent of Neighborhood within \n walking distance of a transit station"), na.value="#D6D6D6") +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
-  ggtitle("Transit Accessibility")+ 
+  ggtitle("Transit Accessibility \nin NYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -178,17 +178,7 @@ access <- nyc_clean %>%
 library(egg)
 ggarrange(subway_loc, bus_loc, stops, bus_stops, ridership, access, ncol=2)
 ```
-
-# Add transit area covered
-
-```{r}
-ggplot(nyc_compiled)+
-    geom_sf(aes(fill= perc),alpha=0.8)+
-    scale_fill_gradient(low= "lavender", high = "maroon", guide = guide_legend(title = "Percent Covered by Transit")) +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-   theme(panel.grid.major = element_line("transparent"))
-```
+`
 
 
 ```{r}
@@ -198,9 +188,9 @@ red <- ggplot(nyc_clean) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
-  ggtitle("Impoverished Populations")+ 
+  ggtitle("Impoverishement")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -214,7 +204,7 @@ yellow <- ggplot(nyc_clean) +
         axis.text = element_blank()) +
   ggtitle("Mean Income")+
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 12)) +
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -228,7 +218,7 @@ teal <- ggplot(nyc_clean) +
         axis.text = element_blank()) +
   ggtitle("Mean Rent")+
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 12)) +
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -242,7 +232,7 @@ purple <- ggplot(nyc_clean) +
         axis.text = element_blank()) +
   ggtitle("Evictions")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -256,7 +246,7 @@ orange <- ggplot(nyc_clean) +
         axis.text = element_blank()) +
   ggtitle("Unemployment")+
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 12)) +
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -270,7 +260,7 @@ green <- ggplot(nyc_clean) +
         axis.text = element_blank()) +
   ggtitle("Retail Food Stores")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -285,7 +275,7 @@ blue <- ggplot(nyc_clean) +
         axis.text = element_blank()) +
   ggtitle("Number of Schools")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -299,7 +289,7 @@ pink <- ggplot(nyc_clean) +
         axis.text = element_blank()) +
   ggtitle("Population")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -314,7 +304,7 @@ brown <- ggplot(nyc_clean) +
         axis.text = element_blank()) +
   ggtitle("Insurance Coverage")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -325,9 +315,6 @@ brown <- ggplot(nyc_clean) +
 predictors_map <- ggarrange(red, orange, yellow, green, teal, blue, purple, pink, brown, ncol=3)
 ```
 
-Next, we use the same dataset to look at how our population demographic outcomes vary by neighborhood.
-
-
 ```{r}
 white <- ggplot(nyc_clean) +
   geom_sf(aes(fill = white_count), color = "#8f98aa") +
@@ -337,7 +324,7 @@ white <- ggplot(nyc_clean) +
         axis.text = element_blank()) +
   ggtitle("White Population")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -351,7 +338,7 @@ black <- ggplot(nyc_clean) +
         axis.text = element_blank()) +
   ggtitle("Black Population")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -365,7 +352,7 @@ asian <- ggplot(nyc_clean) +
         axis.text = element_blank()) +
   ggtitle("Asian Population")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -379,7 +366,7 @@ latinx <- ggplot(nyc_clean) +
         axis.text = element_blank()) +
   ggtitle("Latinx Population")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 25, face = "bold"),
+          plot.title = element_text(size = 30, face = "bold"),
           legend.title = element_text(size = 12), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
@@ -423,8 +410,11 @@ Our demographic and socioeconomic data are drawn from the American Community Sur
 - `store_count`: Number of Grocery Stores and Food Vendors by Neighborhood 
 - `sub_count`: Number of Subway Stations by Neighborhood 
 - `bus_count`: Number of Bus Stations by Neighborhood
+- `perc_covered_by_transit`: Percent of Neighborhood within walking distance (.25 miles). 
 >
 > Lastly, we acquired subway ridership from Metropolitan Transportation Authority’s turnstile data for the week of September 7, 2019. For each station, entry/exit of each turnstile is recorded. Then, we aggregated this information by taking the station-specific average of subway ridership across the 7 days in the week. Finally, we geotagged each listed station, then took the mean of ridership at all subway stations in each neighborhood.
+>
+
 
 
 ## Data Summaries
@@ -473,7 +463,7 @@ negbin_non_hierarchical <- stan_glm(
 )
 ```
 
-```{r, fig.width=6, fig.height=3}
+```{r, fig.width=12, fig.height=6}
 check_1 <- pp_check(poisson_non_hierarchical) + 
   xlab("White Resident Count") +
   labs(title = "Poisson")+
@@ -508,7 +498,9 @@ ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
     labels = nyc_predict_clean$nta_id,
     breaks = 1:nrow(nyc_predict_clean)) +
   xaxis_text(angle = 90, hjust = 1) +
-  theme(axis.title.y = element_blank(),
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.y = element_blank(),
         axis.text.y = element_blank())+
   coord_flip()
 
@@ -518,7 +510,9 @@ ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
     labels = nyc_predict_clean$nta_id,
     breaks = 1:nrow(nyc_predict_clean)) +
 	xaxis_text(angle = 90,  hjust = 1) +
-  theme(axis.title.y = element_blank(),
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.y = element_blank(),
         axis.text.y = element_blank())+
   coord_flip()
 ```
@@ -550,7 +544,7 @@ negbin_hierarchical <- stan_glmer(
 )
 ```
 
-```{r, fig.width=6, fig.height=3}
+```{r, fig.width=12, fig.height=6}
 check_1 <- pp_check(poisson_hierarchical) + 
   xlab("White Resident Count") +
   labs(title = "Poisson")+
@@ -608,9 +602,11 @@ ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
     labels = nyc_predict_clean$nta_id,
     breaks = 1:nrow(nyc_predict_clean)) +
   xaxis_text(angle = 90, hjust = 1) +
-  theme(axis.title.y = element_blank(),
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.y = element_blank(),
         axis.text.y = element_blank())+
-  coord_flip()
+  coord_flip() 
 
 ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
               prob_outer = 0.95) +
@@ -618,7 +614,9 @@ ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
     labels = nyc_predict_clean$nta_id,
     breaks = 1:nrow(nyc_predict_clean)) +
 	xaxis_text(angle = 90,  hjust = 1) +
-  theme(axis.title.y = element_blank(),
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.y = element_blank(),
         axis.text.y = element_blank())+
   coord_flip()
 ```
