@@ -333,14 +333,34 @@ transit_csv <- transit_csv %>%
 
 ```{r}
 library(dplyr)
-clean <- read.csv("clean_data/nyc_names.csv")
-clean <- clean %>% select(nta_id, perc_covered_by_transit)
+library(sf)
+library(readr)
 
-set.seed(86437)
-hier_model <- hclust(dist(clean), method = "centroid")
-kmeans(clean, centers = 3)
-library(ggplot2)
+vari_names <- read_csv("clean_data/nyc_names.csv")
+clean <- st_read("clean_data/nyc_data.shp", crs = 4269)
+colnames(clean) <- colnames(vari_names)
+clean <- clean %>% 
+  filter(!substr(nta_id, 1, 2) == "SI") %>%
+  mutate(transportation_desert_3cat = cut(perc_covered_by_transit, breaks=c(-10, 0, 100, 500), labels = c("No Access", "Satisfactory Access", "Excellent Access"))) %>% 
+  mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-10, 0, 50, 100, 500), labels = c("No Access", "Limited Access", "Satisfactory Access", "Excellent Access")))
+
 ggplot(clean, aes(x=perc_covered_by_transit)) + geom_histogram()
+
+clean %>%
+ggplot() +
+  geom_sf(aes(fill = factor(transportation_desert)), color = "#8f98aa") +
+  scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
+                      guide = guide_legend(title = "Number of Bus Stops") ,na.value="#D6D6D6") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Bus Stop Counts \nin NYC")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 ```
 
 
