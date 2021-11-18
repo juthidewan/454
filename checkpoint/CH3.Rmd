@@ -28,15 +28,29 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE,
 
 ```{r}
 # Load packages
-library(tidyverse)
-library(janitor)
 library(here)
+library(dplyr)
+library(readr)
+library(rstan)
+library(bayesrules)
+library(tidyverse)
+library(bayesplot)
+library(rstanarm)
+library(janitor)
+library(tidybayes)
+library(broom.mixed)
+library(here)
+library(sf)
+library(tidycensus)
+library(openxlsx)
+library(s2)
+```
+
+
+```{r}
 # themes
 theme_set(theme_minimal())
 
-library(nycgeo)
-library(sf)
-library(tidyverse)
 
 nyc_join <- merge(nta_sf,nta_acs_data)
 
@@ -46,7 +60,6 @@ nyc_join <- nyc_join %>%
 
 county_list <- nyc_join %>% pull(county_name) %>% unique()
 
-library(tidycensus)
 census_api_key("0cc07f06386e317f312adef5e0892b0d002b7254")
 census_data <- get_acs(state = "NY", 
         county = c(county_list), 
@@ -77,7 +90,6 @@ census_data <- get_acs(state = "NY",
   dplyr::select(-c(NAME, ends_with("M"))) %>%
          rename_at(vars(ends_with("E")), .funs = list(~str_sub(., end = -2)))
 
-library(openxlsx)
 nta_to_census <- openxlsx::read.xlsx(here("ethnic", "Data", "census_to_nta.xlsx")) %>%
   dplyr::select(GEOID, NTACode)
 
@@ -118,6 +130,9 @@ census_nta <- census_data %>%
   dplyr::rename(nta_id = NTACode)
 
 names(census_nta) <- gsub(names(census_nta), pattern = "_count", replacement = "_percent")
+
+nyc_compiled <- st_read(here("nyc_compiled2", "nyc_compiled2.shp")) %>%
+  st_transform(., 4269)
 
 
 ```
@@ -193,9 +208,6 @@ nyc_ridership_join <- st_join(census_nta, transit_points) %>%
 
 
 ```{r, fig.height=5*1.2, fig.width=5*1.2}
-# simple plot shows all locations
-library(s2)
-
 #plot locations over map
 subway_loc <- ggplot() +
   geom_sf(data = census_nta, fill = "#EBF6FF", color = "#D48DD8", size = 0.15, alpha = .8) +
@@ -532,10 +544,9 @@ Our demographic and socioeconomic data are drawn from the American Community Sur
 - `eviction_count`: Number of Evictions by Neighborhood 
 - `store_count`: Number of Grocery Stores and Food Vendors by Neighborhood 
 - `sub_count`: Number of Subway Stations by Neighborhood 
-- `bus_count`: Number of Bus Stations by Neighborhood 
+- `bus_count`: Number of Bus Stations by Neighborhood
 >
->
-Lastly, we acquired subway ridership from Metropolitan Transportation Authority’s turnstile data for the week of September 7, 2019. For each station, entry/exit of each turnstile is recorded. Then, we aggregated this information by taking the station-specific average of subway ridership across the 7 days in the week. Finally, we geotagged each listed station, then took the mean of ridership at all subway stations in each neighborhood.
+> Lastly, we acquired subway ridership from Metropolitan Transportation Authority’s turnstile data for the week of September 7, 2019. For each station, entry/exit of each turnstile is recorded. Then, we aggregated this information by taking the station-specific average of subway ridership across the 7 days in the week. Finally, we geotagged each listed station, then took the mean of ridership at all subway stations in each neighborhood.
 
 
 ## Data Visuals
@@ -548,32 +559,73 @@ Lastly, we acquired subway ridership from Metropolitan Transportation Authority�
 
 We fit ungrouped poisson and negative binomial models below:
 
+
 ```{r}
-nyc_compiled <- read_csv(here('nyc_compiled2', 'nyc_compiled2.csv'))
+nyc_model_2_poisson <- stan_glmer(
+  white_count ~ mean_income + 
+    mean_rent + 
+    sub_count +
+    school_count + 
+    below_poverty_line_count + 
+    bus_count + 
+    eviction_count + 
+    uninsured_count, 
+  data = nyc_compiled , 
+  family = poisson,
+  chains = 4, iter = 5000*2, seed = 84735
+)
+pp_check(nyc_model_2_poisson)
+```
+
+
+
+
+
+
+```{r}
 colnames(nyc_compiled)
 library(rstan)
 library(rstanarm)
 
 pois_model_white <- stan_glmer(
-  white_count ~  mean_ridership + sub_count
-  data = nyc_compiled,
+  white_count ~ mean_income + 
+    mean_rent + 
+    sub_count +
+    school_count + 
+    below_poverty_line_count + 
+    bus_count + 
+    eviction_count + 
+    uninsured_count + (1 | nta_id), 
+  data = nyc_compiled , 
   family = poisson,
-  chains = 4, iter = 3000*2, seed = 84735, refresh = 0
+  chains = 4, iter = 5000*2, seed = 84735
 )
 
-negbin_model_white <- stan_glmer(
-  white_count ~  mean_ridership + sub_count
-  data = nyc_compiled,
-  family = neg_binomial_2,
-  chains = 4, iter = 3000*2, seed = 84735, refresh = 0
+negbin_model_white <-stan_glmer(
+  white_count ~ mean_income + 
+    mean_rent + 
+    sub_count +
+    school_count + 
+    below_poverty_line_count + 
+    bus_count + 
+    eviction_count + 
+    uninsured_count + (1 | nta_id), 
+  data = nyc_compiled, 
+  family = neg_binomial_2(),
+  chains = 4, iter = 5000*2, seed = 84735
 )
 
+```
+
+```{r}
 pp_check(pois_model_white)
 pp_check(negbin_model_white)
 
+```
+
+```{r}
 nyc_compiled_clean <- nyc_compiled %>%
   drop_na(mean_ridership)
-
 set.seed(84735)
 
 predictions_poisson <-  posterior_predict(
@@ -582,6 +634,9 @@ predictions_poisson <-  posterior_predict(
 predictions_negbin <-  posterior_predict(
   negbin_model_white, newdata = nyc_compiled_clean)
 
+```
+
+```{r}
 library(tidybayes)
 library(bayesplot)
 ppc_intervals(nyc_compiled_clean$white_count, yrep = predictions_poisson,
