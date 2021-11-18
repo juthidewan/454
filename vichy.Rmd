@@ -1,0 +1,75 @@
+---
+title: "vichy"
+author: "Vichearith"
+date: "11/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Read data
+# Load packages
+library(here)
+library(dplyr)
+library(readr)
+library(rstan)
+library(bayesrules)
+library(tidyverse)
+library(bayesplot)
+library(rstanarm)
+library(janitor)
+library(tidybayes)
+library(broom.mixed)
+
+# themes
+theme_set(theme_minimal())
+
+nyc_compiled <- read_csv("nyc_compiled.csv")
+```
+
+
+```{r}
+#  
+nyc_compiled %>%  colnames()
+
+nyc_model_2_negbinomial <- stan_glmer(
+  white_count ~ mean_income + 
+    mean_rent + 
+    sub_count +
+    school_count + 
+    below_poverty_line_count + 
+    bus_count + 
+    eviction_count + 
+    uninsured_count + (1 | nta_id), 
+  data = nyc_compiled, 
+  family = neg_binomial_2(),
+  chains = 4, iter = 5000*2, seed = 84735
+)
+```
+```{r}
+pp_check(nyc_model_2_negbinomial)
+```
+
+```{r}
+nyc_model_2_poisson <- stan_glmer(
+  white_count ~ mean_income + 
+    mean_rent + 
+    sub_count +
+    school_count + 
+    below_poverty_line_count + 
+    bus_count + 
+    eviction_count + 
+    uninsured_count + (1 | nta_id), 
+  data = nyc_compiled , 
+  family = poisson,
+  chains = 4, iter = 5000*2, seed = 84735
+)
+pp_check(nyc_model_2_poisson)
+```
+
+
+
+

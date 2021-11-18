@@ -27,6 +27,8 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE,
 library(tidyverse)
 library(janitor)
 library(here)
+
+library(ggmap)
 # themes
 theme_set(theme_minimal())
 ```
@@ -318,15 +320,15 @@ read_csv(here("transit","ridership_points.csv"))%>%
 ```
 
 ```{r}
-transit <- read_csv("transit/nyc_compiled.csv")
+library(rgdal)
+transit <- read_sf("transit/transit_shp/Summarize234_Buffer_of_transit_shps_within_NYC_Neighborhood_Tabulation_Areas_2020.shp")
+transit_csv <- read_csv("transit/Summarize234_Buffer_of_transit_shps_within_NYC_Neighborhood_Tabulation_Areas_2020_0.csv")
+transit$perc <- transit$sum_Area_S/transit$AnalysisAr*100
+transit_csv$perc <- transit_csv$`Summarized Area in Square Miles`/transit_csv$`Area in Square Miles`*100
 
-transit %>% st_write(., "transit/shapefile_out.shp")  # create to a shapefile 
 
-ggplot(transit_area) +
-  geom_sf(aes(fill = perc_covered_by_transit)) +
-  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Black Population Estimate")) +
-  theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank())
+transit_csv <- transit_csv %>%
+  rename(nta_id = NTA2020)
 ```
+
 
