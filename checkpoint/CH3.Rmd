@@ -522,7 +522,7 @@ negbin_model_white <- stan_glm(
 )
 
 normal_model_transit <- stan_glm(
-  perc_covered_by_transit ~ totl_pp + unmply_,
+  perc_covered_by_transit ~ totl_pp + unmply_/totl_pp,
   data = nyc_compiled2,
   family = gaussian,
   chains = 4, iter = 2000*2, seed = 84735, refresh = 0

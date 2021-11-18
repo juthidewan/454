@@ -321,9 +321,14 @@ read_csv(here("transit","ridership_points.csv"))%>%
 
 ```{r}
 library(rgdal)
-transit <- read_csv("nyc_compiled.csv")
+transit <- read_sf("transit/transit_shp/Summarize234_Buffer_of_transit_shps_within_NYC_Neighborhood_Tabulation_Areas_2020.shp")
+transit_csv <- read_csv("transit/Summarize234_Buffer_of_transit_shps_within_NYC_Neighborhood_Tabulation_Areas_2020_0.csv")
+transit$perc <- transit$sum_Area_S/transit$AnalysisAr*100
+transit_csv$perc <- transit_csv$`Summarized Area in Square Miles`/transit_csv$`Area in Square Miles`*100
 
-st_as_sf(transit)
+
+transit_csv <- transit_csv %>%
+  rename(nta_id = NTA2020)
 ```
 
 

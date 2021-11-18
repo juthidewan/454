@@ -211,11 +211,13 @@ transit_area <- read_csv("transit/transit_area_perc.csv") %>%
   dplyr::rename(nta_id= NTA2020)
 
 a <- st_read("nyc_compiled.shp")
-nyc_compiled2 <- left_join(a, transit_area, by="nta_id" )
+nyc_compiled2 <- left_join(a, transit_csv, by="nta_id" )
 
 ggplot(nyc_compiled2)+
-    geom_sf(aes(fill= perc_covered_by_transit))+
+    geom_sf(aes(fill= perc))+
     scale_fill_gradient(low= "#56B1F7", high = "#132B43")
+
+write_sf(nyc_compiled2, "nyc_compiled2.shp")
 ```
 
 ```{r}
