@@ -284,7 +284,7 @@ library(egg)
 ggarrange(subway_loc, bus_loc, stops, bus_stops, ridership, ncol=2)
 ```
 
-
+# Add transit area covered
 
 
 ```{r}
@@ -502,22 +502,99 @@ demographicMap <- ggarrange(white, black, latinx, asian, ncol=2)
 
 
 
+## Data Introduction
+
+> All the data used in this project are from two major sources: the Tidycensus package and NYC Open Data. 
+> 
+> Tidycensus is an R  package interface, developed by Kyle Walker and Matt Herman, that enables easy access to the US Census Bureau’s data APIs and returns Tidyverse-ready data frames from various major US Census Bureau datasets. 
+Our demographic and socioeconomic data are drawn from the American Community Survey results found in Tidycensus package. A summary of our ACS data variables is below:
+>
+- `total_pop`: Total Population by Neighborhood
+- `mean_income`: Mean Income by Neighborhood
+- `below_poverty_line_count`: Number of People Living Below the 100% Poverty Line by Neighborhood
+- `mean_rent`:  Mean Rent by Neighborhood
+>
+>
+-  `unemployment_count`: Number of People on Unemployment by Neighborhood
+-  `latinx_count`: Number of Latinx People by Neighborhood
+- `white_count`: Number of White People by Neighborhood
+- `black_count`: Number of Black People by Neighborhood
+- `native_count`: Number of Native People by Neighborhood
+- `asian_count`: Number of Asian People by Neighborhood
+- `naturalized_citizen_count`: Number of Naturalized Citizens by Neighborhood
+- `noncitizen_count`: Number of Foreign Born People by Neighborhood 
+- `uninsured_count`: Number of Uninsured Citizens of any Age by Neighborhood 
+> 
+> For remaining predictors, we used NYC Open Data's portal to identify specific predictors. In particular, we used geotagged locations of Subway Stops, Bus Stops, Grocery Stores, Schools, and Eviction Sites from the Departments of Transportation, Health, Education, and Housing to calculate neighborhood-specific variables described below: 
+>
+>
+- `school_count`: Number of Public Schools by Neighborhood 
+- `eviction_count`: Number of Evictions by Neighborhood 
+- `store_count`: Number of Grocery Stores and Food Vendors by Neighborhood 
+- `sub_count`: Number of Subway Stations by Neighborhood 
+- `bus_count`: Number of Bus Stations by Neighborhood 
+>
+>
+Lastly, we acquired subway ridership from Metropolitan Transportation Authority’s turnstile data for the week of September 7, 2019. For each station, entry/exit of each turnstile is recorded. Then, we aggregated this information by taking the station-specific average of subway ridership across the 7 days in the week. Finally, we geotagged each listed station, then took the mean of ridership at all subway stations in each neighborhood.
+
+
+## Data Visuals
+
+
+
+## Model Building
+
+### Models 1 & 2: No Grouping
+
+We fit ungrouped poisson and negative binomial models below:
+
 ```{r}
 colnames(nyc_compiled)
 library(rstan)
 library(rstanarm)
 
 pois_model_white <- stan_glmer(
-  white_count ~  mean_ridership + sub_count + (1 | nta_id),
+  white_count ~  mean_ridership + sub_count
   data = nyc_compiled,
   family = poisson,
-  chains = 4, iter = 2000*2, seed = 84735, refresh = 0
+  chains = 4, iter = 3000*2, seed = 84735, refresh = 0
 )
 
 negbin_model_white <- stan_glmer(
-  white_count ~  mean_ridership + sub_count + (1 | nta_id),
+  white_count ~  mean_ridership + sub_count
   data = nyc_compiled,
-  family = negativebin,
-  chains = 4, iter = 2000*2, seed = 84735, refresh = 0
+  family = neg_binomial_2,
+  chains = 4, iter = 3000*2, seed = 84735, refresh = 0
 )
+
+pp_check(pois_model_white)
+pp_check(negbin_model_white)
+
+nyc_compiled_clean <- nyc_compiled %>%
+  drop_na(mean_ridership)
+
+set.seed(84735)
+
+predictions_poisson <-  posterior_predict(
+  pois_model_white, newdata = nyc_compiled_clean)
+
+predictions_negbin <-  posterior_predict(
+  negbin_model_white, newdata = nyc_compiled_clean)
+
+library(tidybayes)
+library(bayesplot)
+ppc_intervals(nyc_compiled_clean$white_count, yrep = predictions_poisson,
+              prob_outer = 0.95) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_compiled_clean$nta_id,
+    breaks = 1:nrow(nyc_compiled_clean)) +
+  xaxis_text(angle = 90, hjust = 1)
+
+ppc_intervals(nyc_compiled_clean$white_count, yrep = predictions_negbin,
+              prob_outer = 0.95) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_compiled_clean$nta_id,
+    breaks = 1:nrow(nyc_compiled_clean)) +
+  xaxis_text(angle = 90, hjust = 1)
+
 ```
