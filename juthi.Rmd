@@ -217,7 +217,7 @@ ggplot(nyc_compiled2)+
     geom_sf(aes(fill= perc))+
     scale_fill_gradient(low= "#56B1F7", high = "#132B43")
 
-write_sf(nyc_compiled2, "nyc_compiled2.shp")
+
 ```
 
 ```{r}

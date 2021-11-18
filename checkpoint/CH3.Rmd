@@ -549,6 +549,7 @@ Lastly, we acquired subway ridership from Metropolitan Transportation Authorityâ
 We fit ungrouped poisson and negative binomial models below:
 
 ```{r}
+nyc_compiled <- read_csv(here('nyc_compiled2', 'nyc_compiled2.csv'))
 colnames(nyc_compiled)
 library(rstan)
 library(rstanarm)
