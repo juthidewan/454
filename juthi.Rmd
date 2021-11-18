@@ -198,23 +198,34 @@ data <- as.data.frame(nyc_schools_join) %>%
   full_join(., (as.data.frame(nyc_stop_join)), by= "nta_id") %>%
   full_join(., (as.data.frame(nyc_bus_stop_join)), by= "nta_id") %>%
   full_join(., (as.data.frame(nyc_ridership_join)), by= "nta_id") %>%
-  select(-c(geometry.x, geometry.y, geometry.x.x, geometry.y.y, geometry.x.x.x, geometry.y.y.y))
+  dplyr::select(-c(geometry.x, geometry.y, geometry.x.x, geometry.y.y, geometry.x.x.x, geometry.y.y.y))
 
 nyc_compiled <- merge(census_nta, data, by = "nta_id")
-write_sf(nyc_compiled, "nyc_compiled.shp")
 ```
 
 ```{r}
 library(raster)
-transit_area <- read_csv("transit/transit_area_perc.csv") %>%
-  select(NTA2020, perc_covered_by_transit) %>%
+transit_area <- read_csv("transit/Summarize234_Buffer_of_transit_shps_within_NYC_Neighborhood_Tabulation_Areas_2020_0.csv") %>%
+  mutate(perc_covered_by_transit = (`Summarized Area in Square Miles`/`Area in Square Miles`)*100) %>%
+  dplyr::select(NTA2020, perc_covered_by_transit) %>%
   dplyr::rename(nta_id= NTA2020)
 
-a <- st_read("nyc_compiled.shp")
-nyc_compiled2 <- left_join(a, transit_csv, by="nta_id" )
+nyc_compiled2 <- left_join(nyc_compiled, transit_area, by="nta_id" ) 
+
+
+nyc_compiled2 %>%
+  write_csv(., "clean_data/nyc_names.csv") %>%
+  write_sf(., "clean_data/nyc_data.shp")
+
+
+
+vari_names <- read_csv("clean_data/nyc_names.csv")
+nyc_clean <- st_read("clean_data/nyc_data.shp", crs = 4269) 
+colnames(nyc_clean) <- colnames(vari_names)
+  
 
 ggplot(nyc_compiled2)+
-    geom_sf(aes(fill= perc))+
+    geom_sf(aes(fill= perc_covered_by_transit))+
     scale_fill_gradient(low= "#56B1F7", high = "#132B43")
 
 
