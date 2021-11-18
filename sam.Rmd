@@ -27,6 +27,8 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE,
 library(tidyverse)
 library(janitor)
 library(here)
+
+library(ggmap)
 # themes
 theme_set(theme_minimal())
 ```
@@ -318,13 +320,10 @@ read_csv(here("transit","ridership_points.csv"))%>%
 ```
 
 ```{r}
+library(rgdal)
 transit <- read_csv("nyc_compiled.csv")
 
-ggplot(transit_area) +
-  geom_sf(aes(fill = perc_covered_by_transit)) +
-  scale_fill_gradient(low = "#FCF5EE", high = "#E13728", guide = guide_legend(title = "Black Population Estimate")) +
-  theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank())
+st_as_sf(transit)
 ```
+
 

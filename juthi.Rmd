@@ -201,14 +201,21 @@ data <- as.data.frame(nyc_schools_join) %>%
   select(-c(geometry.x, geometry.y, geometry.x.x, geometry.y.y, geometry.x.x.x, geometry.y.y.y))
 
 nyc_compiled <- merge(census_nta, data, by = "nta_id")
-
+write_sf(nyc_compiled, "nyc_compiled.shp")
 ```
 
 ```{r}
+library(raster)
 transit_area <- read_csv("transit/transit_area_perc.csv") %>%
   select(NTA2020, perc_covered_by_transit) %>%
   dplyr::rename(nta_id= NTA2020)
-nyc_compiled2 <- merge(nyc_compiled, transit_area, by=("nta_id") )
+
+a <- st_read("nyc_compiled.shp")
+nyc_compiled2 <- left_join(a, transit_area, by="nta_id" )
+
+ggplot(nyc_compiled2)+
+    geom_sf(aes(fill= perc_covered_by_transit))+
+    scale_fill_gradient(low= "#56B1F7", high = "#132B43")
 ```
 
 ```{r}
