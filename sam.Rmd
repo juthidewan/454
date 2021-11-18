@@ -344,11 +344,19 @@ clean <- clean %>%
   mutate(transportation_desert_3cat = cut(perc_covered_by_transit, breaks=c(-10, 0, 100, 500), labels = c("No Access", "Satisfactory Access", "Excellent Access"))) %>% 
   mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-10, 0, 50, 100, 500), labels = c("No Access", "Limited Access", "Satisfactory Access", "Excellent Access")))
 
+clean %>%write_csv("clean_data/nyc_names.csv")
+
+a <- read_sf("clean_data/nyc_data.shp")
+head(a)
+b <- read_csv("clean_data/nyc_names.csv")
+b %>% relocate(geometry, .after=transportation_desert_4cat) %>%
+  write_csv("clean_data/nyc_names.csv")
+
 ggplot(clean, aes(x=perc_covered_by_transit)) + geom_histogram()
 
 clean %>%
 ggplot() +
-  geom_sf(aes(fill = factor(transportation_desert)), color = "#8f98aa") +
+  geom_sf(aes(fill = perc_covered_by_transit), color = "#8f98aa") +
   scale_fill_gradient(low = "#EBF6FF", high = "#BC24B0", 
                       guide = guide_legend(title = "Number of Bus Stops") ,na.value="#D6D6D6") +
   theme_minimal() +
