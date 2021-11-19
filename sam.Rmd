@@ -322,10 +322,12 @@ read_csv(here("transit","ridership_points.csv"))%>%
 ```{r}
 library(rgdal)
 transit <- read_sf("transit/transit_shp/Summarize234_Buffer_of_transit_shps_within_NYC_Neighborhood_Tabulation_Areas_2020.shp")
-transit_csv <- read_csv("transit/Summarize234_Buffer_of_transit_shps_within_NYC_Neighborhood_Tabulation_Areas_2020_0.csv")
+transit_csv <- read_csv("transit/sum1119.csv")
 transit$perc <- transit$sum_Area_S/transit$AnalysisAr*100
 transit_csv$perc <- transit_csv$`Summarized Area in Square Miles`/transit_csv$`Area in Square Miles`*100
+transit_csv <- transit_csv %>% select(nta_id, perc)
 
+ggplot(transit_csv, aes(x=perc)) + geom_density()
 
 transit_csv <- transit_csv %>%
   rename(nta_id = NTA2020)
@@ -337,14 +339,21 @@ library(sf)
 library(readr)
 
 vari_names <- read_csv("clean_data/nyc_names.csv")
-clean <- st_read("clean_data/nyc_data.shp", crs = 4269)
-colnames(clean) <- colnames(vari_names)
-clean <- clean %>% 
-  filter(!substr(nta_id, 1, 2) == "SI") %>%
-  mutate(transportation_desert_3cat = cut(perc_covered_by_transit, breaks=c(-10, 0, 100, 500), labels = c("No Access", "Satisfactory Access", "Excellent Access"))) %>% 
-  mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-10, 0, 50, 100, 500), labels = c("No Access", "Limited Access", "Satisfactory Access", "Excellent Access")))
 
-clean %>%write_csv("clean_data/nyc_names.csv")
+clean <- st_read("clean_data/nyc_data.shp", crs = 4269)
+
+cleaned <- clean %>% select(,-c(24))
+
+colnames(clean) <- colnames(vari_names)
+cleaned <- cleaned %>% 
+  filter(!substr(nta_id, 1, 2) == "SI") %>%
+  mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-1, 10, 75, 99, 100), labels = c("1", "2", "3", "4")))
+
+cleaned <- relocate(cleaned, transportation_desert_4cat, .before = geometry)
+
+cleaned %>% write_csv("clean_data/nyc_names.csv")
+
+cleaned %>% write_sf("clean_data/nyc_data.shp", driver="ESRI Shapefile")
 
 a <- read_sf("clean_data/nyc_data.shp")
 head(a)
