@@ -61,10 +61,6 @@ nta_to_census <- openxlsx::read.xlsx(here("ethnic", "Data", "census_to_nta.xlsx"
   rename(borough = BoroName,
          nta_id = NTACode) %>%
   unique()
-
-nyc_clean <- nyc_clean %>%
-  merge(., nta_to_census, by="nta_id") %>%
-  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("No Access", "Limited Access", "Satisfactory Access", "Excellent Access")))
 ```
 
 ```{r}
@@ -1041,14 +1037,11 @@ naive_classification_summary(
 ```{r}
 grid_data <- expand_grid(
     mean_income = seq(min((nyc_clean %>% drop_na(mean_income))$mean_income), max((nyc_clean %>% drop_na(mean_income))$mean_income), length = 100),
-    white_count = seq(min((nyc_clean %>% drop_na(white_count))$white_count), max((nyc_clean %>% drop_na(white_count))$white_count), length = 100),
-    black_count = seq(min((nyc_clean %>% drop_na(black_count))$black_count), max((nyc_clean %>% drop_na(black_count))$black_count), length = 100),
-latinx_count = seq(min((nyc_clean %>% drop_na(latinx_count))$latinx_count), max((nyc_clean %>% drop_na(latinx_count))$latinx_count), length = 100),
-asian_count = seq(min((nyc_clean %>% drop_na(asian_count))$asian_count), max((nyc_clean %>% drop_na(asian_count))$asian_count), length = 100)) %>%
+    black_count = seq(min((nyc_clean %>% drop_na(black_count))$black_count), max((nyc_clean %>% drop_na(black_count))$black_count), length = 100)) %>%
   mutate(classification = predict(naive_model_1, newdata = .))
 
 # Plot the classification regions
-ggplot(grid_data, aes(x = mean_income, y = white_count, color = classification)) +
+ggplot(grid_data, aes(x = mean_income, y = black_count, color = classification)) +
   geom_point(alpha = 1) +
   scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
                        guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6") 
