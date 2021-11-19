@@ -224,9 +224,17 @@ nyc_clean <- st_read("clean_data/nyc_data.shp", crs = 4269)
 colnames(nyc_clean) <- colnames(vari_names)
   
 
+dim(nyc_clean)
+names(nyc_clean)
+head(nyc_clean)
+summary(nyc_clean)
+
 ggplot(nyc_compiled2)+
     geom_sf(aes(fill= perc_covered_by_transit))+
-    scale_fill_gradient(low= "#56B1F7", high = "#132B43")
+    scale_fill_gradient(low= "#56B1F7", high = "#132B43", guide = guide_legend(title = "Percent Covered by Transit")) +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+   theme(panel.grid.major = element_line("transparent"))
 
 
 ```
@@ -349,4 +357,30 @@ ppc_intervals(nyc_compiled_clean$white_count, yrep = predictions,
 ggplot(nyc_compiled_clean, aes(x =white_count)) + 
   geom_density()
 ```
+
+
+```{r, cache=TRUE}
+poisson_non_hierarchical <- stan_glm(
+  white_count ~  total_pop + mean_income + mean_rent + 
+    unemployment_count + sub_count + 
+    perc_covered_by_transit + school_count + 
+    store_count + sub_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = nyc_clean,
+  family = poisson,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
+
+negbin_non_hierarchical <- stan_glm(
+  white_count ~  total_pop + mean_income + mean_rent + 
+    unemployment_count + sub_count + 
+    perc_covered_by_transit + school_count + 
+    store_count + sub_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = nyc_clean,
+  family = neg_binomial_2,
+  chains = 4, iter = 500*2, seed = 84735, refresh = 0
+)
+```
+
 
