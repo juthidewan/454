@@ -650,4 +650,20 @@ ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
 ```
 
 
+## Next Steps
+
+
+
+
+## Participation
+
+
+Sam 
+
+Vichy
+
+Freddy 
+
+Juthi 
+
 
