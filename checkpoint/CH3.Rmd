@@ -62,6 +62,7 @@ nta_to_census <- openxlsx::read.xlsx(here("ethnic", "Data", "census_to_nta.xlsx"
          nta_id = NTACode) %>%
   unique()
 
+
 nyc_clean <- nyc_clean %>%
   merge(., nta_to_census, by="nta_id") %>%
   mutate(transportation_desert_4cat = case_when(
@@ -69,8 +70,7 @@ nyc_clean <- nyc_clean %>%
     transportation_desert_4cat ==2 ~ "Limited",
     transportation_desert_4cat ==3 ~ "Satisfactory",
     TRUE ~ "Excellent",
-  )) %>%
-  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent")))
+  )) 
 ```
 
 ```{r}
@@ -1065,7 +1065,7 @@ plot_1 <- ggplot(grid_data, aes(x = black_count, y = white_count, color = classi
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
-
+plot_1
 ```
 
 ```{r}
@@ -1108,7 +1108,8 @@ plot_3 <- ggplot(grid_data, aes(x = asian_count, y = white_count, color = classi
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
-
+plot_2
+plot_3
 ```
 
 ```{r, fig.height=4, fig.width=12}
@@ -1177,7 +1178,7 @@ latinx<-ggplot(grid_data, aes(x = mean_income, y = latinx_count, color = classif
 
 grid_data <- expand_grid(
     mean_income = seq(min((nyc_clean %>% drop_na(mean_income))$mean_income), max((nyc_clean %>% drop_na(mean_income))$mean_income), length = 100),
-asian_count = seq(min((nyc_clean %>% drop_na(asian_count))$asian_count), max((nyc_clean %>% drop_na(asian_count))$asian_count), length = 100)) %>%
+    asian_count = seq(min((nyc_clean %>% drop_na(asian_count))$asian_count), max((nyc_clean %>% drop_na(asian_count))$asian_count), length = 100)) %>%
   mutate(classification = predict(naive_model_1, newdata = .))
 
 asian <- ggplot(grid_data, aes(x = mean_income, y = asian_count, color = classification)) +
@@ -1207,6 +1208,7 @@ grid_data <- expand_grid(
   mutate(classification = predict(naive_model_1, newdata = .))
 
 # Plot the classification regions
+
 ggplot(grid_data, aes(x = mean_income, y = mean_rent, color = classification)) +
   geom_point(alpha = 1, size=2) +
   scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
