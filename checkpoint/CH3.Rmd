@@ -641,7 +641,7 @@ ggarrange(pop, white, black, latinx, asian, ncol=3)
 \
 \
 
-# Model Building
+# Demographics Models
 
 ## Models 1 & 2: Non-Hierarchical
 
@@ -1024,9 +1024,58 @@ Next, we interpret each predictor:
 >
 > If we intended to essentialize this list, `transportation_desert_4`, `eviction_count`, `store_count` seem to be the most informative predictors.
 
+# Transportation Models
 
+```{r}
+# Load the package
+library(e1071)
 
+# Run the algorithm using only data on bill length
+naive_model_1 <- naiveBayes(transportation_desert_4cat ~ mean_income + mean_rent + unemployment_count + school_count + store_count + bus_count + eviction_count + uninsured_count + white_count+ black_count+ asian_count, data = nyc_clean)
 
+set.seed(84735)
+naive_classification_summary(
+  model = naive_model_1, data = nyc_clean, y = transportation_desert_4cat)
+```
+
+```{r}
+grid_data <- expand_grid(
+    mean_income = seq(min((nyc_clean %>% drop_na(mean_income))$mean_income), max((nyc_clean %>% drop_na(mean_income))$mean_income), length = 100),
+    white_count = seq(min((nyc_clean %>% drop_na(white_count))$white_count), max((nyc_clean %>% drop_na(white_count))$white_count), length = 100),
+    black_count = seq(min((nyc_clean %>% drop_na(black_count))$black_count), max((nyc_clean %>% drop_na(black_count))$black_count), length = 100),
+latinx_count = seq(min((nyc_clean %>% drop_na(latinx_count))$latinx_count), max((nyc_clean %>% drop_na(latinx_count))$latinx_count), length = 100),
+asian_count = seq(min((nyc_clean %>% drop_na(asian_count))$asian_count), max((nyc_clean %>% drop_na(asian_count))$asian_count), length = 100)) %>%
+  mutate(classification = predict(naive_model_1, newdata = .))
+
+# Plot the classification regions
+ggplot(grid_data, aes(x = mean_income, y = white_count, color = classification)) +
+  geom_point(alpha = 1) +
+  scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
+                       guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6") 
+```
+
+takeaways:
+
+1) high income + high white count ~ Excellent Access
+2) low-mid white count + low mean income ~ satisfactory access
+3) low-mid white + low-mid mean income ~ Limited access
+4) low white count + low-mid mean income ~ no access
+
+```{r}
+# Plot the classification regions
+ggplot(grid_data, aes(x = mean_income, y = black_count, color = classification)) +
+  geom_point(alpha = 1) +
+  scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
+                       guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6") 
+```
+
+```{r}
+# Plot the classification regions
+ggplot(grid_data, aes(x = mean_income, y = latinx_count, color = classification)) +
+  geom_point(alpha = 1) +
+  scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
+                       guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6") 
+```
 
 \
 \
