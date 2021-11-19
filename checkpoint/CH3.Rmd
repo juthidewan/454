@@ -443,7 +443,7 @@ kable(head(nyc_clean, n=3)) %>% kable_styling() %>% scroll_box()
 #summary(nyc_clean)
 library(table1)
 table_print <- table1(~ total_pop + mean_income + below_poverty_line_count+ 
-         mean_rent + unemployment_count + white_count + uninsured_count + school_count + eviction_count + store_count + transportation_desert_4cat+ sub_count + bus_count + mean_ridership | borough, data = nyc_clean %>% as.tibble())  %>% as.tibble() 
+         mean_rent + unemployment_count + white_count + uninsured_count + school_count + eviction_count + store_count + transportation_desert_4cat+ sub_count + bus_count + mean_ridership | borough, data = nyc_clean %>% as_tibble())  %>% as_tibble() 
 
 colnames(table_print) <- c("Variable", "Bronx (N=44)", "Brooklyn (N=64)","Manhattan (N=39)", "Queens (N=77)", "Overall (N=224)")
 
