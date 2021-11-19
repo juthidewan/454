@@ -652,7 +652,9 @@ ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
 
 ## Next Steps
 
+For next steps, we want to tie up some loose ends for our models we already built and figure out whether or not we want to keep them or change some variables. Moving forward, we want to build some non-hierarchical models predicting subway and bus count using the demographic data (like median income, rent, percentage white population, etc) to see the flip-side of what we are looking at right now with our models above. For the models that we have right now that are hierarchical, we might want to include latitude and longitude variables into our model so that it can take space into account because the way that it is right now, the model doesn't take into account how close or far NTAs are and whether or not they are within the same boroughs. 
 
+In terms of our determination of transportation deserts,  
 
 
 ## Participation
