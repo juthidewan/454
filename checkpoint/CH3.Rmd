@@ -1065,7 +1065,7 @@ plot_1 <- ggplot(grid_data, aes(x = black_count, y = white_count, color = classi
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
-
+plot_1
 ```
 
 ```{r}
@@ -1108,7 +1108,8 @@ plot_3 <- ggplot(grid_data, aes(x = asian_count, y = white_count, color = classi
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
-
+plot_2
+plot_3
 ```
 
 ```{r, fig.height=4, fig.width=12}
@@ -1177,11 +1178,7 @@ latinx<-ggplot(grid_data, aes(x = mean_income, y = latinx_count, color = classif
 
 grid_data <- expand_grid(
     mean_income = seq(min((nyc_clean %>% drop_na(mean_income))$mean_income), max((nyc_clean %>% drop_na(mean_income))$mean_income), length = 100),
-<<<<<<< HEAD
-    black_count = seq(min((nyc_clean %>% drop_na(black_count))$black_count), max((nyc_clean %>% drop_na(black_count))$black_count), length = 100)) %>%
-=======
-asian_count = seq(min((nyc_clean %>% drop_na(asian_count))$asian_count), max((nyc_clean %>% drop_na(asian_count))$asian_count), length = 100)) %>%
->>>>>>> 26d9642da80e5ed7cee1d5040775298630fcedd6
+    asian_count = seq(min((nyc_clean %>% drop_na(asian_count))$asian_count), max((nyc_clean %>% drop_na(asian_count))$asian_count), length = 100)) %>%
   mutate(classification = predict(naive_model_1, newdata = .))
 
 asian <- ggplot(grid_data, aes(x = mean_income, y = asian_count, color = classification)) +
@@ -1211,13 +1208,9 @@ grid_data <- expand_grid(
   mutate(classification = predict(naive_model_1, newdata = .))
 
 # Plot the classification regions
-<<<<<<< HEAD
-ggplot(grid_data, aes(x = mean_income, y = black_count, color = classification)) +
-  geom_point(alpha = 1) +
-=======
+
 ggplot(grid_data, aes(x = mean_income, y = mean_rent, color = classification)) +
   geom_point(alpha = 1, size=2) +
->>>>>>> 26d9642da80e5ed7cee1d5040775298630fcedd6
   scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
                        guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
   theme_minimal() +
