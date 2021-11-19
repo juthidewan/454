@@ -64,7 +64,13 @@ nta_to_census <- openxlsx::read.xlsx(here("ethnic", "Data", "census_to_nta.xlsx"
 
 nyc_clean <- nyc_clean %>%
   merge(., nta_to_census, by="nta_id") %>%
-  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("No Access", "Limited Access", "Satisfactory Access", "Excellent Access")))
+  mutate(transportation_desert_4cat = case_when(
+    transportation_desert_4cat==1 ~ "Poor",
+    transportation_desert_4cat ==2 ~ "Limited",
+    transportation_desert_4cat ==3 ~ "Satisfactory",
+    TRUE ~ "Excellent",
+  )) %>%
+  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent")))
 ```
 
 ```{r}
@@ -1026,33 +1032,196 @@ Next, we interpret each predictor:
 
 # Transportation Models
 
+## Naive Bayes
 ```{r}
 # Load the package
 library(e1071)
 
 # Run the algorithm using only data on bill length
-naive_model_1 <- naiveBayes(transportation_desert_4cat ~ mean_income + mean_rent + unemployment_count + school_count + store_count + bus_count + eviction_count + uninsured_count + white_count+ black_count+ asian_count, data = nyc_clean)
+naive_model_1 <- naiveBayes(transportation_desert_4cat ~ mean_income + mean_rent + unemployment_count + school_count + store_count + bus_count + eviction_count + uninsured_count + white_count+ black_count+ latinx_count + asian_count, data = nyc_clean)
+```
 
-set.seed(84735)
-naive_classification_summary(
-  model = naive_model_1, data = nyc_clean, y = transportation_desert_4cat)
+### Classifications {-}
+
+#### Racial Counts
+
+```{r}
+grid_data <- expand_grid(
+    black_count = seq(min((nyc_clean %>% drop_na(black_count))$black_count), max((nyc_clean %>% drop_na(black_count))$black_count), length = 100),
+    white_count = seq(min((nyc_clean %>% drop_na(white_count))$white_count), max((nyc_clean %>% drop_na(white_count))$white_count), length = 100)) %>%
+  mutate(classification = predict(naive_model_1, newdata = .))
+
+# Plot the classification regions
+plot_1 <- ggplot(grid_data, aes(x = black_count, y = white_count, color = classification)) +
+  geom_point(alpha = 1, size=2) +
+  scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
+                       guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
+  theme_minimal() +
+  ggtitle("Black and White Population") +
+  labs(x="Black Count", y="White Count", color="Subway Accessibility")+
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 24, hjust=.5, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
 ```
 
 ```{r}
 grid_data <- expand_grid(
-    mean_income = seq(min((nyc_clean %>% drop_na(mean_income))$mean_income), max((nyc_clean %>% drop_na(mean_income))$mean_income), length = 100),
-    white_count = seq(min((nyc_clean %>% drop_na(white_count))$white_count), max((nyc_clean %>% drop_na(white_count))$white_count), length = 100),
-    black_count = seq(min((nyc_clean %>% drop_na(black_count))$black_count), max((nyc_clean %>% drop_na(black_count))$black_count), length = 100),
-latinx_count = seq(min((nyc_clean %>% drop_na(latinx_count))$latinx_count), max((nyc_clean %>% drop_na(latinx_count))$latinx_count), length = 100),
-asian_count = seq(min((nyc_clean %>% drop_na(asian_count))$asian_count), max((nyc_clean %>% drop_na(asian_count))$asian_count), length = 100)) %>%
+    latinx_count = seq(min((nyc_clean %>% drop_na(latinx_count))$latinx_count), max((nyc_clean %>% drop_na(latinx_count))$latinx_count), length = 100),
+    white_count = seq(min((nyc_clean %>% drop_na(white_count))$white_count), max((nyc_clean %>% drop_na(white_count))$white_count), length = 100)) %>%
   mutate(classification = predict(naive_model_1, newdata = .))
 
 # Plot the classification regions
-ggplot(grid_data, aes(x = mean_income, y = white_count, color = classification)) +
-  geom_point(alpha = 1) +
+plot_2 <- ggplot(grid_data, aes(x = latinx_count, y = white_count, color = classification)) +
+  geom_point(alpha = 1, size=2) +
   scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
-                       guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6") 
+                       guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
+  theme_minimal() +
+  ggtitle("Latinx and White Population") +
+  labs(x="Latinx Count", y="White Count", color="Subway Accessibility")+
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 24, hjust=.5, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
+grid_data <- expand_grid(
+    asian_count = seq(min((nyc_clean %>% drop_na(asian_count))$asian_count), max((nyc_clean %>% drop_na(asian_count))$asian_count), length = 100),
+    white_count = seq(min((nyc_clean %>% drop_na(white_count))$white_count), max((nyc_clean %>% drop_na(white_count))$white_count), length = 100)) %>%
+  mutate(classification = predict(naive_model_1, newdata = .))
+
+# Plot the classification regions
+plot_3 <- ggplot(grid_data, aes(x = asian_count, y = white_count, color = classification)) +
+  geom_point(alpha = 1, size=2) +
+  scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
+                       guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
+  theme_minimal() +
+  ggtitle("Asian and White Population") +
+  labs(x="Asian Count", y="White Count", color="Subway Accessibility")+
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 24, hjust=.5, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
 ```
+
+```{r, fig.height=4, fig.width=12}
+ggpubr::ggarrange(plot_1, plot_2, plot_3, ncol=3,nrow = 1, common.legend=TRUE, legend = "bottom")
+```
+
+#### Mean Income by Racial Counts
+
+```{r}
+grid_data <- expand_grid(
+    mean_income = seq(min((nyc_clean %>% drop_na(mean_income))$mean_income), max((nyc_clean %>% drop_na(mean_income))$mean_income), length = 100),
+    white_count = seq(min((nyc_clean %>% drop_na(white_count))$white_count), max((nyc_clean %>% drop_na(white_count))$white_count), length = 100)) %>%
+  mutate(classification = predict(naive_model_1, newdata = .))
+
+# Plot the classification regions
+white <- ggplot(grid_data, aes(x = mean_income, y = white_count, color = classification)) +
+  geom_point(alpha = 1, size=2) +
+  scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
+                       guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
+  theme_minimal() +
+  ggtitle("White Population") +
+  labs(x="Mean Neighborhood Income", y="Count", color="Subway Accessibility")+
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 24, hjust=.5, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
+grid_data <- expand_grid(
+    mean_income = seq(min((nyc_clean %>% drop_na(mean_income))$mean_income), max((nyc_clean %>% drop_na(mean_income))$mean_income), length = 100),
+    black_count = seq(min((nyc_clean %>% drop_na(black_count))$black_count), max((nyc_clean %>% drop_na(black_count))$black_count), length = 100)) %>%
+  mutate(classification = predict(naive_model_1, newdata = .))
+
+black <-ggplot(grid_data, aes(x = mean_income, y = black_count, color = classification)) +
+  geom_point(alpha = 1, size=2) +
+  scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
+                       guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
+  ggtitle("Black Population")+ 
+  labs(x="Mean Neighborhood Income", y="Count", color="Subway Accessibility")+
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 24, hjust=.5, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
+grid_data <- expand_grid(
+    mean_income = seq(min((nyc_clean %>% drop_na(mean_income))$mean_income), max((nyc_clean %>% drop_na(mean_income))$mean_income), length = 100),
+    latinx_count = seq(min((nyc_clean %>% drop_na(latinx_count))$latinx_count), max((nyc_clean %>% drop_na(latinx_count))$latinx_count), length = 100)) %>%
+  mutate(classification = predict(naive_model_1, newdata = .))
+
+latinx<-ggplot(grid_data, aes(x = mean_income, y = latinx_count, color = classification)) +
+  geom_point(alpha = 1, size=2) +
+  scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
+                       guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
+  theme_minimal() +
+  ggtitle("Latinx Population")  +
+  labs(x="Mean Neighborhood Income", y="Count", color="Subway Accessibility")+
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 24, hjust=.5, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
+grid_data <- expand_grid(
+    mean_income = seq(min((nyc_clean %>% drop_na(mean_income))$mean_income), max((nyc_clean %>% drop_na(mean_income))$mean_income), length = 100),
+asian_count = seq(min((nyc_clean %>% drop_na(asian_count))$asian_count), max((nyc_clean %>% drop_na(asian_count))$asian_count), length = 100)) %>%
+  mutate(classification = predict(naive_model_1, newdata = .))
+
+asian <- ggplot(grid_data, aes(x = mean_income, y = asian_count, color = classification)) +
+  geom_point(alpha = 1, size=2) +
+  scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
+                       guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
+  ggtitle("Asian Population")+ 
+  labs(x="Mean Neighborhood Income", y="Count", color="Subway Accessibility")+
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 24, hjust=.5, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+```
+
+
+```{r, fig.height=8, fig.width=16}
+ggpubr::ggarrange(white, black, latinx, asian, ncol=2,nrow = 2, common.legend=TRUE, legend = "bottom", label.x = )
+```
+
+#### Mean Income by Mean Rent 
+```{r, fig.height=4, fig.width=8}
+grid_data <- expand_grid(
+    mean_income = seq(min((nyc_clean %>% drop_na(mean_income))$mean_income), max((nyc_clean %>% drop_na(mean_income))$mean_income), length = 100),
+    mean_rent = seq(min((nyc_clean %>% drop_na(mean_rent))$mean_rent), max((nyc_clean %>% drop_na(mean_rent))$mean_rent), length = 100)) %>%
+  mutate(classification = predict(naive_model_1, newdata = .))
+
+# Plot the classification regions
+ggplot(grid_data, aes(x = mean_income, y = mean_rent, color = classification)) +
+  geom_point(alpha = 1, size=2) +
+  scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
+                       guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
+  theme_minimal() +
+  ggtitle("Mean Rental Price") +
+  labs(x="Mean Neighborhood Income", y="Mean Neighborhood Rental Price", color="Subway Accessibility")+
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 24, hjust=.5, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+```
+
 
 takeaways:
 
@@ -1061,21 +1230,44 @@ takeaways:
 3) low-mid white + low-mid mean income ~ Limited access
 4) low white count + low-mid mean income ~ no access
 
-```{r}
+\
+\
+\
+\
+\
+\
+
+
+#### Unemployment by Eviction Counts
+```{r, fig.height=4, fig.width=8}
+grid_data <- expand_grid(
+    unemployment_count = seq(min((nyc_clean %>% drop_na(unemployment_count))$unemployment_count), max((nyc_clean %>% drop_na(unemployment_count))$unemployment_count), length = 100),
+    eviction_count = seq(min((nyc_clean %>% drop_na(eviction_count))$eviction_count), max((nyc_clean %>% drop_na(eviction_count))$eviction_count), length = 100)) %>%
+  mutate(classification = predict(naive_model_1, newdata = .))
+
 # Plot the classification regions
-ggplot(grid_data, aes(x = mean_income, y = black_count, color = classification)) +
-  geom_point(alpha = 1) +
+ggplot(grid_data, aes(x = unemployment_count, y = eviction_count, color = classification)) +
+  geom_point(alpha = 1, size=2) +
   scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
-                       guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6") 
+                       guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
+  theme_minimal() +
+  ggtitle("Eviction by Unemployment Counts") +
+  labs(x="Unemployment Count", y="Eviction Count", color="Subway Accessibility")+
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 24, hjust=.5, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 ```
 
-```{r}
-# Plot the classification regions
-ggplot(grid_data, aes(x = mean_income, y = latinx_count, color = classification)) +
-  geom_point(alpha = 1) +
-  scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
-                       guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6") 
-```
+
+takeaways:
+
+1) high income + high white count ~ Excellent Access
+2) low-mid white count + low mean income ~ satisfactory access
+3) low-mid white + low-mid mean income ~ Limited access
+4) low white count + low-mid mean income ~ no access
 
 \
 \
@@ -1083,6 +1275,10 @@ ggplot(grid_data, aes(x = mean_income, y = latinx_count, color = classification)
 \
 \
 \
+
+
+
+
 
 # Next Steps
 
