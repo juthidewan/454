@@ -44,6 +44,35 @@ library(sf)
 library(tidycensus)
 library(openxlsx)
 library(s2)
+library(nycgeo)
+library(CARBayes)
+library(spData) 
+library(spdep)
+
+nyc_join <- merge(nta_sf,nta_acs_data)
+
+
+nyc_join <- nyc_join %>%
+  st_transform(., 4269)
+
+county_list <- nyc_join %>% pull(county_name) %>% unique()
+
+
+census_api_key("0cc07f06386e317f312adef5e0892b0d002b7254")
+
+census_data <- get_acs(state = "NY", 
+        county = c(county_list), 
+        geography = "tract", 
+        variables = c(gini_inequality ="B19083_001"),
+        year = 2019,
+        output = "wide",
+        survey = "acs5",
+        geometry = TRUE) %>% 
+  dplyr::select(-c(NAME, ends_with("M"))) %>%
+         rename_at(vars(ends_with("E")), .funs = list(~str_sub(., end = -2)))  %>%
+  st_transform(., 4269) %>%
+  dplyr::select(-GEOID)
+
 ```
 
 
@@ -70,7 +99,57 @@ nyc_clean <- nyc_clean %>%
     transportation_desert_4cat ==2 ~ "Limited",
     transportation_desert_4cat ==3 ~ "Satisfactory",
     TRUE ~ "Excellent",
-  )) 
+  ))  %>%
+  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent")))
+
+
+assault <- st_read("/Users/freddy/Downloads/NYPD Arrest Data (Year to Date)/geo_export_a659754f-6263-4ba1-8a58-72dca5befa79.shp") %>%
+    filter(str_detect(ofns_desc, "FELONY ASSAULT"))  %>%
+    filter(!(str_detect(ofns_desc, "POLICE")))  %>%
+    filter(str_detect(pd_desc, "2") | str_detect(pd_desc, "1") ) %>%
+  dplyr::select(arrest_key,geometry) %>%
+  st_transform(., 4269)
+
+sex <- st_read("/Users/freddy/Downloads/NYPD Arrest Data (Year to Date)/geo_export_a659754f-6263-4ba1-8a58-72dca5befa79.shp") %>%
+    filter(str_detect(ofns_desc, "SEX"))  %>%
+  dplyr::select(arrest_key,geometry) %>%
+  st_transform(., 4269)
+
+assault_neighborhood <- st_join(nyc_clean, assault, left = TRUE) %>%
+  group_by(nta_id) %>%
+  summarize(assault_count=n())  %>%
+  as.tibble()
+
+
+sex_neighborhood <- st_join(nyc_clean, sex,   left = TRUE) %>%
+  group_by(nta_id) %>%
+  summarize(sexcrime_count=n())  %>%
+  as.tibble()
+
+
+gini_neighborhood <- st_join(nyc_clean, census_data,left = TRUE) %>%
+  group_by(nta_id) %>%
+  summarize(gini_neighborhood=mean(gini_inequality, na.rm=T)) %>%
+  as.tibble() %>%
+  dplyr::select(nta_id, gini_neighborhood) 
+
+assault_gini <- left_join(assault_neighborhood, gini_neighborhood,by="nta_id") %>%
+  mutate(gini = gini_neighborhood, .before=3)%>%
+  dplyr::select(-gini_neighborhood) %>%
+  dplyr::select(-geometry)
+
+sex_assault_gini <- left_join(assault_gini, sex_neighborhood,by="nta_id") %>%
+  mutate(sex_crime_count = sexcrime_count, .before=3)%>%
+  dplyr::select(-sexcrime_count) %>%
+  dplyr::select(-geometry)
+
+
+nyc_clean <- nyc_clean %>%
+  as.tibble() %>%
+  filter(nta_id %in% sex_assault_gini$nta_id) %>%
+  left_join(., sex_assault_gini, by="nta_id")%>% 
+  unique() %>%
+  st_as_sf()
 ```
 
 ```{r}
@@ -78,7 +157,8 @@ subway_stations <- st_read(here("ethnic","Data","stations", "geo_export_85568705
   st_transform(., 4269)
 
 bus_stations <- st_read(here("ethnic","Data","bus", "bus_stops_nyc_may2020.shp"), quiet=T)  %>%
-  st_transform(., 4269)
+  st_transform(., 4269)%>%
+  filter(str_detect(NAMELSAD, "Richmond", negate=T))
 
 transit_points <- read_csv(here("transit","ridership_points.csv"))%>%
   separate(Position, into=c("Point", "longitude", "latitude"), " ") %>%
@@ -306,12 +386,28 @@ pink <- ggplot(nyc_clean) +
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
+
+navy <- nyc_clean %>%
+  ggplot() +
+  geom_sf(aes(fill = gini), color = "#8f98aa")+
+  scale_fill_gradient(low = "#F8E3DD", high = "#16236f",
+                      guide = guide_legend(title = "Gini Inequality Values"))+
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Income Inequality")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 ```
 
 ```{r}
 white <- ggplot(nyc_clean) +
   geom_sf(aes(fill = white_count), color = "#8f98aa") +
-  scale_fill_gradient(low = "#FCF5EE", high = "#7B435B", guide = guide_legend(title = "Number White")) +
+  scale_fill_gradientn(colors = c("#FCF5EE","#BD9DA5", "#9C7080", "#7B435B"),  guide = guide_legend(title = "Number White")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -325,7 +421,7 @@ white <- ggplot(nyc_clean) +
 
 black <- ggplot(nyc_clean) +
   geom_sf(aes(fill = black_count), color = "#8f98aa") +
-  scale_fill_gradient(low = "#FCF5EE", high = "#F25F5C", guide = guide_legend(title = "Number Black")) +
+  scale_fill_gradientn(colors = c("#FCF5EE","#F8ABA6", "#F58581", "#F25F5C"), guide = guide_legend(title = "Number Black")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -339,7 +435,7 @@ black <- ggplot(nyc_clean) +
 
 asian <- ggplot(nyc_clean) +
   geom_sf(aes(fill = asian_count), color = "#8f98aa") +
-  scale_fill_gradient(low = "#FCF5EE", high = "#717EC3", guide = guide_legend(title = "Number Asian")) +
+  scale_fill_gradientn(colors = c("#FCF5EE","#B8BAD9", "#959CCE", "#717EC3"),                      guide = guide_legend(title = "Number Asian")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -353,7 +449,8 @@ asian <- ggplot(nyc_clean) +
 
 latinx <- ggplot(nyc_clean) +
   geom_sf(aes(fill = latinx_count), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#FC9A38", guide = guide_legend(title = "Number Latinx")) +
+  scale_fill_gradientn(colors = c("#FCF5EE","#FDC894", "#FDB166", "#FC9A38"), 
+                      guide = guide_legend(title = "Number Latinx")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -367,7 +464,7 @@ latinx <- ggplot(nyc_clean) +
 
 pop <- ggplot(nyc_clean) +
   geom_sf(aes(fill = total_pop), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#81CF97", guide = guide_legend(title = "Number of People")) +
+  scale_fill_gradientn(colors = c("#FCF5EE","#C0E3C3", "#A1D9AD", "#81CF97"), guide = guide_legend(title = "Number of People")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -434,8 +531,11 @@ Our demographic and socioeconomic data are drawn from the American Community Sur
 
 ```{r eval = TRUE}
 library(kableExtra)
-kable(head(nyc_clean, n=3)) %>% kable_styling() %>% scroll_box()
+kable(head(nyc_clean, n=3)) %>% kable_styling() %>% scroll_box(width = "100%", height = "200px")
 ```
+
+\
+\
 
 > Below is a numeric summary of each variable's distribution.
 
@@ -448,7 +548,7 @@ table_print <- table1(~ total_pop + mean_income + below_poverty_line_count+
 colnames(table_print) <- c("Variable", "Bronx (N=44)", "Brooklyn (N=64)","Manhattan (N=39)", "Queens (N=77)", "Overall (N=224)")
 
 table_print%>%
-  filter(Variable!="") %>% kable() %>% kable_styling() %>% scroll_box()
+  filter(Variable!="") %>% kable() %>% kable_styling() %>% scroll_box(width = "100%", height = "500px")
 ```
 
 
@@ -626,7 +726,7 @@ ggarrange(subway_loc, bus_loc, stops, bus_stops, ridership, access, ncol=3)
 ### Structural {-}
 
 ```{r, fig.height=8*3, fig.width=8*3}
-ggarrange(red, orange, yellow, green, teal, blue, purple, pink, ncol=3)
+ggarrange(red, orange, yellow, green, teal, blue, navy, purple, pink, ncol=3)
 ```
 
 
@@ -639,6 +739,43 @@ ggarrange(red, orange, yellow, green, teal, blue, purple, pink, ncol=3)
 ```{r, fig.height=16, fig.width=16}
 ggarrange(pop, white, black, latinx, asian, ncol=3)
 ```
+
+### Crime
+
+```{r, fig.height=16/3, fig.width=16/3}
+nyc_clean %>%
+ggplot() +
+  geom_sf(aes(fill = sex_crime_count), color = "#8f98aa")+
+  scale_fill_gradientn(colors=c("#fef6ef","#f07f9b","#e94a7c","#d61760"), guide = guide_legend(title = "Sex-Based Crime Counts")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Sex-Based Violence")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+```
+
+```{r, fig.height=16/3, fig.width=16/3}
+nyc_clean %>%
+ggplot() +
+  geom_sf(aes(fill = assault_count), color = "#8f98aa")+
+  scale_fill_gradient(low = "#F8E3DD", high = "#95174F", guide = guide_legend(title = "Felony Assault Counts")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("1st and 2nd Degree Felony \nAssault")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+```
+
 
 \
 \
@@ -693,7 +830,7 @@ poisson_non_hierarchical <- stan_glm(
     eviction_count + uninsured_count,
   data = nyc_clean,
   family = poisson,
-  chains = 4, iter = 5000*2, seed = 84735, refresh = 0
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0
 )
 ```
 
@@ -715,18 +852,17 @@ library(tidybayes)
 library(bayesplot)
 
 ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
-              prob_outer = 0.95) +
+              prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
     breaks = 1:nrow(nyc_predict_clean)) +
   xaxis_text(angle = 90, hjust = 1) +
   theme_linedraw()+
   theme(panel.grid.major = element_line("transparent"),
-        axis.title.y = element_blank(),
-        axis.text.y = element_blank())+
-  coord_flip() 
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
 
-tidy(poisson_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.95) %>% 
+tidy(poisson_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8) %>% 
   
   mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
          conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
@@ -756,8 +892,6 @@ r & \sim Exp(1) \\
 \end{split}$$
 
 ```{r, cache=TRUE}
-prior_summary(poisson_non_hierarchical)
-
 negbin_non_hierarchical <- stan_glm(
   white_count ~  mean_income + mean_rent + 
     unemployment_count  + 
@@ -766,7 +900,7 @@ negbin_non_hierarchical <- stan_glm(
     eviction_count + uninsured_count,
   data = nyc_clean,
   family = neg_binomial_2,
-  chains = 4, iter = 5000*2, seed = 84735, refresh = 0
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0
 )
   
 ```
@@ -774,7 +908,7 @@ negbin_non_hierarchical <- stan_glm(
 ```{r, fig.width=12, fig.height=6}
 pp_check(negbin_non_hierarchical) + 
   xlab("White Resident Count") +
-  xlim(0,100000)+
+  
   labs(title = "Negative Binomial")+
   theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
 
@@ -786,18 +920,16 @@ predictions_negbin <-  posterior_predict(
   negbin_non_hierarchical, newdata = nyc_predict_clean)
 
 ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
-              prob_outer = 0.95) +
+              prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
     breaks = 1:nrow(nyc_predict_clean)) +
 	xaxis_text(angle = 90,  hjust = 1) +
   theme_linedraw()+
   theme(panel.grid.major = element_line("transparent"),
-        axis.title.y = element_blank(),
-        axis.text.y = element_blank())+
-  coord_flip()
-
-tidy(negbin_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.95)%>% 
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+tidy(negbin_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
   
   mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
          conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
@@ -864,7 +996,7 @@ poisson_hierarchical <- stan_glmer(
     eviction_count + uninsured_count + (1 | borough),
   data = nyc_clean,
   family = poisson,
-  chains = 4, iter = 5000*2, seed = 84735, refresh = 0
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0
 )
 ```
 
@@ -887,18 +1019,17 @@ library(tidybayes)
 library(bayesplot)
 
 ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
-              prob_outer = 0.95) +
+              prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
     breaks = 1:nrow(nyc_predict_clean)) +
   xaxis_text(angle = 90, hjust = 1) +
   theme_linedraw()+
   theme(panel.grid.major = element_line("transparent"),
-        axis.title.y = element_blank(),
-        axis.text.y = element_blank())+
-  coord_flip() 
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
 
-tidy(poisson_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.95) %>% 
+tidy(poisson_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8) %>% 
   
   mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
          conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
@@ -940,7 +1071,7 @@ negbin_hierarchical <- stan_glmer(
     eviction_count + uninsured_count + (1 | borough),
   data = nyc_clean,
   family = neg_binomial_2,
-  chains = 4, iter = 5000*2, seed = 84735, refresh = 0)
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0)
 ```
 
 ```{r, fig.width=12, fig.height=6}
@@ -957,18 +1088,17 @@ predictions_negbin <-  posterior_predict(
   negbin_hierarchical, newdata = nyc_predict_clean)
 
 ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
-              prob_outer = 0.95) +
+              prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
     breaks = 1:nrow(nyc_predict_clean)) +
 	xaxis_text(angle = 90,  hjust = 1) +
   theme_linedraw()+
   theme(panel.grid.major = element_line("transparent"),
-        axis.title.y = element_blank(),
-        axis.text.y = element_blank())+
-  coord_flip()
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
 
-tidy(negbin_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.95)%>% 
+tidy(negbin_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
   
   mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
          conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
@@ -977,6 +1107,140 @@ tidy(negbin_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.95)
   kable(align = "c", caption = "Hierarchichal Negative Binomial - Model Summary") %>% 
   kable_styling()
 ```
+
+
+## Models 4 & 5: Spatial
+
+```{r}
+draft <- nyc_clean %>% drop_na(mean_rent) %>% drop_na(mean_income) %>% st_as_sf()
+col_sp <- as(draft, "Spatial")
+col_nb <- poly2nb(col_sp) # queen neighborhood
+col_listw <- nb2listw(col_nb, style = "B") # listw version of the neighborhood
+W <- nb2mat(col_nb, style = "B") # binary structure
+moran.mc(col_sp$white_count, listw = col_listw, nsim = 999, alternative = "greater")
+```
+
+### Poisson
+
+```{r, fig.height=8, fig.width=8}
+col_sp <- as(draft, "Spatial")
+col_nb <- poly2nb(col_sp) # queen neighborhood
+col_listw <- nb2listw(col_nb, style = "B") # listw version of the neighborhood
+W <- nb2mat(col_nb, style = "B") # binary structure
+
+M.burnin <- 10000       # Number of burn-in iterations (discarded)
+M <- 1000               # Number of iterations retained
+
+
+model.assault <- S.CARleroux(
+  white_count ~ 1 + gini  + 
+    mean_income + mean_rent + 
+    unemployment_count  + 
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count, 
+  data = draft, 
+  family = "poisson",
+  W = W,
+  burnin = M.burnin,
+  n.sample = M.burnin + M,    # Total iterations
+  verbose = FALSE)
+
+as.data.frame(model.assault$summary.results) %>% 
+  rownames_to_column("term") %>%
+  kable()%>% 
+  kable_styling() %>% 
+  scroll_box(width = "100%", height = "200px")
+
+  
+p_plot <- round((moran.mc(x = as.vector(model.assault$residuals$response), listw = col_listw, nsim = 9999, alternative = "greater")$p.value),5)
+  
+
+draft %>%
+  mutate(resid = model.assault$residuals$response) %>%
+  ggplot(aes(fill = resid), color = "#8f98aa") +
+  geom_sf()+
+  scale_fill_gradientn(colors=c("#fef6ef","#f07f9b","#e94a7c","#d61760"), guide =
+                         guide_legend(title = "Residual")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(paste0("1st and Degree Felony Assault: \nPoisson Model Residuals (", p_plot, ")"))+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+```
+
+
+
+
+### Zero-Inflated Poisson (Negative Binomial)
+
+```{r, fig.height=8, fig.width=8}
+col_sp <- as(draft, "Spatial")
+col_nb <- poly2nb(col_sp) # queen neighborhood
+col_listw <- nb2listw(col_nb, style = "B") # listw version of the neighborhood
+W <- nb2mat(col_nb, style = "B") # binary structure
+
+M.burnin <- 10000       # Number of burn-in iterations (discarded)
+M <- 1000               # Number of iterations retained
+
+
+model.assault <- S.CARleroux(
+  white_count ~ 1 + gini  + 
+    mean_income + mean_rent + 
+    unemployment_count  + 
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count, 
+  data=draft,
+  family = "zip",
+  formula.omega = ~1,
+  W = W,
+  burnin = M.burnin,
+  n.sample = M.burnin + M,    # Total iterations
+  verbose = FALSE)
+
+as.data.frame(model.assault$summary.results) %>% 
+  rownames_to_column("term") %>%
+  kable()%>% 
+  kable_styling() %>% 
+  scroll_box(width = "100%", height = "200px")
+
+  
+p_plot <- round((moran.mc(x = as.vector(model.assault$residuals$response), listw = col_listw, nsim = 9999, alternative = "greater")$p.value),5)
+  
+
+draft %>%
+  mutate(resid = model.assault$residuals$response) %>%
+  ggplot(aes(fill = resid), color = "#8f98aa") +
+  geom_sf()+
+  scale_fill_gradientn(colors=c("#fef6ef","#f07f9b","#e94a7c","#d61760"), guide =
+                         guide_legend(title = "Residual")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(paste0("1st and Degree Felony Assault: \nZIP Model Residuals (", p_plot, ")"))+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+```
+
+
+
+
+
+
+
+
+
+
 
 
 ## Comparison
@@ -995,7 +1259,7 @@ rbind(table1, table2, table3, table4) %>%
 Using in-sample scaled MAE, it's evident our negative binomial regression models, regardless of hierarchy, performed better than our poisson regression models. However, the differences between the two negative binomial models was neglible. So, we will more closely interpret the non-hierarchichal negative binomial regression model.
 
 ```{r}
-tidy(negbin_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.95)%>% 
+tidy(negbin_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
   
   mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
          conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
@@ -1003,9 +1267,6 @@ tidy(negbin_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0
   filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
   kable(align = "c", caption = "Non-Hierarchichal Negative Binomial - Model Summary") %>% 
   kable_styling()
-
-(exp(.00001433250)-1)*100
-
 ```
 
 >After removing predictors whose 95% credible intervals included the possibility of non-effect when controlling for other covariates, we found that there were 6 remaining predictors of an arbitrary neighborhood's white population count:
@@ -1053,7 +1314,7 @@ grid_data <- expand_grid(
 
 # Plot the classification regions
 plot_1 <- ggplot(grid_data, aes(x = black_count, y = white_count, color = classification)) +
-  geom_point(alpha = 1, size=2) +
+  geom_point(alpha = 1, size=1.5) +
   scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
                        guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
   theme_minimal() +
@@ -1065,7 +1326,6 @@ plot_1 <- ggplot(grid_data, aes(x = black_count, y = white_count, color = classi
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
-plot_1
 ```
 
 ```{r}
@@ -1076,7 +1336,7 @@ grid_data <- expand_grid(
 
 # Plot the classification regions
 plot_2 <- ggplot(grid_data, aes(x = latinx_count, y = white_count, color = classification)) +
-  geom_point(alpha = 1, size=2) +
+  geom_point(alpha = 1, size=1.5) +
   scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
                        guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
   theme_minimal() +
@@ -1096,7 +1356,7 @@ grid_data <- expand_grid(
 
 # Plot the classification regions
 plot_3 <- ggplot(grid_data, aes(x = asian_count, y = white_count, color = classification)) +
-  geom_point(alpha = 1, size=2) +
+  geom_point(alpha = 1, size=1.5) +
   scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
                        guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
   theme_minimal() +
@@ -1108,11 +1368,9 @@ plot_3 <- ggplot(grid_data, aes(x = asian_count, y = white_count, color = classi
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
-plot_2
-plot_3
 ```
 
-```{r, fig.height=4, fig.width=12}
+```{r, fig.height=8, fig.width=24}
 ggpubr::ggarrange(plot_1, plot_2, plot_3, ncol=3,nrow = 1, common.legend=TRUE, legend = "bottom")
 ```
 
@@ -1126,7 +1384,7 @@ grid_data <- expand_grid(
 
 # Plot the classification regions
 white <- ggplot(grid_data, aes(x = mean_income, y = white_count, color = classification)) +
-  geom_point(alpha = 1, size=2) +
+  geom_point(alpha = 1, size=1.5) +
   scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
                        guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
   theme_minimal() +
@@ -1145,7 +1403,7 @@ grid_data <- expand_grid(
   mutate(classification = predict(naive_model_1, newdata = .))
 
 black <-ggplot(grid_data, aes(x = mean_income, y = black_count, color = classification)) +
-  geom_point(alpha = 1, size=2) +
+  geom_point(alpha = 1, size=1.5) +
   scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
                        guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
   ggtitle("Black Population")+ 
@@ -1163,7 +1421,7 @@ grid_data <- expand_grid(
   mutate(classification = predict(naive_model_1, newdata = .))
 
 latinx<-ggplot(grid_data, aes(x = mean_income, y = latinx_count, color = classification)) +
-  geom_point(alpha = 1, size=2) +
+  geom_point(alpha = 1, size=1.5) +
   scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
                        guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
   theme_minimal() +
@@ -1182,7 +1440,7 @@ grid_data <- expand_grid(
   mutate(classification = predict(naive_model_1, newdata = .))
 
 asian <- ggplot(grid_data, aes(x = mean_income, y = asian_count, color = classification)) +
-  geom_point(alpha = 1, size=2) +
+  geom_point(alpha = 1, size=1.5) +
   scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
                        guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
   ggtitle("Asian Population")+ 
@@ -1196,7 +1454,8 @@ asian <- ggplot(grid_data, aes(x = mean_income, y = asian_count, color = classif
 ```
 
 
-```{r, fig.height=8, fig.width=16}
+```{r, fig.height=8*2, fig.width=16}
+
 ggpubr::ggarrange(white, black, latinx, asian, ncol=2,nrow = 2, common.legend=TRUE, legend = "bottom", label.x = )
 ```
 
@@ -1210,7 +1469,7 @@ grid_data <- expand_grid(
 # Plot the classification regions
 
 ggplot(grid_data, aes(x = mean_income, y = mean_rent, color = classification)) +
-  geom_point(alpha = 1, size=2) +
+  geom_point(alpha = 1, size=1) +
   scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
                        guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
   theme_minimal() +
@@ -1249,7 +1508,7 @@ grid_data <- expand_grid(
 
 # Plot the classification regions
 ggplot(grid_data, aes(x = unemployment_count, y = eviction_count, color = classification)) +
-  geom_point(alpha = 1, size=2) +
+  geom_point(alpha = 1, size=1) +
   scale_color_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
                        guide = guide_legend(title = "Subway Accessibility"), na.value="#D6D6D6")  +
   theme_minimal() +
@@ -1278,6 +1537,1533 @@ takeaways:
 \
 \
 
+
+# Eviction Models
+## Models 1 & 2: Non-Hierarchical
+
+> We use poisson and negative binomial regression to model observed eviction counts, $i$, using our $k=10$ predictors:
+>
+- gini
+- mean_income
+- white_count
+- black_count
+- latinx_count
+- asian_count
+- mean_rent
+- unemployment_count
+- sub_count
+- transportation_desert_4cat
+- school_count
+- store_count
+- bus_count
+- eviction_count
+- uninsured_count
+>
+>
+
+### Poisson {-}
+
+$$\begin{split}
+\text{White}_{i} \mid  \beta_{0}, \beta_1, ..., \beta_k & \sim \text{Pois}(\lambda_{i}) \; \; \; \; \text{where} \log(\lambda_{i}) = \beta_{0} + \sum^{10}_{k=1}X_{ik}\beta_k \\
+\beta_{0c} & \sim N(0,2.5^2)\\
+\beta_1 &\sim N(0, 0.0000738^2)\\
+\beta_2 &\sim N(0, 0.00537^2)\\
+\beta_3 &\sim N(0, 0.00298^2)\\
+\beta_4 &\sim N(0, 5.281^2)\\
+\beta_5 &\sim N(0, 5.375^2)\\
+\beta_6 &\sim N(0, 6.7192^2)\\
+\beta_7 &\sim N(0, 0.390^2)\\
+\beta_8 &\sim N(0, 0.0633^2)\\
+\beta_9 &\sim N(0, 0.0714^2)\\
+\beta_{10} &\sim N(0, .00985^2)\\
+\beta_{11} &\sim N(0, .00115^2)\\
+\end{split}$$
+
+```{r}
+poisson_non_hierarchical <- stan_glm(
+  eviction_count ~ gini + mean_income + mean_rent + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    uninsured_count,
+  data = nyc_clean,
+  family = poisson,
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0
+)
+```
+
+```{r, fig.width=12, fig.height=6}
+pp_check(poisson_non_hierarchical) + 
+  xlab("Eviction Count") +
+  xlim(0,max(nyc_clean$eviction_count))+
+  labs(title = "Poisson")+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+
+library(kableExtra)
+nyc_predict_clean <- nyc_clean %>%
+  na.omit()
+set.seed(84735)
+
+predictions_poisson <-  posterior_predict(
+  poisson_non_hierarchical, newdata = nyc_predict_clean)
+
+library(tidybayes)
+library(bayesplot)
+
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+  xaxis_text(angle = 90, hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+
+tidy(poisson_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8) %>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Non-Hierarchical Poisson - Model Summary") %>% 
+  kable_styling()
+```
+
+### Negative Binomial {-}
+
+$$\begin{split}
+\text{White}_{ij} \mid  \beta_{0j}, \beta_1, ..., \beta_k, r & \sim \text{NegBin}(\mu_{ij}, r) \; \; \; \; \text{where} \log(\mu_{i}) = \beta_{0} + \sum^{11}_{k=1}X_{ik}\beta_k \\
+\beta_{0c} & \sim N(0,2.5^2)\\
+\beta_1 &\sim N(0, 0.0000738^2)\\
+\beta_2 &\sim N(0, 0.00537^2)\\
+\beta_3 &\sim N(0, 0.00298^2)\\
+\beta_4 &\sim N(0, 5.281^2)\\
+\beta_5 &\sim N(0, 5.375^2)\\
+\beta_6 &\sim N(0, 6.7192^2)\\
+\beta_7 &\sim N(0, 0.390^2)\\
+\beta_8 &\sim N(0, 0.0633^2)\\
+\beta_9 &\sim N(0, 0.0714^2)\\
+\beta_{10} &\sim N(0, .00985^2)\\
+\beta_{11} &\sim N(0, .00115^2)\\
+r & \sim Exp(1) \\
+\end{split}$$
+
+```{r, cache=TRUE}
+negbin_non_hierarchical <- stan_glm(
+ eviction_count ~ gini + mean_income + mean_rent + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    uninsured_count,
+  data = nyc_clean,
+  family = neg_binomial_2,
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0
+)
+  
+```
+
+```{r, fig.width=12, fig.height=6}
+pp_check(negbin_non_hierarchical) + 
+  xlab("Eviction Count") +
+  xlim(0,max(nyc_clean$eviction_count))+
+  labs(title = "Negative Binomial")+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+
+nyc_predict_clean <- nyc_clean %>%
+  na.omit()
+set.seed(84735)
+
+predictions_negbin <-  posterior_predict(
+  negbin_non_hierarchical, newdata = nyc_predict_clean)
+
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+	xaxis_text(angle = 90,  hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+tidy(negbin_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Non-Hierarchichal Negative Binomial - Model Summary") %>% 
+  kable_styling()
+```
+
+
+```{r}
+table1 <- prediction_summary(model=poisson_non_hierarchical, data=nyc_clean %>% na.omit())%>% 
+  mutate(Model = "Poisson")
+table2 <- prediction_summary(model=negbin_non_hierarchical, data=nyc_clean %>% na.omit())%>% 
+  mutate(Model = "Negative Binomial")
+```
+
+> Negative binomial has much better error metrics.
+
+
+## Models 2 & 3: Hierarchy by Borough
+
+> We use poisson and negative binomial hierarchical regression to model observed white counts, $i$, by boroughs $j$, usin our $k=11$ predictors. Note we are creating 3 dummy variables associated with `transportation_desert_4cat`:
+>
+- mean_income
+- mean_rent
+- unemployment_count
+- transportation_desert_4cat
+- school_count
+- store_count
+- bus_count
+- eviction_count
+- uninsured_count
+>
+>
+
+### Poisson {-}
+
+$$\begin{split}
+\text{White}_{ij} \mid  \beta_{0j}, \beta_1, ..., \beta_k & \sim \text{Pois}(\lambda_{ij}) \\
+& \text{where} \log(\lambda_{ij}) = \beta_{0j} + \sum^{11}_{k=1}X_{ijk}\beta_k \\
+\beta_{0j} \mid \beta_0, \sigma_0 & \stackrel{ind}{\sim} N(\beta_0, \sigma_0^2)\\
+\beta_{0c} & \sim N(0,2.5^2)\\
+\beta_1 &\sim N(0, 0.0000738^2)\\
+\beta_2 &\sim N(0, 0.00537^2)\\
+\beta_3 &\sim N(0, 0.00298^2)\\
+\beta_4 &\sim N(0, 5.281^2)\\
+\beta_5 &\sim N(0, 5.375^2)\\
+\beta_6 &\sim N(0, 6.7192^2)\\
+\beta_7 &\sim N(0, 0.390^2)\\
+\beta_8 &\sim N(0, 0.0633^2)\\
+\beta_9 &\sim N(0, 0.0714^2)\\
+\beta_{10} &\sim N(0, .00985^2)\\
+\beta_{11} &\sim N(0, .00115^2)\\
+\sigma_0 & \sim Exp(1)
+\end{split}$$
+
+```{r}
+poisson_hierarchical <- stan_glmer(
+  eviction_count ~ gini + mean_income + mean_rent + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    uninsured_count + (1 | borough),
+  data = nyc_clean,
+  family = poisson,
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0
+)
+```
+
+```{r, fig.width=12, fig.height=6}
+pp_check(poisson_hierarchical) + 
+  xlab("Eviction Count") +
+  xlim(0,max(nyc_clean$eviction_count))+
+  labs(title = "Poisson")+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+
+library(kableExtra)
+
+nyc_predict_clean <- nyc_clean %>%
+  na.omit()
+set.seed(84735)
+
+predictions_poisson <-  posterior_predict(
+  poisson_hierarchical, newdata = nyc_predict_clean)
+
+library(tidybayes)
+library(bayesplot)
+
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+  xaxis_text(angle = 90, hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+
+tidy(poisson_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8) %>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Hierarchicahl Poisson - Model Summary") %>% 
+  kable_styling()
+
+```
+
+### Negative Binomial {-}
+
+$$\begin{split}
+\text{White}_{ij} \mid  \beta_{0j}, \beta_1, ..., \beta_k, r & \sim \text{NegBin}(\mu_{ij}, r) \\
+& \text{where} \log(\mu_{ij}) = \beta_{0j} + \sum^{11}_{k=1}X_{ijk}\beta_k \\
+\beta_{0j} \mid \beta_0, \sigma_0 & \stackrel{ind}{\sim} N(\beta_0, \sigma_0^2)\\
+\beta_{0c} & \sim N(0,2.5^2)\\
+\beta_1 &\sim N(0, 0.0000738^2)\\
+\beta_2 &\sim N(0, 0.00537^2)\\
+\beta_3 &\sim N(0, 0.00298^2)\\
+\beta_4 &\sim N(0, 5.281^2)\\
+\beta_5 &\sim N(0, 5.375^2)\\
+\beta_6 &\sim N(0, 6.7192^2)\\
+\beta_7 &\sim N(0, 0.390^2)\\
+\beta_8 &\sim N(0, 0.0633^2)\\
+\beta_9 &\sim N(0, 0.0714^2)\\
+\beta_{10} &\sim N(0, .00985^2)\\
+\beta_{11} &\sim N(0, .00115^2)\\
+r & \sim Exp(1) \\
+\sigma_0 & \sim Exp(1)
+\end{split}$$
+
+```{r,  cache=TRUE}
+negbin_hierarchical <- stan_glmer(
+eviction_count ~ gini + mean_income + mean_rent + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    uninsured_count+ (1 | borough),
+  data = nyc_clean,
+  family = neg_binomial_2,
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0)
+```
+
+```{r, fig.width=12, fig.height=6}
+pp_check(negbin_hierarchical) + 
+  xlab("Eviction Count") +
+  xlim(0,max(nyc_clean$eviction_count))+
+  labs(title = "Negative Binomial")+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+
+nyc_predict_clean <- nyc_clean %>%
+  na.omit()
+set.seed(84735)
+
+predictions_negbin <-  posterior_predict(
+  negbin_hierarchical, newdata = nyc_predict_clean)
+
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+	xaxis_text(angle = 90,  hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+
+tidy(negbin_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Hierarchichal Negative Binomial - Model Summary") %>% 
+  kable_styling()
+```
+
+
+## Models 4 & 5: Spatial
+
+```{r}
+col_sp <- as(nyc_clean, "Spatial")
+col_nb <- poly2nb(col_sp) # queen neighborhood
+col_listw <- nb2listw(col_nb, style = "B") # listw version of the neighborhood
+W <- nb2mat(col_nb, style = "B") # binary structure
+moran.mc(col_sp$eviction_count, listw = col_listw, nsim = 999, alternative = "greater")
+```
+
+### Poisson
+
+```{r, fig.height=8, fig.width=8}
+col_sp <- as(nyc_clean, "Spatial")
+col_nb <- poly2nb(col_sp) # queen neighborhood
+col_listw <- nb2listw(col_nb, style = "B") # listw version of the neighborhood
+W <- nb2mat(col_nb, style = "B") # binary structure
+
+M.burnin <- 10000       # Number of burn-in iterations (discarded)
+M <- 1000               # Number of iterations retained
+
+
+model.eviction <- S.CARleroux(
+  eviction_count ~ 1 + gini  + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count +  uninsured_count, 
+  data = nyc_clean, 
+  family = "poisson",
+  W = W,
+  burnin = M.burnin,
+  n.sample = M.burnin + M,    # Total iterations
+  verbose = FALSE)
+
+as.data.frame(model.eviction$summary.results) %>% 
+  rownames_to_column("term") %>%
+  kable()%>% 
+  kable_styling() %>% 
+  scroll_box(width = "100%", height = "200px")
+
+  
+p_plot <- round((moran.mc(x = as.vector(model.eviction$residuals$response), listw = col_listw, nsim = 9999, alternative = "greater")$p.value),5)
+  
+
+nyc_clean %>%
+  mutate(resid = model.eviction$residuals$response) %>%
+  ggplot(aes(fill = resid), color = "#8f98aa") +
+  geom_sf()+
+  scale_fill_gradientn(colors=c("#fef6ef","#f07f9b","#e94a7c","#d61760"), guide =
+                         guide_legend(title = "Residual")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(paste0("Eviction: \nPoisson Model Residuals (", p_plot, ")"))+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
+
+```
+
+
+
+
+### Zero-Inflated Poisson (Negative Binomial)
+
+```{r, fig.height=8, fig.width=8}
+draft <- nyc_clean
+
+col_sp <- as(draft, "Spatial")
+col_nb <- poly2nb(col_sp) # queen neighborhood
+col_listw <- nb2listw(col_nb, style = "B") # listw version of the neighborhood
+W <- nb2mat(col_nb, style = "B") # binary structure
+
+M.burnin <- 10000       # Number of burn-in iterations (discarded)
+M <- 1000               # Number of iterations retained
+
+model.eviction <- S.CARleroux(
+  eviction_count ~ 1 + gini  + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count +  uninsured_count, 
+  data = nyc_clean, 
+  family = "zip",
+  formula.omega = ~1,
+  W = W,
+  burnin = M.burnin,
+  n.sample = M.burnin + M,    # Total iterations
+  verbose = FALSE)
+
+as.data.frame(model.eviction$summary.results) %>% 
+  rownames_to_column("term") %>%
+  filter(Median != 0 ) %>%
+  filter(`2.5%`	> 0 & `97.5%` > 0 | `2.5%`	< 0 & `97.5%` < 0) %>%  
+  kable()%>% 
+  kable_styling() %>% 
+  scroll_box(width = "100%", height = "200px")
+
+  
+# p_plot <- round((moran.mc(x = as.vector(model.eviction$residuals$response), listw = col_listw, nsim = 9999, alternative = "greater")$p.value),5)
+
+
+ nyc_clean %>%
+   mutate(resid = model.eviction$residuals$response) %>%
+   ggplot(aes(fill = resid), color = "#8f98aa") +
+   geom_sf()+
+   scale_fill_gradientn(colors=c("#fef6ef","#f07f9b","#e94a7c","#d61760"), guide =
+                          guide_legend(title = "Residual")) +
+   theme_minimal() +
+   theme(panel.grid.major = element_line("transparent"),
+         axis.text = element_blank()) +
+   ggtitle(paste0("Eviction: \nZIP Model Residuals ( p_plot)"))+
+     theme(panel.grid.major = element_line("transparent"),
+           plot.title = element_text(size = 25, face = "bold"),
+           legend.title = element_text(size = 12),
+           legend.text = element_text(size = 12)) +
+     guides(shape = guide_legend(override.aes = list(size = 8)),
+            color = guide_legend(override.aes = list(size = 8)))
+
+```
+
+
+
+
+
+
+
+## Comparison
+
+```{r}
+table3 <- prediction_summary(model=poisson_hierarchical, data=nyc_clean %>% na.omit())%>% 
+  mutate(Model = "Hierarchichal Poisson")
+table4 <- prediction_summary(model=negbin_hierarchical, data=nyc_clean %>% na.omit())%>% 
+  mutate(Model = "Hierarchichal Negative Binomial") 
+
+rbind(table1, table2, table3, table4) %>%
+  dplyr::mutate(model = Model, .before=1) %>%
+  dplyr::select(-Model)%>% kable() %>% kable_styling()
+```
+
+> Using in-sample scaled MAE, it's evident our negative binomial regression models, regardless of hierarchy, performed better than our poisson regression models. However, the differences between the two negative binomial models was neglible. So, we will more closely interpret the non-hierarchichal negative binomial regression model.
+
+```{r}
+tidy(negbin_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Non-Hierarchichal Negative Binomial - Model Summary") %>% 
+  kable_styling()
+```
+
+>After removing predictors whose 95% credible intervals included the possibility of non-effect when controlling for other covariates, we found that there were 6 remaining predictors of an arbitrary neighborhood's felony eviction counts:
+>
+- Mean income by neighborhood
+- Unemployment counts by neighborhood
+- Transportation desert status by neighborhood
+- Food Vendor counts by neighborhood
+- Bus station counts by neighborhood
+- Eviction counts by neighborhood.
+>
+Next, we interpret each predictor:
+>
+- Mean Income: When controlling for all other predictors, 1 dollar increases in mean neighborhood rental prices are associated with approximately 0.00143% changes in the white population count. However, there is a 95% chance that the relationship may be any value between (0.000330%, 0.00268%), indicating that there is almost certainly a negative relationship between these two variables, but its magnitude may vary.
+- Unemployment Count: When controlling for all other predictors, 1 dollar increases in unemployed people counts by neighborhood are associated with approximately 0.0493% changes in the white population count. However, there is a 95% chance that the relationship may be any value between (0.0140%, 0.0790%), indicating that there is almost certainly a positive relationship between these two variables, but its magnitude may vary.
+- Limited Subway Access: When controlling for all other predictors, a neighborhood with limited access to subway transit is expected to have approximately 125.753% greater white population counts than a neighborhood with no subway access at all. Further, there is a 95% probability that the relationship may be any value between (51.508%, 269.541%), indicating that there is almost certainly an increase in white population counts between these two neighborhoods, but it's explicit magnitude may vary.
+- Satisfactory Subway Access: When controlling for all other predictors, a neighborhood with satisfactory access to subway transit is expected to have approximately 136.342% greater white population counts than a neighborhood with no subway access at all. Further, there is a 95% probability that the relationship may be any value between (44.081%, 282.669%), indicating that there is almost certainly an increase in white population counts between these two neighborhoods, but it's explicit magnitude may vary.
+- Excellent Subway Access: When controlling for all other predictors, a neighborhood with excellent access to subway transit is expected to have approximately 98.186% greater white population counts than a neighborhood with no subway access at all. Further, there is a 95% probability that the relationship may be any value between (15.762%, 275.969%), indicating that there is almost certainly an increase in white population counts between these two neighborhoods, but it's explicit magnitude may vary.
+- Food Vendor Count: When controlling for all other predictors, 1 store increases in the number of food vendors by neighborhood are associated with approximately 0.759% changes in the white population count. However, there is a 95% chance that the relationship may be any value between (0.261%, 1.469%), indicating that there is almost certainly a positive relationship between these two variables, but its magnitude may vary.
+- Bus Stop Count: When controlling for all other predictors, 1 stop increases in the number of bus stop by neighborhood are associated with approximately 0.6516973% changes in the white population count. However, there is a 95% chance that the relationship may be any value between (0.0402706%, 1.1496164%), indicating that there is almost certainly a positive relationship between these two variables, but its magnitude may vary.
+- Eviction Count: When controlling for all other predictors, increases in the number of evictions by neighborhood are associated with approximately 0.340% decreases in the white population count. However, there is a 95% chance that the relationship may be any value between (-0.425%, -0.248%), indicating that there is almost certainly a negative relationship between these two variables, but its magnitude may vary.
+>
+> If we intended to essentialize this list, `transportation_desert_4`, `eviction_count`, `store_count` seem to be the most informative predictors.
+
+
+
+
+
+
+# Assault Models
+
+## Models 1 & 2: Non-Hierarchical
+
+> We use poisson and negative binomial regression to model observed assault counts, $i$, using our $k=10$ predictors:
+>
+- gini
+- mean_income
+- white_count
+- black_count
+- latinx_count
+- asian_count
+- mean_rent
+- unemployment_count
+- sub_count
+- transportation_desert_4cat
+- school_count
+- store_count
+- bus_count
+- eviction_count
+- uninsured_count
+>
+>
+
+### Poisson {-}
+
+$$\begin{split}
+\text{White}_{i} \mid  \beta_{0}, \beta_1, ..., \beta_k & \sim \text{Pois}(\lambda_{i}) \; \; \; \; \text{where} \log(\lambda_{i}) = \beta_{0} + \sum^{10}_{k=1}X_{ik}\beta_k \\
+\beta_{0c} & \sim N(0,2.5^2)\\
+\beta_1 &\sim N(0, 0.0000738^2)\\
+\beta_2 &\sim N(0, 0.00537^2)\\
+\beta_3 &\sim N(0, 0.00298^2)\\
+\beta_4 &\sim N(0, 5.281^2)\\
+\beta_5 &\sim N(0, 5.375^2)\\
+\beta_6 &\sim N(0, 6.7192^2)\\
+\beta_7 &\sim N(0, 0.390^2)\\
+\beta_8 &\sim N(0, 0.0633^2)\\
+\beta_9 &\sim N(0, 0.0714^2)\\
+\beta_{10} &\sim N(0, .00985^2)\\
+\beta_{11} &\sim N(0, .00115^2)\\
+\end{split}$$
+
+```{r}
+poisson_non_hierarchical <- stan_glm(
+  assault_count ~ gini + mean_income + mean_rent + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = nyc_clean,
+  family = poisson,
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0
+)
+```
+
+```{r, fig.width=12, fig.height=6}
+pp_check(poisson_non_hierarchical) + 
+  xlab("Felon Assault Count") +
+  xlim(0,max(nyc_clean$assault_count))+
+  labs(title = "Poisson")+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+
+library(kableExtra)
+nyc_predict_clean <- nyc_clean %>%
+  na.omit()
+set.seed(84735)
+
+predictions_poisson <-  posterior_predict(
+  poisson_non_hierarchical, newdata = nyc_predict_clean)
+
+library(tidybayes)
+library(bayesplot)
+
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+  xaxis_text(angle = 90, hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+
+tidy(poisson_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8) %>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Non-Hierarchical Poisson - Model Summary") %>% 
+  kable_styling()
+```
+
+### Negative Binomial {-}
+
+$$\begin{split}
+\text{White}_{ij} \mid  \beta_{0j}, \beta_1, ..., \beta_k, r & \sim \text{NegBin}(\mu_{ij}, r) \; \; \; \; \text{where} \log(\mu_{i}) = \beta_{0} + \sum^{11}_{k=1}X_{ik}\beta_k \\
+\beta_{0c} & \sim N(0,2.5^2)\\
+\beta_1 &\sim N(0, 0.0000738^2)\\
+\beta_2 &\sim N(0, 0.00537^2)\\
+\beta_3 &\sim N(0, 0.00298^2)\\
+\beta_4 &\sim N(0, 5.281^2)\\
+\beta_5 &\sim N(0, 5.375^2)\\
+\beta_6 &\sim N(0, 6.7192^2)\\
+\beta_7 &\sim N(0, 0.390^2)\\
+\beta_8 &\sim N(0, 0.0633^2)\\
+\beta_9 &\sim N(0, 0.0714^2)\\
+\beta_{10} &\sim N(0, .00985^2)\\
+\beta_{11} &\sim N(0, .00115^2)\\
+r & \sim Exp(1) \\
+\end{split}$$
+
+```{r, cache=TRUE}
+negbin_non_hierarchical <- stan_glm(
+ assault_count ~ gini + mean_income + mean_rent + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = nyc_clean,
+  family = neg_binomial_2,
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0
+)
+  
+```
+
+```{r, fig.width=12, fig.height=6}
+pp_check(negbin_non_hierarchical) + 
+  xlab("Felony Assualt Count") +
+  xlim(0,max(nyc_clean$assault_count))+
+  labs(title = "Negative Binomial")+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+
+nyc_predict_clean <- nyc_clean %>%
+  na.omit()
+set.seed(84735)
+
+predictions_negbin <-  posterior_predict(
+  negbin_non_hierarchical, newdata = nyc_predict_clean)
+
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+	xaxis_text(angle = 90,  hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+tidy(negbin_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Non-Hierarchichal Negative Binomial - Model Summary") %>% 
+  kable_styling()
+```
+
+
+```{r}
+table1 <- prediction_summary(model=poisson_non_hierarchical, data=nyc_clean %>% na.omit())%>% 
+  mutate(Model = "Poisson")
+table2 <- prediction_summary(model=negbin_non_hierarchical, data=nyc_clean %>% na.omit())%>% 
+  mutate(Model = "Negative Binomial")
+```
+
+> Negative binomial has much better error metrics.
+
+
+## Models 2 & 3: Hierarchy by Borough
+
+> We use poisson and negative binomial hierarchical regression to model observed white counts, $i$, by boroughs $j$, usin our $k=11$ predictors. Note we are creating 3 dummy variables associated with `transportation_desert_4cat`:
+>
+- mean_income
+- mean_rent
+- unemployment_count
+- transportation_desert_4cat
+- school_count
+- store_count
+- bus_count
+- eviction_count
+- uninsured_count
+>
+>
+
+### Poisson {-}
+
+$$\begin{split}
+\text{White}_{ij} \mid  \beta_{0j}, \beta_1, ..., \beta_k & \sim \text{Pois}(\lambda_{ij}) \\
+& \text{where} \log(\lambda_{ij}) = \beta_{0j} + \sum^{11}_{k=1}X_{ijk}\beta_k \\
+\beta_{0j} \mid \beta_0, \sigma_0 & \stackrel{ind}{\sim} N(\beta_0, \sigma_0^2)\\
+\beta_{0c} & \sim N(0,2.5^2)\\
+\beta_1 &\sim N(0, 0.0000738^2)\\
+\beta_2 &\sim N(0, 0.00537^2)\\
+\beta_3 &\sim N(0, 0.00298^2)\\
+\beta_4 &\sim N(0, 5.281^2)\\
+\beta_5 &\sim N(0, 5.375^2)\\
+\beta_6 &\sim N(0, 6.7192^2)\\
+\beta_7 &\sim N(0, 0.390^2)\\
+\beta_8 &\sim N(0, 0.0633^2)\\
+\beta_9 &\sim N(0, 0.0714^2)\\
+\beta_{10} &\sim N(0, .00985^2)\\
+\beta_{11} &\sim N(0, .00115^2)\\
+\sigma_0 & \sim Exp(1)
+\end{split}$$
+
+```{r}
+poisson_hierarchical <- stan_glmer(
+  assault_count ~ gini + mean_income + mean_rent + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count + (1 | borough),
+  data = nyc_clean,
+  family = poisson,
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0
+)
+```
+
+```{r, fig.width=12, fig.height=6}
+pp_check(poisson_hierarchical) + 
+  xlab("Felony Assault Count") +
+  xlim(0,max(nyc_clean$assault_count))+
+  labs(title = "Poisson")+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+
+library(kableExtra)
+
+nyc_predict_clean <- nyc_clean %>%
+  na.omit()
+set.seed(84735)
+
+predictions_poisson <-  posterior_predict(
+  poisson_hierarchical, newdata = nyc_predict_clean)
+
+library(tidybayes)
+library(bayesplot)
+
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+  xaxis_text(angle = 90, hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+
+tidy(poisson_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8) %>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Hierarchicahl Poisson - Model Summary") %>% 
+  kable_styling()
+
+```
+
+### Negative Binomial {-}
+
+$$\begin{split}
+\text{White}_{ij} \mid  \beta_{0j}, \beta_1, ..., \beta_k, r & \sim \text{NegBin}(\mu_{ij}, r) \\
+& \text{where} \log(\mu_{ij}) = \beta_{0j} + \sum^{11}_{k=1}X_{ijk}\beta_k \\
+\beta_{0j} \mid \beta_0, \sigma_0 & \stackrel{ind}{\sim} N(\beta_0, \sigma_0^2)\\
+\beta_{0c} & \sim N(0,2.5^2)\\
+\beta_1 &\sim N(0, 0.0000738^2)\\
+\beta_2 &\sim N(0, 0.00537^2)\\
+\beta_3 &\sim N(0, 0.00298^2)\\
+\beta_4 &\sim N(0, 5.281^2)\\
+\beta_5 &\sim N(0, 5.375^2)\\
+\beta_6 &\sim N(0, 6.7192^2)\\
+\beta_7 &\sim N(0, 0.390^2)\\
+\beta_8 &\sim N(0, 0.0633^2)\\
+\beta_9 &\sim N(0, 0.0714^2)\\
+\beta_{10} &\sim N(0, .00985^2)\\
+\beta_{11} &\sim N(0, .00115^2)\\
+r & \sim Exp(1) \\
+\sigma_0 & \sim Exp(1)
+\end{split}$$
+
+```{r,  cache=TRUE}
+negbin_hierarchical <- stan_glmer(
+assault_count ~ gini + mean_income + mean_rent + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count+ (1 | borough),
+  data = nyc_clean,
+  family = neg_binomial_2,
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0)
+```
+
+```{r, fig.width=12, fig.height=6}
+pp_check(negbin_hierarchical) + 
+  xlab("Felony Assault Count") +
+  xlim(0,max(nyc_clean$assault_count))+
+  labs(title = "Negative Binomial")+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+
+nyc_predict_clean <- nyc_clean %>%
+  na.omit()
+set.seed(84735)
+
+predictions_negbin <-  posterior_predict(
+  negbin_hierarchical, newdata = nyc_predict_clean)
+
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+	xaxis_text(angle = 90,  hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+
+tidy(negbin_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Hierarchichal Negative Binomial - Model Summary") %>% 
+  kable_styling()
+```
+
+
+## Models 4 & 5: Spatial
+
+```{r}
+col_sp <- as(nyc_clean, "Spatial")
+col_nb <- poly2nb(col_sp) # queen neighborhood
+col_listw <- nb2listw(col_nb, style = "B") # listw version of the neighborhood
+W <- nb2mat(col_nb, style = "B") # binary structure
+moran.mc(col_sp$assault_count, listw = col_listw, nsim = 999, alternative = "greater")
+```
+
+### Poisson
+
+```{r, fig.height=8, fig.width=8}
+col_sp <- as(nyc_clean, "Spatial")
+col_nb <- poly2nb(col_sp) # queen neighborhood
+col_listw <- nb2listw(col_nb, style = "B") # listw version of the neighborhood
+W <- nb2mat(col_nb, style = "B") # binary structure
+
+M.burnin <- 10000       # Number of burn-in iterations (discarded)
+M <- 1000               # Number of iterations retained
+
+
+model.assault <- S.CARleroux(
+  assault_count ~ 1 + gini  + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count +  eviction_count + uninsured_count, 
+  data = nyc_clean, 
+  family = "poisson",
+  W = W,
+  burnin = M.burnin,
+  n.sample = M.burnin + M,    # Total iterations
+  verbose = FALSE)
+
+as.data.frame(model.assault$summary.results) %>% 
+  rownames_to_column("term") %>%
+  kable()%>% 
+  kable_styling() %>% 
+  scroll_box(width = "100%", height = "200px")
+
+  
+p_plot <- round((moran.mc(x = as.vector(model.assault$residuals$response), listw = col_listw, nsim = 9999, alternative = "greater")$p.value),5)
+  
+
+nyc_clean %>%
+  mutate(resid = model.assault$residuals$response) %>%
+  ggplot(aes(fill = resid), color = "#8f98aa") +
+  geom_sf()+
+  scale_fill_gradientn(colors=c("#fef6ef","#f07f9b","#e94a7c","#d61760"), guide =
+                         guide_legend(title = "Residual")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(paste0("1st and Degree Felony Assault: \nPoisson Model Residuals (", p_plot, ")"))+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
+
+```
+
+
+
+
+### Zero-Inflated Poisson (Negative Binomial)
+
+```{r, fig.height=8, fig.width=8}
+draft <- nyc_clean
+
+col_sp <- as(draft, "Spatial")
+col_nb <- poly2nb(col_sp) # queen neighborhood
+col_listw <- nb2listw(col_nb, style = "B") # listw version of the neighborhood
+W <- nb2mat(col_nb, style = "B") # binary structure
+
+M.burnin <- 10000       # Number of burn-in iterations (discarded)
+M <- 1000               # Number of iterations retained
+
+model.assault <- S.CARleroux(
+  assault_count ~ 1 + gini  + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count +  eviction_count + uninsured_count, 
+  data = nyc_clean, 
+  family = "zip",
+  formula.omega = ~1,
+  W = W,
+  burnin = M.burnin,
+  n.sample = M.burnin + M,    # Total iterations
+  verbose = FALSE)
+
+as.data.frame(model.assault$summary.results) %>% 
+  rownames_to_column("term") %>%
+  filter(Median != 0 ) %>%
+  filter(`2.5%`	> 0 & `97.5%` > 0 | `2.5%`	< 0 & `97.5%` < 0) %>%  
+  kable()%>% 
+  kable_styling() %>% 
+  scroll_box(width = "100%", height = "200px")
+
+  
+# p_plot <- round((moran.mc(x = as.vector(model.assault$residuals$response), listw = col_listw, nsim = 9999, alternative = "greater")$p.value),5)
+  
+
+# nyc_clean %>%
+#   mutate(resid = model.assault$residuals$response) %>%
+#   ggplot(aes(fill = resid), color = "#8f98aa") +
+#   geom_sf()+
+#   scale_fill_gradientn(colors=c("#fef6ef","#f07f9b","#e94a7c","#d61760"), guide =
+#                          guide_legend(title = "Residual")) +
+#   theme_minimal() +
+#   theme(panel.grid.major = element_line("transparent"),
+#         axis.text = element_blank()) +
+#   ggtitle(paste0("1st and Degree Felony Assault: \nZIP Model Residuals (", p_plot, ")"))+ 
+#     theme(panel.grid.major = element_line("transparent"),
+#           plot.title = element_text(size = 25, face = "bold"),
+#           legend.title = element_text(size = 12), 
+#           legend.text = element_text(size = 12)) + 
+#     guides(shape = guide_legend(override.aes = list(size = 8)),
+#            color = guide_legend(override.aes = list(size = 8)))
+
+```
+
+
+
+
+
+
+
+## Comparison
+
+```{r}
+table3 <- prediction_summary(model=poisson_hierarchical, data=nyc_clean %>% na.omit())%>% 
+  mutate(Model = "Hierarchichal Poisson")
+table4 <- prediction_summary(model=negbin_hierarchical, data=nyc_clean %>% na.omit())%>% 
+  mutate(Model = "Hierarchichal Negative Binomial") 
+
+rbind(table1, table2, table3, table4) %>%
+  dplyr::mutate(model = Model, .before=1) %>%
+  dplyr::select(-Model)%>% kable() %>% kable_styling()
+```
+
+> Using in-sample scaled MAE, it's evident our negative binomial regression models, regardless of hierarchy, performed better than our poisson regression models. However, the differences between the two negative binomial models was neglible. So, we will more closely interpret the non-hierarchichal negative binomial regression model.
+
+```{r}
+tidy(negbin_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Non-Hierarchichal Negative Binomial - Model Summary") %>% 
+  kable_styling()
+```
+
+>After removing predictors whose 95% credible intervals included the possibility of non-effect when controlling for other covariates, we found that there were 6 remaining predictors of an arbitrary neighborhood's felony assault counts:
+>
+- Mean income by neighborhood
+- Unemployment counts by neighborhood
+- Transportation desert status by neighborhood
+- Food Vendor counts by neighborhood
+- Bus station counts by neighborhood
+- Eviction counts by neighborhood.
+>
+Next, we interpret each predictor:
+>
+- Mean Income: When controlling for all other predictors, 1 dollar increases in mean neighborhood rental prices are associated with approximately 0.00143% changes in the white population count. However, there is a 95% chance that the relationship may be any value between (0.000330%, 0.00268%), indicating that there is almost certainly a negative relationship between these two variables, but its magnitude may vary.
+- Unemployment Count: When controlling for all other predictors, 1 dollar increases in unemployed people counts by neighborhood are associated with approximately 0.0493% changes in the white population count. However, there is a 95% chance that the relationship may be any value between (0.0140%, 0.0790%), indicating that there is almost certainly a positive relationship between these two variables, but its magnitude may vary.
+- Limited Subway Access: When controlling for all other predictors, a neighborhood with limited access to subway transit is expected to have approximately 125.753% greater white population counts than a neighborhood with no subway access at all. Further, there is a 95% probability that the relationship may be any value between (51.508%, 269.541%), indicating that there is almost certainly an increase in white population counts between these two neighborhoods, but it's explicit magnitude may vary.
+- Satisfactory Subway Access: When controlling for all other predictors, a neighborhood with satisfactory access to subway transit is expected to have approximately 136.342% greater white population counts than a neighborhood with no subway access at all. Further, there is a 95% probability that the relationship may be any value between (44.081%, 282.669%), indicating that there is almost certainly an increase in white population counts between these two neighborhoods, but it's explicit magnitude may vary.
+- Excellent Subway Access: When controlling for all other predictors, a neighborhood with excellent access to subway transit is expected to have approximately 98.186% greater white population counts than a neighborhood with no subway access at all. Further, there is a 95% probability that the relationship may be any value between (15.762%, 275.969%), indicating that there is almost certainly an increase in white population counts between these two neighborhoods, but it's explicit magnitude may vary.
+- Food Vendor Count: When controlling for all other predictors, 1 store increases in the number of food vendors by neighborhood are associated with approximately 0.759% changes in the white population count. However, there is a 95% chance that the relationship may be any value between (0.261%, 1.469%), indicating that there is almost certainly a positive relationship between these two variables, but its magnitude may vary.
+- Bus Stop Count: When controlling for all other predictors, 1 stop increases in the number of bus stop by neighborhood are associated with approximately 0.6516973% changes in the white population count. However, there is a 95% chance that the relationship may be any value between (0.0402706%, 1.1496164%), indicating that there is almost certainly a positive relationship between these two variables, but its magnitude may vary.
+- Eviction Count: When controlling for all other predictors, increases in the number of evictions by neighborhood are associated with approximately 0.340% decreases in the white population count. However, there is a 95% chance that the relationship may be any value between (-0.425%, -0.248%), indicating that there is almost certainly a negative relationship between these two variables, but its magnitude may vary.
+>
+> If we intended to essentialize this list, `transportation_desert_4`, `eviction_count`, `store_count` seem to be the most informative predictors.
+
+
+
+# Sex-Violence Models
+
+## Models 1 & 2: Non-Hierarchical
+
+> We use poisson and negative binomial regression to model observed assault counts, $i$, using our $k=10$ predictors:
+>
+- gini
+- mean_income
+- white_count
+- black_count
+- latinx_count
+- asian_count
+- mean_rent
+- unemployment_count
+- sub_count
+- transportation_desert_4cat
+- school_count
+- store_count
+- bus_count
+- eviction_count
+- uninsured_count
+>
+>
+
+### Poisson {-}
+
+$$\begin{split}
+\text{White}_{i} \mid  \beta_{0}, \beta_1, ..., \beta_k & \sim \text{Pois}(\lambda_{i}) \; \; \; \; \text{where} \log(\lambda_{i}) = \beta_{0} + \sum^{10}_{k=1}X_{ik}\beta_k \\
+\beta_{0c} & \sim N(0,2.5^2)\\
+\beta_1 &\sim N(0, 0.0000738^2)\\
+\beta_2 &\sim N(0, 0.00537^2)\\
+\beta_3 &\sim N(0, 0.00298^2)\\
+\beta_4 &\sim N(0, 5.281^2)\\
+\beta_5 &\sim N(0, 5.375^2)\\
+\beta_6 &\sim N(0, 6.7192^2)\\
+\beta_7 &\sim N(0, 0.390^2)\\
+\beta_8 &\sim N(0, 0.0633^2)\\
+\beta_9 &\sim N(0, 0.0714^2)\\
+\beta_{10} &\sim N(0, .00985^2)\\
+\beta_{11} &\sim N(0, .00115^2)\\
+\end{split}$$
+
+```{r}
+poisson_non_hierarchical <- stan_glm(
+  sex_crime_count ~ gini + mean_income + mean_rent + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = nyc_clean,
+  family = poisson,
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0
+)
+```
+
+```{r, fig.width=12, fig.height=6}
+pp_check(poisson_non_hierarchical) + 
+  xlab("Sex-Based Crimes Count") +
+  xlim(0,max(nyc_clean$sex_crime_count))+
+  labs(title = "Poisson")+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+
+library(kableExtra)
+nyc_predict_clean <- nyc_clean %>%
+  na.omit()
+set.seed(84735)
+
+predictions_poisson <-  posterior_predict(
+  poisson_non_hierarchical, newdata = nyc_predict_clean)
+
+library(tidybayes)
+library(bayesplot)
+
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+  xaxis_text(angle = 90, hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+
+tidy(poisson_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8) %>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Non-Hierarchical Poisson - Model Summary") %>% 
+  kable_styling()
+```
+
+### Negative Binomial {-}
+
+$$\begin{split}
+\text{White}_{ij} \mid  \beta_{0j}, \beta_1, ..., \beta_k, r & \sim \text{NegBin}(\mu_{ij}, r) \; \; \; \; \text{where} \log(\mu_{i}) = \beta_{0} + \sum^{11}_{k=1}X_{ik}\beta_k \\
+\beta_{0c} & \sim N(0,2.5^2)\\
+\beta_1 &\sim N(0, 0.0000738^2)\\
+\beta_2 &\sim N(0, 0.00537^2)\\
+\beta_3 &\sim N(0, 0.00298^2)\\
+\beta_4 &\sim N(0, 5.281^2)\\
+\beta_5 &\sim N(0, 5.375^2)\\
+\beta_6 &\sim N(0, 6.7192^2)\\
+\beta_7 &\sim N(0, 0.390^2)\\
+\beta_8 &\sim N(0, 0.0633^2)\\
+\beta_9 &\sim N(0, 0.0714^2)\\
+\beta_{10} &\sim N(0, .00985^2)\\
+\beta_{11} &\sim N(0, .00115^2)\\
+r & \sim Exp(1) \\
+\end{split}$$
+
+```{r, cache=TRUE}
+negbin_non_hierarchical <- stan_glm(
+ sex_crime_count ~ gini + mean_income + mean_rent + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = nyc_clean,
+  family = neg_binomial_2,
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0
+)
+  
+```
+
+```{r, fig.width=12, fig.height=6}
+pp_check(negbin_non_hierarchical) + 
+  xlab("Sex-Based Crime Count") +
+  xlim(0,max(nyc_clean$sex_crime_count))+
+  labs(title = "Negative Binomial")+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+
+nyc_predict_clean <- nyc_clean %>%
+  na.omit()
+set.seed(84735)
+
+predictions_negbin <-  posterior_predict(
+  negbin_non_hierarchical, newdata = nyc_predict_clean)
+
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+	xaxis_text(angle = 90,  hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+tidy(negbin_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Non-Hierarchichal Negative Binomial - Model Summary") %>% 
+  kable_styling()
+```
+
+
+```{r}
+table1 <- prediction_summary(model=poisson_non_hierarchical, data=nyc_clean %>% na.omit())%>% 
+  mutate(Model = "Poisson")
+table2 <- prediction_summary(model=negbin_non_hierarchical, data=nyc_clean %>% na.omit())%>% 
+  mutate(Model = "Negative Binomial")
+```
+
+> Negative binomial has much better error metrics.
+
+
+## Models 2 & 3: Hierarchy by Borough
+
+> We use poisson and negative binomial hierarchical regression to model observed white counts, $i$, by boroughs $j$, usin our $k=11$ predictors. Note we are creating 3 dummy variables associated with `transportation_desert_4cat`:
+>
+- mean_income
+- mean_rent
+- unemployment_count
+- transportation_desert_4cat
+- school_count
+- store_count
+- bus_count
+- eviction_count
+- uninsured_count
+>
+>
+
+### Poisson {-}
+
+$$\begin{split}
+\text{White}_{ij} \mid  \beta_{0j}, \beta_1, ..., \beta_k & \sim \text{Pois}(\lambda_{ij}) \\
+& \text{where} \log(\lambda_{ij}) = \beta_{0j} + \sum^{11}_{k=1}X_{ijk}\beta_k \\
+\beta_{0j} \mid \beta_0, \sigma_0 & \stackrel{ind}{\sim} N(\beta_0, \sigma_0^2)\\
+\beta_{0c} & \sim N(0,2.5^2)\\
+\beta_1 &\sim N(0, 0.0000738^2)\\
+\beta_2 &\sim N(0, 0.00537^2)\\
+\beta_3 &\sim N(0, 0.00298^2)\\
+\beta_4 &\sim N(0, 5.281^2)\\
+\beta_5 &\sim N(0, 5.375^2)\\
+\beta_6 &\sim N(0, 6.7192^2)\\
+\beta_7 &\sim N(0, 0.390^2)\\
+\beta_8 &\sim N(0, 0.0633^2)\\
+\beta_9 &\sim N(0, 0.0714^2)\\
+\beta_{10} &\sim N(0, .00985^2)\\
+\beta_{11} &\sim N(0, .00115^2)\\
+\sigma_0 & \sim Exp(1)
+\end{split}$$
+
+```{r}
+poisson_hierarchical <- stan_glmer(
+  sex_crime_count ~ gini + mean_income + mean_rent + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count + (1 | borough),
+  data = nyc_clean,
+  family = poisson,
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0
+)
+```
+
+```{r, fig.width=12, fig.height=6}
+pp_check(poisson_hierarchical) + 
+  xlab("Sex-Based Crime Count") +
+  xlim(0,max(nyc_clean$sex_crime_count))+
+  labs(title = "Poisson")+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+
+library(kableExtra)
+
+nyc_predict_clean <- nyc_clean %>%
+  na.omit()
+set.seed(84735)
+
+predictions_poisson <-  posterior_predict(
+  poisson_hierarchical, newdata = nyc_predict_clean)
+
+library(tidybayes)
+library(bayesplot)
+
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+  xaxis_text(angle = 90, hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+
+tidy(poisson_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8) %>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Hierarchicahl Poisson - Model Summary") %>% 
+  kable_styling()
+
+```
+
+### Negative Binomial {-}
+
+$$\begin{split}
+\text{White}_{ij} \mid  \beta_{0j}, \beta_1, ..., \beta_k, r & \sim \text{NegBin}(\mu_{ij}, r) \\
+& \text{where} \log(\mu_{ij}) = \beta_{0j} + \sum^{11}_{k=1}X_{ijk}\beta_k \\
+\beta_{0j} \mid \beta_0, \sigma_0 & \stackrel{ind}{\sim} N(\beta_0, \sigma_0^2)\\
+\beta_{0c} & \sim N(0,2.5^2)\\
+\beta_1 &\sim N(0, 0.0000738^2)\\
+\beta_2 &\sim N(0, 0.00537^2)\\
+\beta_3 &\sim N(0, 0.00298^2)\\
+\beta_4 &\sim N(0, 5.281^2)\\
+\beta_5 &\sim N(0, 5.375^2)\\
+\beta_6 &\sim N(0, 6.7192^2)\\
+\beta_7 &\sim N(0, 0.390^2)\\
+\beta_8 &\sim N(0, 0.0633^2)\\
+\beta_9 &\sim N(0, 0.0714^2)\\
+\beta_{10} &\sim N(0, .00985^2)\\
+\beta_{11} &\sim N(0, .00115^2)\\
+r & \sim Exp(1) \\
+\sigma_0 & \sim Exp(1)
+\end{split}$$
+
+```{r,  cache=TRUE}
+negbin_hierarchical <- stan_glmer(
+sex_crime_count ~ gini + mean_income + mean_rent + 
+    unemployment_count + white_count + black_count + latinx_count + asian_count+
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count+ (1 | borough),
+  data = nyc_clean,
+  family = neg_binomial_2,
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0)
+```
+
+```{r, fig.width=12, fig.height=6}
+pp_check(negbin_hierarchical) + 
+  xlab("Sex-Based Crime Count") +
+  xlim(0,max(nyc_clean$sex_crime_count))+
+  labs(title = "Negative Binomial")+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+
+nyc_predict_clean <- nyc_clean %>%
+  na.omit()
+set.seed(84735)
+
+predictions_negbin <-  posterior_predict(
+  negbin_hierarchical, newdata = nyc_predict_clean)
+
+ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+	xaxis_text(angle = 90,  hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+
+tidy(negbin_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Hierarchichal Negative Binomial - Model Summary") %>% 
+  kable_styling()
+```
+
+
+
+## Models 4 & 5: Spatial
+
+```{r}
+col_sp <- as(nyc_clean, "Spatial")
+col_nb <- poly2nb(col_sp) # queen neighborhood
+col_listw <- nb2listw(col_nb, style = "B") # listw version of the neighborhood
+W <- nb2mat(col_nb, style = "B") # binary structure
+moran.mc(col_sp$sex_crime_count, listw = col_listw, nsim = 999, alternative = "greater")
+```
+
+### Poisson
+
+```{r, fig.height=8, fig.width=8}
+col_sp <- as(nyc_clean, "Spatial")
+col_nb <- poly2nb(col_sp) # queen neighborhood
+col_listw <- nb2listw(col_nb, style = "B") # listw version of the neighborhood
+W <- nb2mat(col_nb, style = "B") # binary structure
+
+M.burnin <- 10000       # Number of burn-in iterations (discarded)
+M <- 1000               # Number of iterations retained
+
+
+model.sex <- S.CARleroux(
+  sex_crime_count ~ 1 + total_pop + gini + below_poverty_line_count, 
+  data = nyc_clean, 
+  family = "poisson",
+  W = W,
+  burnin = M.burnin,
+  n.sample = M.burnin + M,    # Total iterations
+  verbose = FALSE)
+
+as.data.frame(model.sex$summary.results) %>% 
+  rownames_to_column("term") %>%
+  kable()%>% 
+  kable_styling() %>% 
+  scroll_box(width = "100%", height = "200px")
+
+  
+p_plot <- round((moran.mc(x = as.vector(model.sex$residuals$response), listw = col_listw, nsim = 9999, alternative = "greater")$p.value),5)
+  
+
+nyc_clean %>%
+  mutate(resid = model.sex$residuals$response) %>%
+  ggplot(aes(fill = resid), color = "#8f98aa") +
+  geom_sf()+
+  scale_fill_gradientn(colors=c("#fef6ef","#f07f9b","#e94a7c","#d61760"), guide =
+                         guide_legend(title = "Residual")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle(paste0("Sex-Based Violence: \nPoisson Model Residuals (", p_plot, ")"))+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
+```
+
+
+
+
+### Zero-Inflated Poisson (Negative Binomial)
+
+```{r, fig.height=8, fig.width=8}
+col_sp <- as(nyc_clean, "Spatial")
+col_nb <- poly2nb(col_sp) # queen neighborhood
+col_listw <- nb2listw(col_nb, style = "B") # listw version of the neighborhood
+W <- nb2mat(col_nb, style = "B") # binary structure
+
+M.burnin <- 10000       # Number of burn-in iterations (discarded)
+M <- 1000               # Number of iterations retained
+
+
+model.sex <- S.CARleroux(
+  sex_crime_count ~ 1 + total_pop + gini + below_poverty_line_count, 
+  data = nyc_clean, 
+  family = "zip",
+  formula.omega = ~1,
+  W = W,
+  burnin = M.burnin,
+  n.sample = M.burnin + M,    # Total iterations
+  verbose = FALSE)
+
+as.data.frame(model.sex$summary.results) %>% 
+  rownames_to_column("term") %>%
+  kable()%>% 
+  kable_styling() %>% 
+  scroll_box(width = "100%", height = "200px")
+
+  
+p_plot <- round((moran.mc(x = as.vector(model.sex$residuals$response), listw = col_listw, nsim = 9999, alternative = "greater")$p.value),5)
+  
+
+nyc_clean %>%
+  mutate(resid = model.sex$residuals$response) %>%
+  ggplot(aes(fill = resid), color = "#8f98aa") +
+  geom_sf()+
+  scale_fill_gradientn(colors=c("#fef6ef","#f07f9b","#e94a7c","#d61760"), guide =
+                         guide_legend(title = "Residual")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+ggtitle(paste0("Sex-Based Violence: \nZIP Model Residuals (", p_plot, ")"))+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 25, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
+```
+
+
+
+
+## Comparison
+
+```{r}
+table3 <- prediction_summary(model=poisson_hierarchical, data=nyc_clean %>% na.omit())%>% 
+  mutate(Model = "Hierarchichal Poisson")
+table4 <- prediction_summary(model=negbin_hierarchical, data=nyc_clean %>% na.omit())%>% 
+  mutate(Model = "Hierarchichal Negative Binomial") 
+
+rbind(table1, table2, table3, table4) %>%
+  dplyr::mutate(model = Model, .before=1) %>%
+  dplyr::select(-Model)%>% kable() %>% kable_styling()
+```
+
+Using in-sample scaled MAE, it's evident our negative binomial regression models, regardless of hierarchy, performed better than our poisson regression models. However, the differences between the two negative binomial models was neglible. So, we will more closely interpret the non-hierarchichal negative binomial regression model.
+
+```{r}
+tidy(negbin_non_hierarchical, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Non-Hierarchichal Negative Binomial - Model Summary") %>% 
+  kable_styling()
+```
+
+> After removing predictors whose 95% credible intervals included the possibility of non-effect when controlling for other covariates, we found that there were 6 remaining predictors of an arbitrary neighborhood's sex-based crime counts:
+>
+- Mean income by neighborhood
+- Unemployment counts by neighborhood
+- Transportation desert status by neighborhood
+- Food Vendor counts by neighborhood
+- Bus station counts by neighborhood
+- Eviction counts by neighborhood.
+>
+Next, we interpret each predictor:
+>
+- Mean Income: When controlling for all other predictors, 1 dollar increases in mean neighborhood rental prices are associated with approximately 0.00143% changes in the white population count. However, there is a 95% chance that the relationship may be any value between (0.000330%, 0.00268%), indicating that there is almost certainly a negative relationship between these two variables, but its magnitude may vary.
+- Unemployment Count: When controlling for all other predictors, 1 dollar increases in unemployed people counts by neighborhood are associated with approximately 0.0493% changes in the white population count. However, there is a 95% chance that the relationship may be any value between (0.0140%, 0.0790%), indicating that there is almost certainly a positive relationship between these two variables, but its magnitude may vary.
+- Limited Subway Access: When controlling for all other predictors, a neighborhood with limited access to subway transit is expected to have approximately 125.753% greater white population counts than a neighborhood with no subway access at all. Further, there is a 95% probability that the relationship may be any value between (51.508%, 269.541%), indicating that there is almost certainly an increase in white population counts between these two neighborhoods, but it's explicit magnitude may vary.
+- Satisfactory Subway Access: When controlling for all other predictors, a neighborhood with satisfactory access to subway transit is expected to have approximately 136.342% greater white population counts than a neighborhood with no subway access at all. Further, there is a 95% probability that the relationship may be any value between (44.081%, 282.669%), indicating that there is almost certainly an increase in white population counts between these two neighborhoods, but it's explicit magnitude may vary.
+- Excellent Subway Access: When controlling for all other predictors, a neighborhood with excellent access to subway transit is expected to have approximately 98.186% greater white population counts than a neighborhood with no subway access at all. Further, there is a 95% probability that the relationship may be any value between (15.762%, 275.969%), indicating that there is almost certainly an increase in white population counts between these two neighborhoods, but it's explicit magnitude may vary.
+- Food Vendor Count: When controlling for all other predictors, 1 store increases in the number of food vendors by neighborhood are associated with approximately 0.759% changes in the white population count. However, there is a 95% chance that the relationship may be any value between (0.261%, 1.469%), indicating that there is almost certainly a positive relationship between these two variables, but its magnitude may vary.
+- Bus Stop Count: When controlling for all other predictors, 1 stop increases in the number of bus stop by neighborhood are associated with approximately 0.6516973% changes in the white population count. However, there is a 95% chance that the relationship may be any value between (0.0402706%, 1.1496164%), indicating that there is almost certainly a positive relationship between these two variables, but its magnitude may vary.
+- Eviction Count: When controlling for all other predictors, increases in the number of evictions by neighborhood are associated with approximately 0.340% decreases in the white population count. However, there is a 95% chance that the relationship may be any value between (-0.425%, -0.248%), indicating that there is almost certainly a negative relationship between these two variables, but its magnitude may vary.
+>
+> If we intended to essentialize this list, `transportation_desert_4`, `eviction_count`, `store_count` seem to be the most informative predictors.
 
 
 
