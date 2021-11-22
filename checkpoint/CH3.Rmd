@@ -842,7 +842,8 @@ pp_check(poisson_non_hierarchical) +
 
 library(kableExtra)
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(white_count)
 set.seed(84735)
 
 predictions_poisson <-  posterior_predict(
@@ -851,7 +852,10 @@ predictions_poisson <-  posterior_predict(
 library(tidybayes)
 library(bayesplot)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
+list <- nyc_predict_clean %>%
+  arrange(white_count) %>% pull(white_count)
+
+ppc_intervals(list, yrep = predictions_poisson,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
@@ -913,13 +917,21 @@ pp_check(negbin_non_hierarchical) +
   theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
 
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(white_count)
+
+list <- nyc_predict_clean %>%
+  arrange(white_count) %>% pull(white_count)
+
 set.seed(84735)
 
 predictions_negbin <-  posterior_predict(
   negbin_non_hierarchical, newdata = nyc_predict_clean)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
+list <- nyc_predict_clean %>%
+  arrange(white_count) %>% pull(white_count)
+
+ppc_intervals(list, yrep = predictions_negbin,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
@@ -1009,7 +1021,12 @@ pp_check(poisson_hierarchical) +
 library(kableExtra)
 
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(white_count)
+
+list <- nyc_predict_clean %>%
+  arrange(white_count) %>% pull(white_count)
+
 set.seed(84735)
 
 predictions_poisson <-  posterior_predict(
@@ -1018,7 +1035,7 @@ predictions_poisson <-  posterior_predict(
 library(tidybayes)
 library(bayesplot)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
+ppc_intervals(list, yrep = predictions_poisson,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
@@ -1080,14 +1097,20 @@ pp_check(negbin_hierarchical) +
   labs(title = "Negative Binomial")+
   theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
 
+
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(white_count)
+
+list <- nyc_predict_clean %>%
+  arrange(white_count) %>% pull(white_count)
+
 set.seed(84735)
 
 predictions_negbin <-  posterior_predict(
   negbin_hierarchical, newdata = nyc_predict_clean)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
+ppc_intervals(list, yrep = predictions_negbin,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
@@ -1160,8 +1183,8 @@ draft %>%
   mutate(resid = model.assault$residuals$response) %>%
   ggplot(aes(fill = resid), color = "#8f98aa") +
   geom_sf()+
-  scale_fill_gradientn(colors=c("#fef6ef","#f07f9b","#e94a7c","#d61760"), guide =
-                         guide_legend(title = "Residual")) +
+  scale_fill_gradientn(colors = c("#FCF5EE","#BD9DA5", "#9C7080", "#7B435B"),  guide = guide_legend(title = "Residual")) +
+
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -1211,15 +1234,15 @@ as.data.frame(model.assault$summary.results) %>%
   scroll_box(width = "100%", height = "200px")
 
   
-p_plot <- round((moran.mc(x = as.vector(model.assault$residuals$response), listw = col_listw, nsim = 9999, alternative = "greater")$p.value),5)
+#p_plot <- round((moran.mc(x = as.vector(model.assault$residuals$response), listw = col_listw, nsim = 9999, alternative = "greater")$p.value),5)
   
 
 draft %>%
   mutate(resid = model.assault$residuals$response) %>%
   ggplot(aes(fill = resid), color = "#8f98aa") +
   geom_sf()+
-  scale_fill_gradientn(colors=c("#fef6ef","#f07f9b","#e94a7c","#d61760"), guide =
-                         guide_legend(title = "Residual")) +
+  scale_fill_gradientn(colors = c("#FCF5EE","#BD9DA5", "#9C7080", "#7B435B"),  
+                       guide = guide_legend(title = "Number White")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -1600,8 +1623,14 @@ pp_check(poisson_non_hierarchical) +
   theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
 
 library(kableExtra)
+
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(eviction_count)
+
+list <- nyc_predict_clean %>%
+  arrange(eviction_count) %>% pull(eviction_count)
+
 set.seed(84735)
 
 predictions_poisson <-  posterior_predict(
@@ -1610,7 +1639,7 @@ predictions_poisson <-  posterior_predict(
 library(tidybayes)
 library(bayesplot)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
+ppc_intervals(list, yrep = predictions_poisson,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
@@ -1672,13 +1701,19 @@ pp_check(negbin_non_hierarchical) +
   theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
 
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(eviction_count)
+
+list <- nyc_predict_clean %>%
+  arrange(eviction_count) %>% pull(eviction_count)
+
+
 set.seed(84735)
 
 predictions_negbin <-  posterior_predict(
   negbin_non_hierarchical, newdata = nyc_predict_clean)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
+ppc_intervals(list, yrep = predictions_negbin,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
@@ -1769,7 +1804,12 @@ pp_check(poisson_hierarchical) +
 library(kableExtra)
 
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(eviction_count)
+
+list <- nyc_predict_clean %>%
+  arrange(eviction_count) %>% pull(eviction_count)
+
 set.seed(84735)
 
 predictions_poisson <-  posterior_predict(
@@ -1778,7 +1818,7 @@ predictions_poisson <-  posterior_predict(
 library(tidybayes)
 library(bayesplot)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
+ppc_intervals(list, yrep = predictions_poisson,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
@@ -1842,13 +1882,19 @@ pp_check(negbin_hierarchical) +
   theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
 
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(eviction_count)
+
+list <- nyc_predict_clean %>%
+  arrange(eviction_count) %>% pull(eviction_count)
+
+
 set.seed(84735)
 
 predictions_negbin <-  posterior_predict(
   negbin_hierarchical, newdata = nyc_predict_clean)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
+ppc_intervals(list, yrep = predictions_negbin,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
@@ -2116,8 +2162,15 @@ pp_check(poisson_non_hierarchical) +
   theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
 
 library(kableExtra)
+
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(assault_count)
+
+list <- nyc_predict_clean %>%
+  arrange(assault_count) %>% pull(assault_count)
+
+
 set.seed(84735)
 
 predictions_poisson <-  posterior_predict(
@@ -2126,7 +2179,7 @@ predictions_poisson <-  posterior_predict(
 library(tidybayes)
 library(bayesplot)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
+ppc_intervals(list, yrep = predictions_poisson,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
@@ -2187,14 +2240,21 @@ pp_check(negbin_non_hierarchical) +
   labs(title = "Negative Binomial")+
   theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
 
+
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(assault_count)
+
+list <- nyc_predict_clean %>%
+  arrange(assault_count) %>% pull(assault_count)
+
+
 set.seed(84735)
 
 predictions_negbin <-  posterior_predict(
   negbin_non_hierarchical, newdata = nyc_predict_clean)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
+ppc_intervals(list, yrep = predictions_negbin,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
@@ -2284,8 +2344,14 @@ pp_check(poisson_hierarchical) +
 
 library(kableExtra)
 
+
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(assault_count)
+
+list <- nyc_predict_clean %>%
+  arrange(assault_count) %>% pull(assault_count)
+
 set.seed(84735)
 
 predictions_poisson <-  posterior_predict(
@@ -2294,7 +2360,7 @@ predictions_poisson <-  posterior_predict(
 library(tidybayes)
 library(bayesplot)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
+ppc_intervals(list, yrep = predictions_poisson,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
@@ -2358,13 +2424,19 @@ pp_check(negbin_hierarchical) +
   theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
 
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(eviction_count)
+
+list <- nyc_predict_clean %>%
+  arrange(eviction_count) %>% pull(eviction_count)
+
+
 set.seed(84735)
 
 predictions_negbin <-  posterior_predict(
   negbin_hierarchical, newdata = nyc_predict_clean)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
+ppc_intervals(list, yrep = predictions_negbin,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
@@ -2629,8 +2701,15 @@ pp_check(poisson_non_hierarchical) +
   theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
 
 library(kableExtra)
+
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(sex_crime_count)
+
+list <- nyc_predict_clean %>%
+  arrange(sex_crime_count) %>% pull(sex_crime_count)
+
+
 set.seed(84735)
 
 predictions_poisson <-  posterior_predict(
@@ -2639,7 +2718,7 @@ predictions_poisson <-  posterior_predict(
 library(tidybayes)
 library(bayesplot)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
+ppc_intervals(list, yrep = predictions_poisson,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
@@ -2700,14 +2779,21 @@ pp_check(negbin_non_hierarchical) +
   labs(title = "Negative Binomial")+
   theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
 
+
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(sex_crime_count)
+
+list <- nyc_predict_clean %>%
+  arrange(sex_crime_count) %>% pull(sex_crime_count)
+
+
 set.seed(84735)
 
 predictions_negbin <-  posterior_predict(
   negbin_non_hierarchical, newdata = nyc_predict_clean)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
+ppc_intervals(list, yrep = predictions_negbin,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
@@ -2797,8 +2883,15 @@ pp_check(poisson_hierarchical) +
 
 library(kableExtra)
 
+
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(sex_crime_count)
+
+list <- nyc_predict_clean %>%
+  arrange(sex_crime_count) %>% pull(sex_crime_count)
+
+
 set.seed(84735)
 
 predictions_poisson <-  posterior_predict(
@@ -2807,7 +2900,7 @@ predictions_poisson <-  posterior_predict(
 library(tidybayes)
 library(bayesplot)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_poisson,
+ppc_intervals(list, yrep = predictions_poisson,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
@@ -2870,14 +2963,20 @@ pp_check(negbin_hierarchical) +
   labs(title = "Negative Binomial")+
   theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
 
+
 nyc_predict_clean <- nyc_clean %>%
-  na.omit()
+  na.omit()%>%
+  arrange(sex_crime_count)
+
+list <- nyc_predict_clean %>%
+  arrange(sex_crime_count) %>% pull(sex_crime_count)
+
 set.seed(84735)
 
 predictions_negbin <-  posterior_predict(
   negbin_hierarchical, newdata = nyc_predict_clean)
 
-ppc_intervals(nyc_predict_clean$white_count, yrep = predictions_negbin,
+ppc_intervals(list, yrep = predictions_negbin,
               prob_outer = 0.8) +
   ggplot2::scale_x_continuous(
     labels = nyc_predict_clean$nta_id,
