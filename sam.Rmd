@@ -358,7 +358,7 @@ cleaned %>% write_sf("clean_data/nyc_data.shp", driver="ESRI Shapefile")
 a <- read_sf("clean_data/nyc_data.shp")
 head(a)
 b <- read_csv("clean_data/nyc_names.csv")
-b %>% relocate(geometry, .after=transportation_desert_4cat) %>%
+b %>% relocate(geometry, .after=Name) %>%
   write_csv("clean_data/nyc_names.csv")
 
 ggplot(clean, aes(x=perc_covered_by_transit)) + geom_histogram()
