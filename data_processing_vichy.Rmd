@@ -105,9 +105,7 @@ census_nta <- census_data %>%
             naturalized_citizen_count = sum(naturalized_citizen),
             noncitizen_count = sum(noncitizen),
             uninsured_count = sum(uninsured)) %>%
-            rename(nta_id = NTACode)
-
-names(census_nta) <- gsub(names(census_nta), pattern = "_count", replacement = "_percent")
+  rename(nta_id = NTACode)
 ```
 
 ## Other Demographic data
