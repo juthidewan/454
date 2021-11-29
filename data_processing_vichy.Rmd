@@ -286,8 +286,8 @@ clean_data <- clean_data %>%
 
 ```{r}
 clean_data <- clean_data %>%
-  mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-1, 10, 75, 99, 100), labels = c("1", "2", "3", "4"))) %>% 
-  relocate( geometry, .after = last_col())
+  mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-1, 10, 75, 99, 100), 
+                                          labels = c("Poor", "Limited", "Satisfactory", "Excellent")))
 ```
 
 
