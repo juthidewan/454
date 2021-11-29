@@ -10,7 +10,6 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(warning=FALSE, message=FALSE, 
-                      eval = FALSE, 
                       fig.height = 4, fig.width = 7,
                       fig.align = 'center', fig.pos = 'H')
 ```
@@ -300,7 +299,13 @@ nta_to_census <- openxlsx::read.xlsx(here("ethnic", "Data", "census_to_nta.xlsx"
          nta_id = NTACode) %>%
   unique()
 
-nyc_clean <- nyc_clean %>%
+borough <- nyc_clean %>%
+  mutate(borough =
+ifelse(grepl("MN", `nta_id`), "Manhattan" ,
+ifelse(grepl("BK", `nta_id`), "Brooklyn",
+ifelse(grepl("QN", `nta_id`), "Queens","Bronx"))))
+
+clean_data <- borough %>%
   merge(., nta_to_census, by="nta_id")%>% 
   relocate( geometry, .after = last_col())
 
@@ -317,9 +322,9 @@ clean_data %>%
 # Reading Complied Data 
 ```{r}
 #  Read CSV File
-csv_file_clean <- read_csv("clean_data/nyc_names.csv")
+csv_file_clean <- read_csv("clean_data/nyc_names_vichy_complied.csv")
 #  Read Shape File
-shape_file_clean <- st_read("clean_data/nyc_data.shp", crs = 4269)
+shape_file_clean <- st_read("clean_data/nyc_data_vichy_complied.shp", crs = 4269)
 #  Replace Column abbr Names in Shape File with full name from CSV
 colnames(shape_file_clean) <- colnames(csv_file_clean)
 
