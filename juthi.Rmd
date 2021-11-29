@@ -593,4 +593,447 @@ b_merged %>% relocate(geometry, .after=Name) %>%
   write_csv("clean_data/nyc_names.csv")
 ```
 
+#copying from freddy's code
+
+```{r}
+subway_stations <- st_read(here("ethnic","Data","stations", "geo_export_85568705-efba-4456-bdc0-3d70ff2cf8e5.shp")) %>%
+   st_transform(., 4269)
+ 
+ bus_stations <- st_read(here("ethnic","Data","bus", "bus_stops_nyc_may2020.shp")) %>%
+   st_transform(., 4269)
+```
+
+
+```{r, fig.height=5*1.2, fig.width=5*1.2}
+#plot locations over map
+subway_loc <- ggplot() +
+  geom_sf(data = nyc_clean, fill = "#EBF6FF", color = "#D48DD8", size = 0.15, alpha = .8) +
+  geom_sf(data = subway_stations, color="#3F123C", size=1) + 
+  coord_sf(datum = st_crs(subway_stations)) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Subway Stop Locations \nin NYC")+ 
+    theme(#panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 30, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
+bus_loc <- ggplot() +
+  geom_sf(data = nyc_clean, fill = "#EBF6FF", color = "#D48DD8", size = 0.15, alpha = .8) +
+  geom_sf(data = bus_stations, color="#3F123C", size=.5, alpha=.5) + 
+  coord_sf(datum = st_crs(subway_stations)) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Bus Stop Locations \nin NYC")+ 
+    theme(#panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 30, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
+
+stops <- nyc_clean %>%
+  ggplot() +
+  geom_sf(aes(fill = sub_count), color = "#8f98aa") +
+  scale_fill_gradient(low= "lavender", high = "maroon",
+                      guide = guide_legend(title = "Number of Subway Stops") ,na.value="#D6D6D6") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Subway Stop Counts \nin NYC")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 30, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
+bus_stops <- nyc_clean %>%
+  ggplot() +
+  geom_sf(aes(fill = bus_count), color = "#8f98aa") +
+  scale_fill_gradient(low= "lavender", high = "maroon",
+                      guide = guide_legend(title = "Number of Bus Stops") ,na.value="#D6D6D6") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Bus Stop Counts \nin NYC")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 30, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
+
+ridership <- nyc_clean%>%
+  ggplot() +
+  geom_sf(aes(fill = log2(mean_ridership)), color = "#8f98aa") +
+  scale_fill_gradient(low= "lavender", high = "maroon",
+                      guide = guide_legend(title = "Log2 Mean Ridership") ,na.value="#D6D6D6") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Mean (Log2) Subway Turnstile \nRidership in 2018 \nfor NYC")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 30, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
+access <- nyc_clean %>%
+  ggplot() +
+  geom_sf(aes(fill = transportation_desert_4cat), color = "#8f98aa") +
+  scale_fill_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
+                       guide = guide_legend(title = "Subway Accessibility Category"), na.value="#D6D6D6") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Subway Deserts \nin NYC")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 30, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+```
+
+
+
+```{r}
+#nta_8 is airports
+#nta_0 is residential neighborhoods 
+#nta_5 is rikers island
+#nta_6
+
+
+nta_0 <- nyc_clean %>%
+  filter(nta_type == 0)
+
+nta_5 <- nyc_clean %>%
+  filter(nta_type == 5)
+
+nta_6 <- nyc_clean %>%
+  filter(nta_type == 6)
+
+nta_7 <- nyc_clean %>%
+  filter(nta_type == 7)
+
+nta_8 <- nyc_clean %>%
+  filter(nta_type == 8)
+
+nta_9 <- nyc_clean %>%
+  filter(nta_type == 9)
+```
+
+
+```{r}
+nyc_clean %>%
+  ggplot() +
+  geom_sf(aes(fill = transportation_desert_4cat), color = "#8f98aa") +
+  scale_fill_manual(values=c("#a45371","#e5b6c7","#ebebf7","#89a2d1"),
+                       guide = guide_legend(title = "Subway Accessibility Category"), na.value="#D6D6D6") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Subway Deserts \nin NYC")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 30, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+```
+
+
+```{r}
+poor_access <- 
+  nyc_clean %>%
+  group_by(borough) %>%
+  count(transportation_desert_4cat) %>%
+  filter(transportation_desert_4cat == "Poor")
+
+sat_access <- 
+  nyc_clean %>%
+  group_by(borough) %>%
+  count(transportation_desert_4cat) %>%
+  filter(transportation_desert_4cat == "Satisfactory")
+
+limited_access <- 
+  nyc_clean %>%
+  group_by(borough) %>%
+  count(transportation_desert_4cat) %>%
+  filter(transportation_desert_4cat == "Limited")
+
+excellent_access <- 
+  nyc_clean %>%
+  group_by(borough) %>%
+  count(transportation_desert_4cat) %>%
+  filter(transportation_desert_4cat == "Excellent")
+
+
+nyc_clean$transportation_desert_4cat
+```
+
+
+
+```{r,  cache=TRUE}
+negbin_hierarchical <- stan_glmer(
+ white_count ~ mean_income + mean_rent + 
+    unemployment_count + 
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count + (1 | borough),
+  data = nyc_clean,
+  family = neg_binomial_2,
+  chains = 2, iter = 100*2, seed = 84735, refresh = 0)
+```
+
+```{r, fig.width=12, fig.height=6}
+pp_check(negbin_hierarchical) + 
+  xlab("White Resident Count") +
+  labs(title = "Negative Binomial")+
+  theme(plot.title =  element_text(face="bold", size=25, hjust=.5)) 
+
+
+nyc_predict_clean <- nyc_clean %>%
+  na.omit()%>%
+  arrange(white_count)
+
+list <- nyc_predict_clean %>%
+  arrange(white_count) %>% pull(white_count)
+
+set.seed(84735)
+
+predictions_negbin <-  posterior_predict(
+  negbin_hierarchical, newdata = nyc_predict_clean)
+
+ppc_intervals(list, yrep = predictions_negbin,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = nyc_predict_clean$nta_id,
+    breaks = 1:nrow(nyc_predict_clean)) +
+	xaxis_text(angle = 90,  hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+```
+
+
+```{r}
+# Load the package
+library(e1071)
+
+# Run the algorithm using only data on bill length
+naive_model <- naiveBayes(transportation_desert_4cat ~ mean_income + mean_rent + unemployment_count + school_count + store_count + bus_count + eviction_count + uninsured_count + white_count+ black_count+ latinx_count + asian_count, data = nyc_clean)
+
+
+# Graphical breakdown of mean rent within transportation desert categories
+nyc_clean %>%
+  filter(substr(nta_id, 1, 2) == "BK") %>%
+ggplot(aes(x = mean_rent, fill = transportation_desert_4cat)) +
+  geom_density(alpha = 0.7) 
+
+
+
+borough <- nyc_clean %>%
+  mutate(borough = 
+ifelse(grepl("MN", `nta_id`), "Manhattan" , 
+ifelse(grepl("BK", `nta_id`), "Brooklyn",
+ifelse(grepl("QN", `nta_id`), "Queens","Bronx"))))
+
+
+borough %>%
+ggplot(aes(x = mean_income, fill = transportation_desert_4cat)) +
+  geom_density(alpha = 0.7) +
+  facet_wrap("borough")
+
+borough %>%
+ggplot(aes(x = mean_rent, fill = transportation_desert_4cat)) +
+  geom_density(alpha = 0.7) +
+  facet_wrap("borough")
+
+
+desert_white <-borough %>%
+ggplot(aes(x = white_count, fill = transportation_desert_4cat)) +
+  geom_density(alpha = 0.7) +
+  xlim(0,10000) +
+  facet_wrap("borough") 
+
+
+desert_black <- borough %>%
+ggplot(aes(x = black_count, fill = transportation_desert_4cat)) +
+  geom_density(alpha = 0.7) +
+  xlim(0,10000) +
+  facet_wrap("borough") 
+
+desert_latinx <- borough %>%
+ggplot(aes(x = latinx_count, fill = transportation_desert_4cat)) +
+  geom_density(alpha = 0.7) +
+  xlim(0,20000) +
+  facet_wrap("borough") 
+
+desert_asian <- borough %>%
+ggplot(aes(x = asian_count, fill = transportation_desert_4cat)) +
+  geom_density(alpha = 0.7) +
+  xlim(0,5000) +
+  facet_wrap("borough") 
+
+ggpubr::ggarrange(desert_asian , desert_latinx , desert_black, desert_white, ncol=2,nrow = 2, common.legend=TRUE, legend = "bottom")
+```
+
+
+```{r}
+manhattan <- nyc_clean %>%
+  filter(borough == "Manhattan")
+
+queens <- nyc_clean %>%
+  filter(borough == "Queens")
+
+bronx <- nyc_clean %>%
+  filter(borough == "Bronx")
+
+brooklyn <- nyc_clean %>%
+  filter(borough == "Brooklyn")
+```
+
+
+```{r}
+#manhattan non-hierarchical models
+negbin_mn <- stan_glm(
+  white_count ~  mean_income + mean_rent + 
+    unemployment_count  + 
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = manhattan,
+  family = neg_binomial_2,
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(negbin_mn)
+
+poisson_mn <- stan_glm(
+  white_count ~  mean_income + mean_rent + 
+    unemployment_count  + 
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = manhattan,
+  family = poisson,
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(poisson_mn)
+```
+
+
+
+```{r}
+#queens non-hierarchical models
+negbin_qn <- stan_glm(
+  white_count ~  mean_income + mean_rent + 
+    unemployment_count  + 
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = queens,
+  family = neg_binomial_2,
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(negbin_qn)
+
+poisson_qn <- stan_glm(
+  white_count ~  mean_income + mean_rent + 
+    unemployment_count  + 
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = queens,
+  family = poisson,
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(poisson_qn)
+```
+
+
+```{r}
+#brooklyn non-hierarchical models
+negbin_bk <- stan_glm(
+  white_count ~  mean_income + mean_rent + 
+    unemployment_count  + 
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = brooklyn,
+  family = neg_binomial_2,
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(negbin_bk)
+
+
+poisson_bk <- stan_glm(
+  white_count ~  mean_income + mean_rent + 
+    unemployment_count  + 
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = brooklyn,
+  family = poisson,
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(poisson_bk)
+
+```
+
+
+```{r}
+#bronx non-hierarchical models
+negbin_bx <- stan_glm(
+  white_count ~  mean_income + mean_rent + 
+    unemployment_count  + 
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = bronx,
+  family = neg_binomial_2,
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(negbin_bx)
+
+poisson_bx <- stan_glm(
+  white_count ~  mean_income + mean_rent + 
+    unemployment_count  + 
+    transportation_desert_4cat + school_count + 
+    store_count + bus_count + 
+    eviction_count + uninsured_count,
+  data = bronx,
+  family = poisson,
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(poisson_bx)
+```
+
+
+
+```{r}
+#tidy models for different boroughs 
+
+tidy(negbin_mn, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+tidy(negbin_qn, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+tidy(negbin_bk, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+tidy(negbin_bx, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+```
 
