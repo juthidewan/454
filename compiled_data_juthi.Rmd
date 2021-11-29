@@ -205,8 +205,12 @@ nyc_compiled2 <- left_join(nyc_compiled, transit_area, by="nta_id" ) %>%
   mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-1, 10, 75, 99, 100), labels = c("1", "2", "3", "4"))) 
 
  borough <- nyc_compiled2 %>%
-   filter(!substr(nta_id, 1, 2) == "SI") %>%
-  mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-1, 10, 75, 99, 100), labels = c("1", "2", "3", "4")))
+    mutate(borough = 
+ifelse(grepl("MN", `nta_id`), "Manhattan" , 
+ifelse(grepl("BK", `nta_id`), "Brooklyn",
+ifelse(grepl("QN", `nta_id`), "Queens","Bronx"))))
+
+
 ```
 
 ```{r}
