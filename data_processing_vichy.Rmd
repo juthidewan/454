@@ -84,9 +84,9 @@ nta_to_census <- openxlsx::read.xlsx(here("ethnic", "Data", "census_to_nta.xlsx"
   dplyr::select(GEOID, NTACode)
 
 census_nta <- census_data %>%
-  merge(., nta_to_census) %>% # add column : NTACode or (nta_id) 
-  mutate(uninsured = under19_noinsurance + age19_34_noinsurance + age35_64_noinsurance + age65plus_noinsurance) %>% # combine all noinsurance of all ages
-  dplyr::select(-c(under19_noinsurance, age19_34_noinsurance, age35_64_noinsurance, age65plus_noinsurance)) %>% # remove those unused column
+  merge(., nta_to_census) %>%
+  mutate(uninsured = under19_noinsurance + age19_34_noinsurance + age35_64_noinsurance + age65plus_noinsurance) %>%
+  dplyr::select(-c(under19_noinsurance, age19_34_noinsurance, age35_64_noinsurance, age65plus_noinsurance)) %>%
   mutate(NTACode = as.character(NTACode),
          NTACode = ifelse(is.na(NTACode), "NA", NTACode)) %>%
   group_by(NTACode) %>%
@@ -104,20 +104,8 @@ census_nta <- census_data %>%
             asian_count = sum(asian),
             naturalized_citizen_count = sum(naturalized_citizen),
             noncitizen_count = sum(noncitizen),
-            uninsured_count = sum(uninsured))  %>%   # combine data to to get one row per NTAcode
-  filter(total_pop != 0) %>% 
-  mutate(below_poverty_line_count = below_poverty_line_count/total_pop,
-       below_poverty_line_and_50_count = below_poverty_line_and_50_count/total_pop,
-       unemployment_count = unemployment_count/total_pop,
-       latinx_count = latinx_count/total_pop,
-       white_count = white_count/total_pop,
-       black_count = black_count/total_pop,
-       native_count = native_count/total_pop,
-       asian_count = asian_count/total_pop,
-       naturalized_citizen_count = naturalized_citizen_count/total_pop,
-       noncitizen_count = noncitizen_count/total_pop,
-       uninsured_count = uninsured_count/total_pop) %>%
-      dplyr::rename(nta_id = NTACode)
+            uninsured_count = sum(uninsured)) %>%
+            rename(nta_id = NTACode)
 
 names(census_nta) <- gsub(names(census_nta), pattern = "_count", replacement = "_percent")
 ```
@@ -182,20 +170,25 @@ transit_points <- read_csv(here("transit","ridership_points.csv"))%>%
 ```
 ### Transit Area
 ```{r}
-transit_area <- read_csv("transit/Summarize234_Buffer_of_transit_shps_within_NYC_Neighborhood_Tabulation_Areas_2020_0.csv") %>%
+# transit_area <- read_csv("transit/Summarize234_Buffer_of_transit_shps_within_NYC_Neighborhood_Tabulation_Areas_2020_0.csv") %>%
+#   mutate(perc_covered_by_transit = (`Summarized Area in Square Miles`/`Area in Square Miles`)*100) %>%
+#   dplyr::select(NTA2020, perc_covered_by_transit) %>%
+#   dplyr::rename(nta_id= NTA2020)
+
+transit_area <- read_csv("transit/sum1119.csv") %>%  
   mutate(perc_covered_by_transit = (`Summarized Area in Square Miles`/`Area in Square Miles`)*100) %>%
-  dplyr::select(NTA2020, perc_covered_by_transit) %>%
-  dplyr::rename(nta_id= NTA2020)
+  dplyr::select(nta_id, perc_covered_by_transit)
+  # dplyr::select(nta_id, perc_covered_by_transit, BoroName, NTAName) %>% 
+  # rename(borough = BoroName)
+  
 ```
 ### NTA IDs and Names
 ```{r}
 nta_info <- read_csv(here("demographics","demographics.csv")) %>%
   rename(census_tract = BCT2020) %>%
   drop_na(`NTA Type`) %>%
-  #select(`NTA Type`, GeoID, Name) %>%
-  filter(!substr(GeoID, 1, 2) == "SI") %>%
   rename(nta_id = GeoID) %>%
-  rename(nta_type = `NTA Type`) %>% 
+  rename(nta_type = `NTA Type`) %>%
   dplyr::select(nta_type, nta_id, Name)
 ```
 
@@ -299,14 +292,14 @@ nta_to_census <- openxlsx::read.xlsx(here("ethnic", "Data", "census_to_nta.xlsx"
          nta_id = NTACode) %>%
   unique()
 
-borough <- nyc_clean %>%
-  mutate(borough =
-ifelse(grepl("MN", `nta_id`), "Manhattan" ,
-ifelse(grepl("BK", `nta_id`), "Brooklyn",
-ifelse(grepl("QN", `nta_id`), "Queens","Bronx"))))
+# borough <- nyc_clean %>%
+#   mutate(borough =
+# ifelse(grepl("MN", `nta_id`), "Manhattan" ,
+# ifelse(grepl("BK", `nta_id`), "Brooklyn",
+# ifelse(grepl("QN", `nta_id`), "Queens","Bronx"))))
 
-clean_data <- borough %>%
-  merge(., nta_to_census, by="nta_id")%>% 
+clean_data <- clean_data %>%
+  merge(nta_to_census, by="nta_id")%>% 
   relocate( geometry, .after = last_col())
 
 ```
