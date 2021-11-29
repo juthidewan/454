@@ -1,6 +1,6 @@
 ---
 title: "Data Processing"
-author: "Vichearith"
+author: "Freddy Barragan, Juthi Dewan, Sam Ding, Vichy Meas"
 date: "11/27/2021"
 output: 
   html_document:
@@ -25,6 +25,7 @@ library(here)
 library(rstan)
 library(bayesrules)
 library(broom.mixed)
+library(openxlsx)
 library(tidybayes)
 library(bayesplot)
 library(rstanarm)
@@ -289,6 +290,22 @@ clean_data <- clean_data %>%
   relocate( geometry, .after = last_col())
 ```
 
+
+## Add Borough Name
+
+```{r}
+nta_to_census <- openxlsx::read.xlsx(here("ethnic", "Data", "census_to_nta.xlsx")) %>%
+  dplyr::select(BoroName, NTACode) %>%
+  rename(borough = BoroName,
+         nta_id = NTACode) %>%
+  unique()
+
+nyc_clean <- nyc_clean %>%
+  merge(., nta_to_census, by="nta_id")%>% 
+  relocate( geometry, .after = last_col())
+
+```
+
 # Write Final Data to File
 ```{r}
 # write to file
@@ -296,6 +313,7 @@ clean_data %>%
   write_csv(., "clean_data/nyc_names_vichy_complied.csv") %>%
   write_sf(., "clean_data/nyc_data_vichy_complied.shp")
 ```
+
 # Reading Complied Data 
 ```{r}
 #  Read CSV File
@@ -308,8 +326,6 @@ colnames(shape_file_clean) <- colnames(csv_file_clean)
 # Verify
 names(shape_file_clean)
 names(csv_file_clean)
-
-
 ```
 
 
