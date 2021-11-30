@@ -1,0 +1,53 @@
+---
+title: "Shiny"
+author: "Sam Ding"
+date: "11/30/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(shiny)
+library(bayesrules)  # for the plotting functions
+```
+
+```{r}
+# Build the server
+server2 <- function(input, output) {
+  output$priorPdf <- renderPlot({
+    plot_beta(alpha = input$aPrior, beta = input$bPrior) + 
+      lims(y = c(0, input$ymax))
+  })
+  
+  output$priorTable <- renderTable({
+    summarize_beta(alpha = input$aPrior, beta = input$bPrior)
+  })
+}
+
+
+# Build the user interface
+ui2 <- fluidPage(
+  sidebarLayout(
+    sidebarPanel(
+      h4("Tune the Beta(a,b) prior:"), 
+      sliderInput("aPrior", "alpha", min = 0, max = 100, value = 1),
+      sliderInput("bPrior", "beta", min = 0, max = 100, value = 1),
+      h4("Specify the limit of the y-axis:"), 
+      sliderInput("ymax", "", min = 1, max = 40, value = 10)
+    ),
+    mainPanel(
+      h4("Plot of the prior pdf:"), 
+      plotOutput("priorPdf"),
+      h4("Prior features:"), 
+      tableOutput("priorTable")
+    )
+  )
+)
+
+# Run the shiny app!
+shinyApp(ui = ui2, server = server2)
+```
+
