@@ -1,0 +1,32 @@
+---
+title: "Ordinal models"
+author: "Sam Ding"
+date: "11/30/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(rstanarm)
+library(readr)
+library(dplyr)
+```
+
+```{r}
+nyc_clean <- read_csv("clean_data/nyc_names_vichy_complied.csv")
+
+nyc_clean <- nyc_clean %>%
+  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent")))
+```
+
+```{r}
+model1 <- stan_polr(as.factor(transportation_desert_4cat) ~ unemployment_count + noncitizen_count + white_count, data =nyc_clean, prior=R2(0.5, what=NULL),iter=5000, seed = 86437, refresh=0)
+```
+
+```{r}
+summary(model1)
+```
+
