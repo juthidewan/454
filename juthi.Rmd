@@ -576,9 +576,6 @@ nta_info <- demographics %>%
 nta_info <- nta_info %>% dplyr::select(nta_type, nta_id, Name)
 
 
-
-
-
 a <- read_sf("clean_data/nyc_data.shp")
 head(a)
 
@@ -593,7 +590,6 @@ b_merged %>% relocate(geometry, .after=Name) %>%
   write_csv("clean_data/nyc_names.csv")
 ```
 
-#copying from freddy's code
 
 ```{r}
 subway_stations <- st_read(here("ethnic","Data","stations", "geo_export_85568705-efba-4456-bdc0-3d70ff2cf8e5.shp")) %>%
@@ -911,7 +907,7 @@ negbin_mn <- stan_glm(
     unemployment_count  + 
     transportation_desert_4cat + school_count + 
     store_count + bus_count + 
-    eviction_count + uninsured_count,
+    eviction_count + uninsured_count + (1 | borough),
   data = manhattan,
   family = neg_binomial_2,
   chains = 2, iter = 1000*2, seed = 84735, refresh = 0
