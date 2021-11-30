@@ -1,0 +1,330 @@
+---
+title: "Data Processing"
+author: "Freddy Barragan, Juthi Dewan, Sam Ding, Vichy Meas"
+date: "11/27/2021"
+output: 
+  html_document:
+    number_sections: true
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, 
+                      fig.height = 4, fig.width = 7,
+                      fig.align = 'center', fig.pos = 'H')
+```
+
+# Load Package
+
+```{r message=FALSE, warning=FALSE}
+# Load packages
+library(tidyverse)
+library(janitor)
+library(here)
+library(rstan)
+library(bayesrules)
+library(broom.mixed)
+library(openxlsx)
+library(tidybayes)
+library(bayesplot)
+library(rstanarm)
+library(forcats)
+library(sf)
+library(openxlsx)
+library(nycgeo)
+library(tidycensus)
+# themes
+theme_set(theme_minimal())
+```
+
+# Load Data
+
+## Census Data for Tidycensus package and Cleaning
+
+```{r}
+# Get list of county in NYC using `library(nycgeo)`
+nyc_join <- merge(nta_sf,nta_acs_data)
+nyc_join <- nyc_join %>%
+  st_transform(., 4269)
+county_list <- nyc_join %>% pull(county_name) %>% unique()
+
+# Fetch census data from `tidycensus` package 
+census_api_key("0cc07f06386e317f312adef5e0892b0d002b7254")
+census_data <- get_acs(state = "NY", 
+        county = c(county_list), 
+        geography = "tract", 
+        variables = c(medincome = "B19013_001", 
+                      total_pop1 = "B01003_001",
+                      below_poverty_100 = "B06012_002", 
+                      below_poverty_100to150 = "B06012_003",
+                      median_rent = "B25031_001", 
+                      hholds_snap = "B22003_002", 
+                      hholds_disability ="B22010_003",
+                      unemployed = "B23025_005", 
+                      latinx = "B03002_012", 
+                      white = "B03002_003", 
+                      black = "B03002_004", 
+                      native = "B03002_005",
+                      asian = "B03002_006",
+                      under19_noinsurance = "B27010_017",
+                      age19_34_noinsurance = "B27010_033",
+                      age35_64_noinsurance = "B27010_050",
+                      age65plus_noinsurance = "B27010_066",
+                      naturalized_citizen = "B05001_005",
+                      noncitizen ="B05001_006"),
+        year = 2019,
+        output = "wide",
+        survey = "acs5",
+        geometry = TRUE) %>% 
+  dplyr::select(-c(NAME, ends_with("M"))) %>%
+         rename_at(vars(ends_with("E")), .funs = list(~str_sub(., end = -2)))
+
+#  Get mapping of GEOID <--> NTACODE(nta_id)
+nta_to_census <- openxlsx::read.xlsx(here("ethnic", "Data", "census_to_nta.xlsx")) %>%
+  dplyr::select(GEOID, NTACode)
+
+census_nta <- census_data %>%
+  merge(., nta_to_census) %>%
+  mutate(uninsured = under19_noinsurance + age19_34_noinsurance + age35_64_noinsurance + age65plus_noinsurance) %>%
+  dplyr::select(-c(under19_noinsurance, age19_34_noinsurance, age35_64_noinsurance, age65plus_noinsurance)) %>%
+  mutate(NTACode = as.character(NTACode),
+         NTACode = ifelse(is.na(NTACode), "NA", NTACode)) %>%
+  group_by(NTACode) %>%
+  summarize(geometry = st_union(geometry),
+            total_pop = sum(total_pop1),
+            mean_income = mean(medincome, na.rm = TRUE),
+            below_poverty_line_count = sum(below_poverty_100),
+            below_poverty_line_and_50_count = sum(below_poverty_100to150),
+            mean_rent = mean(median_rent, na.rm = TRUE),
+            unemployment_count = sum(unemployed),
+            latinx_count = sum(latinx),
+            white_count = sum(white),
+            black_count = sum(black),
+            native_count = sum(native),
+            asian_count = sum(asian),
+            naturalized_citizen_count = sum(naturalized_citizen),
+            noncitizen_count = sum(noncitizen),
+            uninsured_count = sum(uninsured)) %>%
+  rename(nta_id = NTACode)
+```
+
+## Other Demographic data
+
+### Grocery
+
+```{r message=FALSE, warning=FALSE}
+grocery <- read_csv(here("ethnic","Data","grocery.csv")) %>%
+  drop_na(Georeference) %>%
+  separate(Georeference, into=c("Point", "longitude", "latitude"), " ") %>%
+  mutate(latitude = str_remove_all(latitude, "[)]"),
+         longitude = str_remove_all(longitude, "[()]"),
+         ) %>%
+  dplyr::select(-c(Point)) %>% 
+  mutate(latitude = as.numeric(latitude),
+         longitude = as.numeric(longitude)) %>%
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4269)
+```
+
+### Public School
+
+```{r message=FALSE, warning=FALSE}
+public_schools <- st_read(here("ethnic","Data","schools", "Public_Schools_Points_2011-2012A.shp")) %>%
+  st_transform(., 4269)
+```
+
+### Subway Station
+```{r message=FALSE, warning=FALSE}
+subway_stations <- st_read(here("ethnic","Data","stations", "geo_export_85568705-efba-4456-bdc0-3d70ff2cf8e5.shp")) %>%
+  st_transform(., 4269)
+```
+### Bus Station
+
+```{r message=FALSE, warning=FALSE}
+bus_stations <- st_read(here("ethnic","Data","bus", "bus_stops_nyc_may2020.shp")) %>%
+  st_transform(., 4269)
+
+```
+
+### Eviction
+```{r message=FALSE, warning=FALSE}
+evictions <- read_csv(here("ethnic","Data","evictions.csv")) %>%
+  drop_na(Longitude) %>%
+  drop_na(Latitude) %>%
+  st_as_sf(coords = c("Longitude", "Latitude"), crs = 4269)
+```
+### Transit 
+
+```{r}
+transit_points <- read_csv(here("transit","ridership_points.csv"))%>%
+  separate(Position, into=c("Point", "longitude", "latitude"), " ") %>%
+  mutate(latitude = str_remove_all(latitude, "[)]"),
+         longitude = str_remove_all(longitude, "[()]"),
+         ) %>%
+  dplyr::select(-c(Point)) %>% 
+  mutate(latitude = as.numeric(latitude),
+         longitude = as.numeric(longitude)) %>%
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4269)
+
+```
+### Transit Area
+```{r}
+# transit_area <- read_csv("transit/Summarize234_Buffer_of_transit_shps_within_NYC_Neighborhood_Tabulation_Areas_2020_0.csv") %>%
+#   mutate(perc_covered_by_transit = (`Summarized Area in Square Miles`/`Area in Square Miles`)*100) %>%
+#   dplyr::select(NTA2020, perc_covered_by_transit) %>%
+#   dplyr::rename(nta_id= NTA2020)
+
+transit_area <- read_csv("transit/sum1119.csv") %>%  
+  mutate(perc_covered_by_transit = (`Summarized Area in Square Miles`/`Area in Square Miles`)*100) %>%
+  dplyr::select(nta_id, perc_covered_by_transit)
+  # dplyr::select(nta_id, perc_covered_by_transit, BoroName, NTAName) %>% 
+  # rename(borough = BoroName)
+  
+```
+### NTA IDs and Names
+```{r}
+nta_info <- read_csv(here("demographics","demographics.csv")) %>%
+  rename(census_tract = BCT2020) %>%
+  drop_na(`NTA Type`) %>%
+  rename(nta_id = GeoID) %>%
+  rename(nta_type = `NTA Type`) %>%
+  dplyr::select(nta_type, nta_id, Name)
+```
+
+
+# Join Data
+## Combine All Other Demographic data 
+```{r}
+nyc_schools_join <- st_join(census_nta, public_schools) %>%
+  group_by(nta_id) %>%
+  summarize(school_count=n())
+
+nyc_grocery_join <- st_join(census_nta, grocery) %>%
+  group_by(nta_id) %>%
+  summarize(store_count=n())
+
+nyc_evictions_join <- st_join(census_nta, evictions)%>%
+  group_by(nta_id) %>%
+  summarize(eviction_count=n())
+
+nyc_stop_join <- st_join(census_nta, subway_stations)%>%
+  group_by(nta_id) %>%
+  summarize(sub_count=n())
+
+nyc_bus_stop_join <- st_join(census_nta, bus_stations)%>%
+  group_by(nta_id) %>%
+  summarize(bus_count=n())
+
+nyc_ridership_join <- st_join(census_nta, transit_points) %>%
+  group_by(nta_id) %>%
+  summarize(mean_ridership = mean(`2018Ridership`))
+
+#everything is a tibble, dplyr join commands by nta. st_as_sf to convert to shapefiles
+
+Other_demographic_combined <- as.data.frame(nyc_schools_join) %>%
+  full_join(., (as.data.frame(nyc_evictions_join)), by= "nta_id") %>%
+  full_join(., (as.data.frame(nyc_grocery_join)), by= "nta_id") %>%
+  full_join(., (as.data.frame(nyc_stop_join)), by= "nta_id") %>%
+  full_join(., (as.data.frame(nyc_bus_stop_join)), by= "nta_id") %>%
+  full_join(., (as.data.frame(nyc_ridership_join)), by= "nta_id") %>%
+  dplyr::select(-c(geometry.x, geometry.y, geometry.x.x, geometry.y.y, geometry.x.x.x, geometry.y.y.y))
+```
+
+## Merge Other Demographic Combination with Census Data By NTA
+```{r}
+## Original Code:-------------------------------------
+# nyc_compiled <- merge(census_nta, data, by = "nta_id")
+#
+# nyc_compiled2 <- left_join(nyc_compiled, transit_area, by="nta_id" ) 
+# 
+# 
+# nyc_compiled2 %>%
+#   write_csv(., "clean_data/nyc_names.csv") %>%
+#   write_sf(., "clean_data/nyc_data.shp")
+## ----------------------------------------------------
+#       ^
+#       |
+#       |
+
+#  Merge All other demographic data with census_nta by nta_id
+clean_data <- merge(census_nta, Other_demographic_combined, by = "nta_id")
+```
+
+## Add Coverage by Transit for Each NTA
+
+```{r}
+clean_data<- clean_data %>% 
+  left_join( transit_area, by="nta_id" )
+```
+
+## Add NTA Name
+
+```{r}
+# add NTA Name and NTA type by nta_id
+clean_data <- clean_data %>% 
+   merge(nta_info, by="nta_id")
+```
+
+## Filter Staten Island 
+
+```{r}
+# Filter out Staten Island
+clean_data <- clean_data %>%
+  filter(!substr(nta_id, 1, 2) == "SI")
+```
+
+## Add Subway Desert Categorical Variable 
+
+```{r}
+clean_data <- clean_data %>%
+  mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-1, 10, 75, 99, 100), 
+                                          labels = c("Poor", "Limited", "Satisfactory", "Excellent")))
+```
+
+
+## Add Borough Name
+
+```{r}
+nta_to_census <- openxlsx::read.xlsx(here("ethnic", "Data", "census_to_nta.xlsx")) %>%
+  dplyr::select(BoroName, NTACode) %>%
+  rename(borough = BoroName,
+         nta_id = NTACode) %>%
+  unique()
+
+# borough <- nyc_clean %>%
+#   mutate(borough =
+# ifelse(grepl("MN", `nta_id`), "Manhattan" ,
+# ifelse(grepl("BK", `nta_id`), "Brooklyn",
+# ifelse(grepl("QN", `nta_id`), "Queens","Bronx"))))
+
+clean_data <- clean_data %>%
+  merge(nta_to_census, by="nta_id")%>% 
+  relocate( geometry, .after = last_col())
+
+```
+
+# Write Final Data to File
+```{r}
+# write to file
+clean_data %>% 
+  write_csv(., "clean_data/nyc_names_vichy_complied.csv") %>%
+  write_sf(., "clean_data/nyc_data_vichy_complied.shp")
+```
+
+# Reading Complied Data 
+```{r}
+#  Read CSV File
+csv_file_clean <- read_csv("clean_data/nyc_names_vichy_complied.csv")
+#  Read Shape File
+shape_file_clean <- st_read("clean_data/nyc_data_vichy_complied.shp", crs = 4269)
+#  Replace Column abbr Names in Shape File with full name from CSV
+colnames(shape_file_clean) <- colnames(csv_file_clean)
+
+# Verify
+names(shape_file_clean)
+names(csv_file_clean)
+```
+
+
+
+
+

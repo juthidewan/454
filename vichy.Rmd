@@ -23,53 +23,61 @@ library(rstanarm)
 library(janitor)
 library(tidybayes)
 library(broom.mixed)
+library(sf)
+library(tidycensus)
+library(openxlsx)
+library(s2)
+library(nycgeo)
+library(CARBayes)
+library(spData) 
+library(spdep)
 
 # themes
 theme_set(theme_minimal())
 
-nyc_compiled <- read_csv("nyc_compiled.csv")
-```
-
-
-```{r}
-#  
-nyc_compiled %>%  colnames()
-
-nyc_model_2_negbinomial <- stan_glmer(
-  white_count ~ mean_income + 
-    mean_rent + 
-    sub_count +
-    school_count + 
-    below_poverty_line_count + 
-    bus_count + 
-    eviction_count + 
-    uninsured_count + (1 | nta_id), 
-  data = nyc_compiled, 
-  family = neg_binomial_2(),
-  chains = 4, iter = 5000*2, seed = 84735
-)
-```
-```{r}
-pp_check(nyc_model_2_negbinomial)
 ```
 
 ```{r}
-nyc_model_2_poisson <- stan_glmer(
-  white_count ~ mean_income + 
-    mean_rent + 
-    sub_count +
-    school_count + 
-    below_poverty_line_count + 
-    bus_count + 
-    eviction_count + 
-    uninsured_count + (1 | nta_id), 
-  data = nyc_compiled , 
-  family = poisson,
-  chains = 4, iter = 5000*2, seed = 84735
-)
-pp_check(nyc_model_2_poisson)
+# Load data
+vari_names <- read_csv(here("clean_data", "nyc_names.csv"))
+nyc_clean <- st_read(here("clean_data", "nyc_data.shp"), crs = 4269, quiet=T) 
+colnames(nyc_clean) <- colnames(vari_names)
+
 ```
 
 
 
+```{r}
+nyc_clean <- nyc_clean %>%
+  mutate(transportation_desert_4cat = case_when(
+    transportation_desert_4cat==1 ~ "Poor",
+    transportation_desert_4cat ==2 ~ "Limited",
+    transportation_desert_4cat ==3 ~ "Satisfactory",
+     transportation_desert_4cat ==4 ~ "Excellent",
+  ))  %>%
+  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent")))
+
+nyc_clean$transportation_desert_4cat <- relevel(nyc_clean$transportation_desert_4cat, ref = 'Poor')
+names(nyc_clean)
+
+```
+
+```{r}
+library("nnet")
+multinomial_model <- multinom(transportation_desert_4cat ~ mean_income + mean_rent + unemployment_count + school_count + store_count + bus_count + eviction_count + uninsured_count + white_count+ black_count+ latinx_count + asian_count, data = nyc_clean )
+
+#  convert the ocefficient to odd
+exp(coef(multinomial_model))
+
+
+```
+```{r}
+# Predicting the values for train dataset
+nyc_clean$transportation_desert_4cat_prediction <- predict(multinomial_model, newdata = nyc_clean, "class")
+# Building classification table
+tab <- table(nyc_clean$transportation_desert_4cat_prediction,nyc_clean$transportation_desert_4cat)
+# Calculating accuracy - sum of diagonal elements divided by total obs
+head(tab)
+round((sum(diag(tab))/sum(tab))*100,2)
+```
 
