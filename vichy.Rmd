@@ -32,6 +32,7 @@ library(CARBayes)
 library(spData) 
 library(spdep)
 
+
 # themes
 theme_set(theme_minimal())
 
@@ -60,24 +61,81 @@ nyc_clean <- nyc_clean %>%
 nyc_clean$transportation_desert_4cat <- relevel(nyc_clean$transportation_desert_4cat, ref = 'Poor')
 names(nyc_clean)
 
+nyc_clean %>%  as.tibble()
+
 ```
+
+# BRMS Multinomial 
+```{r}
+library(brms)
+
+N <- 15
+dat <- data.frame(
+    y1 = rbinom(N, 10, 0.3), y2 = rbinom(N, 10, 0.5), 
+    y3 = rbinom(N, 10, 0.7), x = rnorm(N)
+)
+dat$size <- with(dat, y1 + y2 + y3)
+dat$y <- with(dat, cbind(y1, y2, y3))
+
+# prior <- prior(normal(0, 10), "b", dpar = muy2) +
+#     prior(cauchy(0, 1), "Intercept") +
+#     prior(normal(0, 2), "Intercept", dpar = muy3)
+fit <- brm(bf(y | trials(size)  ~ 1, muy2 ~ x), data = dat, 
+                family = multinomial())
+
+dat
+```
+
 
 ```{r}
-library("nnet")
-multinomial_model <- multinom(transportation_desert_4cat ~ mean_income + mean_rent + unemployment_count + school_count + store_count + bus_count + eviction_count + uninsured_count + white_count+ black_count+ latinx_count + asian_count, data = nyc_clean )
-
-#  convert the ocefficient to odd
-exp(coef(multinomial_model))
+# Ordinal regression modeling patient's rating of inhaler instructions
+# category specific effects are estimated for variable 'treat'
 
 
+#  Read CSV File
+csv_file_clean <- read_csv("clean_data/nyc_names_vichy_complied.csv")
+#  Read Shape File
+shape_file_clean <- st_read("clean_data/nyc_data_vichy_complied.shp", crs = 4269)
+#  Replace Column abbr Names in Shape File with full name from CSV
+colnames(shape_file_clean) <- colnames(csv_file_clean)
+
+# Verify
+names(shape_file_clean)
+names(csv_file_clean)
 ```
-```{r}
-# Predicting the values for train dataset
-nyc_clean$transportation_desert_4cat_prediction <- predict(multinomial_model, newdata = nyc_clean, "class")
-# Building classification table
-tab <- table(nyc_clean$transportation_desert_4cat_prediction,nyc_clean$transportation_desert_4cat)
-# Calculating accuracy - sum of diagonal elements divided by total obs
-head(tab)
-round((sum(diag(tab))/sum(tab))*100,2)
+
+
+```{r eval=FALSE}
+# fit2 <- brm(transportation_desert_4cat ~ 1 +  
+#               mean_income + 
+#               mean_rent + 
+#               unemployment_count + 
+#               school_count + 
+#               store_count + 
+#               bus_count + 
+#               eviction_count + 
+#               uninsured_count + 
+#               white_count+ 
+#               black_count+ 
+#               latinx_count + 
+#               asian_count + 
+#               (1|borough) , 
+#             data = csv_file_clean,
+#             family= categorical(link = "logit"),
+#             chains = 2,
+#             iter = 2000)
+# saveRDS(fit2, "trans_desert_multinomial_model.rds")
 ```
+
+
+```{r eval=FALSE}
+trans_desert_multinomial_model <- readRDS("trans_desert_multinomial_model.rds")
+summary(trans_desert_multinomial_model)
+plot(trans_desert_multinomial_model, ask = FALSE)
+WAIC(trans_desert_multinomial_model)
+
+pp_check(trans_desert_multinomial_model)
+```
+
+
 
