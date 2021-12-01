@@ -1,5 +1,5 @@
 ---
-title: "STAT 454: Capstone 4"
+title: "STAT 454: Capstone 3"
 author: Freddy Barragan, Juthi Dewan, Sam Ding, Vichy Meas
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
@@ -48,14 +48,40 @@ library(nycgeo)
 library(CARBayes)
 library(spData) 
 library(spdep)
+
+nyc_join <- merge(nta_sf,nta_acs_data)
+
+
+nyc_join <- nyc_join %>%
+  st_transform(., 4269)
+
+county_list <- nyc_join %>% pull(county_name) %>% unique()
+
+
+census_api_key("0cc07f06386e317f312adef5e0892b0d002b7254")
+
+census_data <- get_acs(state = "NY", 
+        county = c(county_list), 
+        geography = "tract", 
+        variables = c(gini_inequality ="B19083_001"),
+        year = 2019,
+        output = "wide",
+        survey = "acs5",
+        geometry = TRUE) %>% 
+  dplyr::select(-c(NAME, ends_with("M"))) %>%
+         rename_at(vars(ends_with("E")), .funs = list(~str_sub(., end = -2)))  %>%
+  st_transform(., 4269) %>%
+  dplyr::select(-GEOID)
+
 ```
 
 
 ```{r}
 # themes
 theme_set(theme_minimal())
-nyc_clean <- st_read(here("clean_data", "nyc_names_vichy_complied.shp"), crs = 4269, quiet=T) %>%
-  st_as_sf(coords = c("longitude", "latitude"), crs = 4269)
+vari_names <- read_csv(here("clean_data", "nyc_names.csv"))
+nyc_clean <- st_read(here("clean_data", "nyc_data.shp"), crs = 4269, quiet=T) 
+colnames(nyc_clean) <- colnames(vari_names)
 
 
 library(openxlsx)
