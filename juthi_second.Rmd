@@ -1,0 +1,336 @@
+---
+title: "juthi_second"
+author: "Juthi Dewan"
+date: "11/30/2021"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE, 
+                      fig.height = 4, fig.width = 7,
+                      fig.align = 'center', fig.pos = 'H')
+
+```
+
+```{r}
+# Load packages
+library(tidyverse)
+library(janitor)
+library(here)
+library(rstan)
+library(rstanarm)
+library(bayesrules)
+library(tidyverse)
+library(rstanarm)
+library(broom.mixed)
+library(tidybayes)
+library(bayesplot)
+library(bayesrules)
+library(tidyverse)
+library(rstanarm)
+library(broom.mixed)
+library(tidybayes)
+library(forcats)
+library(bayesplot)
+library(sf)
+# themes
+theme_set(theme_minimal())
+```
+
+
+```{r}
+vari_names <- read_csv("clean_data/nyc_names_vichy_complied.csv")
+nyc_clean <- st_read("clean_data/nyc_data_vichy_complied.shp")
+colnames(nyc_clean) <- colnames(vari_names)
+```
+
+```{r}
+negbin_non_citizen <- stan_glmer(
+  noncitizen_count ~  mean_income + mean_rent + 
+    unemployment_count  + 
+    transportation_desert_4cat + sub_count + 
+    eviction_count + uninsured_count + (1 | borough),
+  data = nyc_clean,
+  family = neg_binomial_2,
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(negbin_non_citizen)
+```
+
+
+```{r}
+nyc_perc <- nyc_clean %>%
+   mutate(asian_perc = asian_count / total_pop) %>%
+   mutate(white_perc = white_count / total_pop) %>%
+   mutate(black_perc = black_count / total_pop) %>%
+   mutate(latinx_perc = latinx_count / total_pop) %>%
+   mutate(native_perc = native_count / total_pop) %>%
+   mutate(noncitizen_perc = noncitizen_count / total_pop) %>%
+   mutate(evictions_perc = eviction_count / total_pop) %>%
+   mutate(uninsured_perc = uninsured_count / total_pop) %>%
+  mutate(unemployment_perc = unemployment_count / total_pop)
+
+nyc_compiled <- nyc_perc %>%
+  filter(nta_type == "0")
+
+top_10_non_citizen <- nyc_clean %>%
+  mutate(noncitizen_perc = noncitizen_count / total_pop) %>%
+  filter(nta_type == 0) %>%
+  arrange(desc(noncitizen_perc)) %>%
+  head(10)
+
+top_10_asian <- nyc_clean %>%
+  mutate(asian_perc = asian_count / total_pop) %>%
+  # filter(nta_type == 0) %>%
+  arrange(desc(asian_perc)) %>%
+  head(10)
+
+non_citizen_model <- stan_glmer(
+  noncitizen_count ~  mean_income + mean_rent + 
+    unemployment_perc  + 
+    transportation_desert_4cat + sub_count + 
+    eviction_count + uninsured_perc + (1 | borough),
+  data = nyc_perc,
+  family = neg_binomial_2,
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(non_citizen_model)
+```
+
+```{r}
+nyc_perc %>%
+ggplot(aes(x = asian_perc)) +
+  geom_density(alpha = 0.7, fill = "yellow") +
+  facet_wrap("transportation_desert_4cat") 
+
+nyc_perc %>%
+ggplot(aes(x = black_perc)) +
+  geom_density(alpha = 0.7, fill = "pink") +
+  facet_wrap("transportation_desert_4cat") 
+
+
+nyc_perc %>%
+ggplot(aes(x = latinx_perc)) +
+  geom_density(alpha = 0.7, fill = "orange") +
+  facet_wrap("transportation_desert_4cat") 
+
+
+nyc_perc %>%
+ggplot(aes(x = white_perc)) +
+  geom_density(alpha = 0.7, fill = "blue") +
+  facet_wrap("transportation_desert_4cat") 
+```
+
+```{r}
+borough %>%
+ggplot(aes(x = asian_count, fill = transportation_desert_4cat)) +
+  geom_density(alpha = 0.7) +
+  xlim(0,5000) +
+  facet_wrap("borough") 
+```
+
+
+```{r}
+#modeling ridership : ridership models are pretty terrible ngl
+
+normal_ridership <- stan_glmer(
+  mean_ridership ~  mean_income + mean_rent + noncitizen_perc + sub_count + bus_count+  (1 | borough),
+  data = nyc_perc,
+  family = gaussian,
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(normal_ridership)
+
+tidy(normal_ridership, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+
+normal_ridership <- stan_glmer(
+  mean_ridership ~  mean_income + mean_rent + 
+    unemployment_perc + school_count + 
+    store_count + noncitizen_perc + 
+    evictions_perc + uninsured_perc + (1|borough),
+  data = nyc_perc,
+  family = gaussian,
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(normal_ridership)
+
+tidy(normal_ridership, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+
+```
+
+
+```{r}
+#subway count poisson and negative binomial models with pp_checks and tidy
+sub_count_negbin_nh <- stan_glm(
+  sub_count ~ mean_income + mean_rent + 
+    unemployment_perc + 
+    transportation_desert_4cat + school_count + 
+    store_count + noncitizen_perc + 
+    evictions_perc + uninsured_perc,
+  data = nyc_perc,
+  family = neg_binomial_2(),
+  chains = 2, iter = 500*2, seed = 84735, refresh = 0
+)
+
+
+sub_count_poisson_nh <- stan_glm(
+sub_count ~ mean_income + mean_rent + 
+    unemployment_perc + 
+    transportation_desert_4cat + school_count + 
+    store_count + noncitizen_perc + 
+    evictions_perc + uninsured_perc,
+  data = nyc_perc,
+  family = poisson,
+  chains = 2, iter = 500*2, seed = 84735, refresh = 0
+)
+
+
+sub_count_negbin <- stan_glmer(
+  sub_count ~ mean_income + mean_rent + 
+    unemployment_perc + 
+    transportation_desert_4cat + school_count + 
+    store_count + noncitizen_perc + 
+     evictions_perc + uninsured_perc + (1|borough),
+  data = nyc_perc,
+  family = neg_binomial_2(),
+  chains = 2, iter = 500*2, seed = 84735, refresh = 0
+)
+
+
+sub_count_poisson <- stan_glmer(
+sub_count ~ mean_income + mean_rent + 
+    unemployment_perc + 
+    transportation_desert_4cat + school_count + 
+    store_count + noncitizen_perc + 
+     evictions_perc + uninsured_perc + (1|borough),
+  data = nyc_perc,
+  family = poisson,
+  chains = 2, iter = 500*2, seed = 84735, refresh = 0
+)
+
+pp_check(sub_count_negbin_nh)
+pp_check(sub_count_poisson_nh)
+pp_check(sub_count_negbin)
+pp_check(sub_count_poisson)
+
+
+tidy(sub_count_negbin_nh, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+tidy(sub_count_poisson_nh, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+tidy(sub_count_negbin, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+tidy(sub_count_poisson, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+```
+
+
+
+```{r}
+#bus count poisson and negative binomial models with pp_checks and tidy
+bus_count_negbin_nh <- stan_glm(
+  bus_count ~ mean_income + mean_rent + 
+    unemployment_perc + 
+    transportation_desert_4cat + school_count + 
+    store_count + noncitizen_perc + 
+    evictions_perc + uninsured_perc,
+  data = nyc_perc,
+  family = neg_binomial_2(),
+  chains = 2, iter = 500*2, seed = 84735, refresh = 0
+)
+
+
+bus_count_poisson_nh <- stan_glm(
+bus_count ~ mean_income + mean_rent + 
+    unemployment_perc + 
+    transportation_desert_4cat + school_count + 
+    store_count + noncitizen_perc + 
+    evictions_perc + uninsured_perc,
+  data = nyc_perc,
+  family = poisson,
+  chains = 2, iter = 500*2, seed = 84735, refresh = 0
+)
+
+
+bus_count_negbin <- stan_glmer(
+  bus_count ~ mean_income + mean_rent + 
+    unemployment_perc + 
+    transportation_desert_4cat + school_count + 
+    store_count + noncitizen_perc + 
+     evictions_perc + uninsured_perc + (1|borough),
+  data = nyc_perc,
+  family = neg_binomial_2(),
+  chains = 2, iter = 500*2, seed = 84735, refresh = 0
+)
+
+
+bus_count_poisson <- stan_glmer(
+bus_count ~ mean_income + mean_rent + 
+    unemployment_perc + 
+    transportation_desert_4cat + school_count + 
+    store_count + noncitizen_perc + 
+     evictions_perc + uninsured_perc + (1|borough),
+  data = nyc_perc,
+  family = poisson,
+  chains = 2, iter = 500*2, seed = 84735, refresh = 0
+)
+
+pp_check(bus_count_negbin_nh)
+pp_check(bus_count_poisson_nh)
+pp_check(bus_count_negbin)
+pp_check(bus_count_poisson)
+
+
+tidy(bus_count_negbin_nh, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+tidy(bus_count_poisson_nh, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+tidy(bus_count_negbin, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+tidy(bus_count_poisson, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+```
+
+
+```{r}
+rent_model <- stan_glmer(
+mean_rent ~ mean_income + 
+    transportation_desert_4cat + school_count + 
+    store_count + noncitizen_perc +  uninsured_perc + asian_perc + white_perc + black_perc + latinx_perc + (1|borough),
+  data = nyc_compiled, 
+  family = gaussian,
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(rent_model)
+
+tidy(rent_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+```
+
+
+
+
+```{r}
+#naive bayes model
+
+# Load the package
+library(e1071)
+
+naive_model_1 <- naiveBayes(transportation_desert_4cat ~ noncitizen_perc, data = nyc_perc)
+```
+
+
+
+```{r}
+ggplot(nyc_perc) +
+  geom_sf(aes(fill = noncitizen_perc), color = "#8f98aa") +
+  scale_fill_gradient(low = "#FCF5EE", high = "#717EC3", guide = guide_legend(title = "Percent Non-Citizen")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Non Citizen Count")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 15, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+```
