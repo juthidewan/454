@@ -19,14 +19,44 @@ library(dplyr)
 nyc_clean <- read_csv("clean_data/nyc_names_vichy_complied.csv")
 
 nyc_clean <- nyc_clean %>%
-  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent")))
+  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
+  filter(nta_type == 0)
 ```
 
 ```{r}
-model1 <- stan_polr(as.factor(transportation_desert_4cat) ~ unemployment_count + noncitizen_count + white_count, data =nyc_clean, prior=R2(0.5, what=NULL),iter=5000, seed = 86437, refresh=0)
+model1 <- stan_polr(transportation_desert_4cat ~ unemployment_count + noncitizen_count + white_count, data =nyc_clean, prior=R2(0.5, what=NULL),iter=5000, seed = 86437, refresh=0)
 ```
 
 ```{r}
 summary(model1)
+```
+
+```{r}
+ordinal_accuracy<-function(post_preds,mydata){
+  post_preds<-as.data.frame(post_preds)
+  results<-c()
+  for (j in (1:length(post_preds))){
+    results[j]<-as.numeric(tail(names(sort(table(post_preds[,j]))))[4])
+    }
+  results<-as.data.frame(results)
+  compare<-cbind(results,mydata$transportation_desert_4cat)
+  compare<-compare %>%mutate(results=as.numeric(results))
+  compare<-compare %>% mutate(`mydata$transportation_desert_4cat`=as.numeric(`mydata$transportation_desert_4cat`))
+  compare<-compare %>%mutate(accuracy=ifelse(as.numeric(results)==as.numeric(`mydata$transportation_desert_4cat`),1,0))
+  print(sum(compare$accuracy)/length(post_preds))
+}
+```
+
+
+```{r}
+model_data1<-nyc_clean %>% 
+  dplyr::select(unemployment_count, noncitizen_count, white_count) %>% 
+  na.omit()
+
+my_prediction1 <- posterior_predict(
+  model1, 
+  newdata = model_data1)
+
+ordinal_accuracy(my_prediction1,model_data1)
 ```
 
