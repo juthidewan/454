@@ -24,11 +24,12 @@ nyc_clean <- nyc_clean %>%
 ```
 
 ```{r}
-model1 <- stan_polr(transportation_desert_4cat ~ unemployment_count + noncitizen_count + white_count, data =nyc_clean, prior=R2(0.5, what=NULL),iter=5000, seed = 86437, refresh=0)
+model1 <- stan_polr(transportation_desert_4cat ~ unemployment_count + noncitizen_count + white_count, data =nyc_clean, prior=NULL,iter=5000, seed = 86437, refresh=0, prior_PD=FALSE)
 ```
 
 ```{r}
 summary(model1)
+plot(model1)
 ```
 
 ```{r}
