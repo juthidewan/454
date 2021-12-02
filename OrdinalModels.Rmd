@@ -18,17 +18,35 @@ library(dplyr)
 ```{r}
 nyc_clean <- read_csv("clean_data/nyc_names_vichy_complied.csv")
 
-nyc_clean <- nyc_clean %>%
+nyc_clean2 <- nyc_clean %>%
   mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
+  mutate(transportation_desert_4num = factor(as.numeric(transportation_desert_4cat))) %>%
+   mutate(asian_perc = (asian_count / total_pop) * 10) %>%
+   mutate(white_perc = (white_count / total_pop)* 10) %>%
+   mutate(black_perc = (black_count / total_pop)* 10) %>%
+   mutate(latinx_perc = (latinx_count / total_pop)* 10) %>%
+   mutate(native_perc = (native_count / total_pop)* 10) %>%
+   mutate(noncitizen_perc = (noncitizen_count / total_pop)* 10) %>%
+   mutate(evictions_perc = (eviction_count / total_pop)* 10) %>%
+   mutate(uninsured_perc = (uninsured_count / total_pop)* 10) %>%
+  mutate(unemployment_perc = (unemployment_count / total_pop)* 10) %>%
   filter(nta_type == 0)
 ```
 
 ```{r}
-model1 <- stan_polr(transportation_desert_4cat ~ unemployment_count + noncitizen_count + white_count, data =nyc_clean, prior=R2(0.5, what=NULL),iter=5000, seed = 86437, refresh=0)
+model1 <- stan_polr(transportation_desert_4num ~ mean_income + unemployment_perc + white_perc + school_count + asian_perc + latinx_perc + store_count , data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
+
+model2 <- stan_polr(transportation_desert_4num ~ unemployment_perc + noncitizen_perc + white_perc, data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
+
+model3 <- stan_polr(transportation_desert_4num ~white_perc + asian_perc + latinx_perc + black_perc, data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
 ```
 
 ```{r}
 summary(model1)
+
+tidy(model1, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+tidy(model2, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+tidy(model3, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
 ```
 
 ```{r}
@@ -39,24 +57,25 @@ ordinal_accuracy<-function(post_preds,mydata){
     results[j]<-as.numeric(tail(names(sort(table(post_preds[,j]))))[4])
     }
   results<-as.data.frame(results)
-  compare<-cbind(results,mydata$transportation_desert_4cat)
+  compare<-cbind(results,mydata$transportation_desert_4num)
   compare<-compare %>%mutate(results=as.numeric(results))
-  compare<-compare %>% mutate(`mydata$transportation_desert_4cat`=as.numeric(`mydata$transportation_desert_4cat`))
-  compare<-compare %>%mutate(accuracy=ifelse(as.numeric(results)==as.numeric(`mydata$transportation_desert_4cat`),1,0))
+  compare<-compare %>% mutate(`mydata$transportation_desert_4num`=as.numeric(`mydata$transportation_desert_4num`))
+  compare<-compare %>%mutate(accuracy=ifelse(as.numeric(results)==as.numeric(`mydata$transportation_desert_4num`),1,0))
   print(sum(compare$accuracy)/length(post_preds))
 }
 ```
 
 
 ```{r}
-model_data1<-nyc_clean %>% 
-  dplyr::select(unemployment_count, noncitizen_count, white_count) %>% 
+model_data1<-nyc_clean2 %>%
   na.omit()
 
+set.seed(86437)
 my_prediction1 <- posterior_predict(
   model1, 
   newdata = model_data1)
 
 ordinal_accuracy(my_prediction1,model_data1)
+
 ```
 
