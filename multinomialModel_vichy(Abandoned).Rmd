@@ -1,5 +1,5 @@
 ---
-title: "vichy"
+title: "Multinomial Model BRMS (Abandoned)"
 author: "Vichearith"
 date: "11/17/2021"
 output: html_document
@@ -58,19 +58,18 @@ csv_file_clean %>%
   group_by(nta_type)
 
 
-csv_file_clean <- csv_file_clean %>% 
-  filter(nta_type == 0) %>% 
-  na.omit( mean_income) %>%
-  na.omit( mean_rent) %>%
-  na.omit( unemployment_count) %>%
-  na.omit( school_count) %>%
-  na.omit( store_count) %>%
-  na.omit( bus_count) %>%
-  na.omit( eviction_count) %>%
-  na.omit( uninsured_count) %>%
-  na.omit( white_count) %>%
-  na.omit( latinx_count) %>%
-  na.omit( asian_count)
+# csv_file_clean <- csv_file_clean %>% 
+#   na.omit( mean_income) %>%
+#   na.omit( mean_rent) %>%
+#   na.omit( unemployment_count) %>%
+#   na.omit( school_count) %>%
+#   na.omit( store_count) %>%
+#   na.omit( bus_count) %>%
+#   na.omit( eviction_count) %>%
+#   na.omit( uninsured_count) %>%
+#   na.omit( white_count) %>%
+#   na.omit( latinx_count) %>%
+#   na.omit( asian_count)
 csv_file_clean_2 <- csv_file_clean %>%  mutate(nonwhite = latinx_count + asian_count + native_count + black_count )
 csv_file_clean_2 %>%  summarise(unique(transportation_desert_4cat))
 ```
@@ -144,6 +143,16 @@ library(brms)
 #             chains = 4,
 #             iter = 2000*2)
 # saveRDS(trans_desert_multinomial_model_4, "trans_desert_multinomial_model_4.rds")
+# trans_desert_multinomial_model_5 <- brm(transportation_desert_4cat ~ 1 +
+#               school_count +
+#               store_count +
+#               bus_count +
+#               (1|borough) ,
+#             data = csv_file_clean_2,
+#             family= categorical(link = "logit"),
+#             chains = 4,
+#             iter = 500*2)
+# saveRDS(trans_desert_multinomial_model_5, "trans_desert_multinomial_model_5.rds")
 ```
 
 
@@ -152,6 +161,7 @@ trans_desert_multinomial_model_1 <- readRDS("trans_desert_multinomial_model_1.rd
 trans_desert_multinomial_model_2 <- readRDS("trans_desert_multinomial_model_2.rds")
 trans_desert_multinomial_model_3 <- readRDS("trans_desert_multinomial_model_3.rds")
 trans_desert_multinomial_model_4 <- readRDS("trans_desert_multinomial_model_4.rds")
+trans_desert_multinomial_model_5 <- readRDS("trans_desert_multinomial_model_5.rds")
 ```
 
 
