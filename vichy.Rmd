@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 # Read data
 # Load packages
 library(here)
@@ -152,7 +152,6 @@ trans_desert_multinomial_model_1 <- readRDS("trans_desert_multinomial_model_1.rd
 trans_desert_multinomial_model_2 <- readRDS("trans_desert_multinomial_model_2.rds")
 trans_desert_multinomial_model_3 <- readRDS("trans_desert_multinomial_model_3.rds")
 trans_desert_multinomial_model_4 <- readRDS("trans_desert_multinomial_model_4.rds")
-
 ```
 
 
@@ -236,3 +235,28 @@ result <- csv_file_clean_2 %>%
 
 ```
 
+```{r}
+
+
+names(csv_file_clean_2)
+csv_file_clean_2 <- csv_file_clean_2 %>%  pivot_wider(
+  names_from = transportation_desert_4cat,
+  values_from = perc_covered_by_transit,
+  values_fill = 0
+)
+csv_file_clean_2$trasportation_desert = with(csv_file_clean_2, cbind(Limited , Excellent, Satisfactory))
+  
+names(csv_file_clean_2)
+
+trans_desert_multinomial_model_5 <- brm(bf(trasportation_desert) ~ 1 +
+              school_count +
+              store_count +
+              bus_count +
+              (1|borough) ,
+            data = csv_file_clean_2,
+            family=multinomial(),
+            chains = 4,
+            iter = 2000*2)
+saveRDS(trans_desert_multinomial_model_5, "trans_desert_multinomial_model_5.rds")
+
+```
