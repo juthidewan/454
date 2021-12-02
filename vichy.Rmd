@@ -40,57 +40,6 @@ theme_set(theme_minimal())
 
 ```{r}
 # Load data
-vari_names <- read_csv(here("clean_data", "nyc_names.csv"))
-nyc_clean <- st_read(here("clean_data", "nyc_data.shp"), crs = 4269, quiet=T) 
-colnames(nyc_clean) <- colnames(vari_names)
-
-```
-
-
-
-```{r}
-nyc_clean <- nyc_clean %>%
-  mutate(transportation_desert_4cat = case_when(
-    transportation_desert_4cat==1 ~ "Poor",
-    transportation_desert_4cat ==2 ~ "Limited",
-    transportation_desert_4cat ==3 ~ "Satisfactory",
-     transportation_desert_4cat ==4 ~ "Excellent",
-  ))  %>%
-  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent")))
-
-nyc_clean$transportation_desert_4cat <- relevel(nyc_clean$transportation_desert_4cat, ref = 'Poor')
-names(nyc_clean)
-
-nyc_clean %>%  as.tibble()
-
-```
-
-# BRMS Multinomial 
-```{r}
-library(brms)
-
-N <- 15
-dat <- data.frame(
-    y1 = rbinom(N, 10, 0.3), y2 = rbinom(N, 10, 0.5), 
-    y3 = rbinom(N, 10, 0.7), x = rnorm(N)
-)
-dat$size <- with(dat, y1 + y2 + y3)
-dat$y <- with(dat, cbind(y1, y2, y3))
-
-# prior <- prior(normal(0, 10), "b", dpar = muy2) +
-#     prior(cauchy(0, 1), "Intercept") +
-#     prior(normal(0, 2), "Intercept", dpar = muy3)
-fit <- brm(bf(y | trials(size)  ~ 1, muy2 ~ x), data = dat, 
-                family = multinomial())
-
-dat
-```
-
-
-```{r}
-# Ordinal regression modeling patient's rating of inhaler instructions
-# category specific effects are estimated for variable 'treat'
-
 
 #  Read CSV File
 csv_file_clean <- read_csv("clean_data/nyc_names_vichy_complied.csv")
@@ -102,40 +51,188 @@ colnames(shape_file_clean) <- colnames(csv_file_clean)
 # Verify
 names(shape_file_clean)
 names(csv_file_clean)
+dim(csv_file_clean)
+
+csv_file_clean %>%  
+  filter(transportation_desert_4cat== 'Poor') %>% 
+  group_by(nta_type)
+
+
+csv_file_clean <- csv_file_clean %>% 
+  filter(nta_type == 0) %>% 
+  na.omit( mean_income) %>%
+  na.omit( mean_rent) %>%
+  na.omit( unemployment_count) %>%
+  na.omit( school_count) %>%
+  na.omit( store_count) %>%
+  na.omit( bus_count) %>%
+  na.omit( eviction_count) %>%
+  na.omit( uninsured_count) %>%
+  na.omit( white_count) %>%
+  na.omit( latinx_count) %>%
+  na.omit( asian_count)
+csv_file_clean_2 <- csv_file_clean %>%  mutate(nonwhite = latinx_count + asian_count + native_count + black_count )
+csv_file_clean_2 %>%  summarise(unique(transportation_desert_4cat))
+```
+
+
+
+# BRMS Multinomial 
+
+## Transportation Desert ~ 
+```{r}
+library(brms) 
+
 ```
 
 
 ```{r eval=FALSE}
-# fit2 <- brm(transportation_desert_4cat ~ 1 +  
-#               mean_income + 
-#               mean_rent + 
-#               unemployment_count + 
-#               school_count + 
-#               store_count + 
-#               bus_count + 
-#               eviction_count + 
-#               uninsured_count + 
-#               white_count+ 
-#               black_count+ 
-#               latinx_count + 
-#               asian_count + 
-#               (1|borough) , 
+# trans_desert_multinomial_model_1 <- brm(transportation_desert_4cat ~ 1 +
+#               mean_income +
+#               mean_rent +
+#               unemployment_count +
+#               school_count +
+#               store_count +
+#               bus_count +
+#               eviction_count +
+#               uninsured_count +
+#               white_count+
+#               black_count+
+#               latinx_count +
+#               asian_count +
+#               (1|borough) ,
 #             data = csv_file_clean,
 #             family= categorical(link = "logit"),
-#             chains = 2,
-#             iter = 2000)
-# saveRDS(fit2, "trans_desert_multinomial_model.rds")
+#             chains = 4,
+#             iter = 2000*2)
+# saveRDS(trans_desert_multinomial_model_1, "trans_desert_multinomial_model_1.rds")
+# 
+# trans_desert_multinomial_model_2 <- brm(transportation_desert_4cat ~ 1 +
+#               mean_income +
+#               mean_rent +
+#               unemployment_count +
+#               school_count +
+#               store_count +
+#               bus_count +
+#               eviction_count +
+#               uninsured_count +
+#               white_count+
+#               nonwhite +
+#               (1|borough) ,
+#             data = csv_file_clean_2,
+#             family= categorical(link = "logit"),
+#             chains = 4,
+#             iter = 2000*2)
+# saveRDS(trans_desert_multinomial_model_2, "trans_desert_multinomial_model_2.rds")
+# 
+# trans_desert_multinomial_model_3 <- brm(transportation_desert_4cat ~ 1 +
+#               mean_ridership + 
+#               bus_count +
+#               (1|borough) ,
+#             data = csv_file_clean_2,
+#             family= categorical(link = "logit"),
+#             chains = 4,
+#             iter = 2000*2)
+# saveRDS(trans_desert_multinomial_model_3, "trans_desert_multinomial_model_3.rds")
+# trans_desert_multinomial_model_4 <- brm(transportation_desert_4cat ~ 1 +
+#               school_count +
+#               store_count +
+#               bus_count +
+#               (1|borough) ,
+#             data = csv_file_clean_2,
+#             family= categorical(link = "logit"),
+#             chains = 4,
+#             iter = 2000*2)
+# saveRDS(trans_desert_multinomial_model_4, "trans_desert_multinomial_model_4.rds")
 ```
 
 
 ```{r eval=FALSE}
-trans_desert_multinomial_model <- readRDS("trans_desert_multinomial_model.rds")
-summary(trans_desert_multinomial_model)
-plot(trans_desert_multinomial_model, ask = FALSE)
-WAIC(trans_desert_multinomial_model)
+trans_desert_multinomial_model_1 <- readRDS("trans_desert_multinomial_model_1.rds")
+trans_desert_multinomial_model_2 <- readRDS("trans_desert_multinomial_model_2.rds")
+trans_desert_multinomial_model_3 <- readRDS("trans_desert_multinomial_model_3.rds")
+trans_desert_multinomial_model_4 <- readRDS("trans_desert_multinomial_model_4.rds")
 
-pp_check(trans_desert_multinomial_model)
 ```
 
 
+```{r eval=FALSE}
+summary(trans_desert_multinomial_model_1)
+summary(trans_desert_multinomial_model_2)
+summary(trans_desert_multinomial_model_3)
+summary(trans_desert_multinomial_model_4)
+```
+
+## Model 1 
+
+```{r eval=FALSE}
+plot(trans_desert_multinomial_model_1, ask = FALSE)
+```
+
+
+```{r eval=FALSE}
+WAIC(trans_desert_multinomial_model_1)
+```
+
+
+```{r eval=FALSE}
+pp_check(trans_desert_multinomial_model_1)
+```
+
+## Model 2 
+```{r eval=FALSE}
+plot(trans_desert_multinomial_model_2, ask = FALSE)
+```
+
+
+```{r eval=FALSE}
+WAIC(trans_desert_multinomial_model_2)
+```
+
+
+```{r eval=FALSE}
+pp_check(trans_desert_multinomial_model_2)
+```
+
+
+## Model 3 
+
+```{r eval=FALSE}
+plot(trans_desert_multinomial_model_3, ask = FALSE)
+```
+
+
+```{r eval=FALSE}
+WAIC(trans_desert_multinomial_model_3)
+```
+
+
+```{r eval=FALSE}
+pp_check(trans_desert_multinomial_model_3)
+```
+
+## Model 4 
+```{r eval=FALSE}
+plot(trans_desert_multinomial_model_4, ask = FALSE)
+```
+
+
+```{r eval=FALSE}
+WAIC(trans_desert_multinomial_model_4)
+```
+
+
+```{r eval=FALSE}
+pp_check(trans_desert_multinomial_model_4)
+```
+
+```{r}
+
+csv_file_clean_2 %>%  summarise(unique(transportation_desert_4cat))
+result <- csv_file_clean_2 %>% 
+  dplyr::select(transportation_desert_4cat) %>% 
+  mutate(pred = 
+           predict(trans_desert_multinomial_model_4))
+
+```
 
