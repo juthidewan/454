@@ -35,6 +35,7 @@ nyc_clean2 <- nyc_clean %>%
 
 ```{r}
 model1 <- stan_polr(transportation_desert_4num ~ mean_income + unemployment_perc + white_perc + school_count + asian_perc + latinx_perc + store_count , data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
+saveRDS(model1, 'ordinal_model_1.rds')
 
 model2 <- stan_polr(transportation_desert_4num ~ unemployment_perc + noncitizen_perc + white_perc, data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
 
@@ -76,6 +77,28 @@ my_prediction1 <- posterior_predict(
   newdata = model_data1)
 
 ordinal_accuracy(my_prediction1,model_data1)
+
+result <- posterior_predict(
+  model1, 
+  newdata = data.frame( 
+    mean_income= 80000, 
+    unemployment_perc=0.3, 
+    white_perc = 4, 
+    school_count= 12, 
+    asian_perc = 1.2, 
+    latinx_perc =  3.3, 
+    store_count= 320))
+ df <- as.data.frame(table(result)) %>% 
+  mutate(Prediction = Freq/sum(Freq)*100) %>%
+  mutate(Classification  = case_when(
+    result == 1 ~ 'Poor', 
+    result == 2 ~ 'Limited', 
+    result == 3 ~ 'Satisfactory', 
+    result == 4 ~ 'Excellent' )) %>% 
+  relocate(Classification, .after = Prediction) %>% 
+  dplyr::select(Classification,Prediction)
+    
+  
 
 ```
 
