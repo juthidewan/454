@@ -40,25 +40,78 @@ theme_set(theme_minimal())
 
 
 ```{r}
+# Load packages
+library(here)
+library(dplyr)
+library(readr)
+library(rstan)
+library(bayesrules)
+library(tidyverse)
+library(bayesplot)
+library(rstanarm)
+library(janitor)
+library(tidybayes)
+library(broom.mixed)
+library(here)
+library(sf)
+library(tidycensus)
+library(openxlsx)
+library(s2)
+library(nycgeo)
+library(CARBayes)
+library(spData) 
+library(spdep)
+
+nyc_join <- merge(nta_sf,nta_acs_data)
+
+
+nyc_join <- nyc_join %>%
+  st_transform(., 4269)
+
+county_list <- nyc_join %>% pull(county_name) %>% unique()
+
+
+census_api_key("0cc07f06386e317f312adef5e0892b0d002b7254")
+
+census_data <- get_acs(state = "NY", 
+        county = c(county_list), 
+        geography = "tract", 
+        variables = c(gini_inequality ="B19083_001"),
+        year = 2019,
+        output = "wide",
+        survey = "acs5",
+        geometry = TRUE) %>% 
+  dplyr::select(-c(NAME, ends_with("M"))) %>%
+         rename_at(vars(ends_with("E")), .funs = list(~str_sub(., end = -2)))  %>%
+  st_transform(., 4269) %>%
+  dplyr::select(-GEOID)
+```
+
+
+```{r}
 vari_names <- read_csv("clean_data/nyc_names_vichy_complied.csv")
 nyc_clean <- st_read("clean_data/nyc_data_vichy_complied.shp")
 colnames(nyc_clean) <- colnames(vari_names)
 ```
 
-```{r}
-negbin_non_citizen <- stan_glmer(
-  noncitizen_count ~  mean_income + mean_rent + 
-    unemployment_count  + 
-    transportation_desert_4cat + sub_count + 
-    eviction_count + uninsured_count + (1 | borough),
-  data = nyc_clean,
-  family = neg_binomial_2,
-  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
-)
 
-pp_check(negbin_non_citizen)
+```{r}
+gini_neighborhood <- st_join(nyc_clean, census_data,left = TRUE) %>%
+  group_by(nta_id) %>%
+  summarize(gini_neighborhood=median(gini_inequality, na.rm=T)) %>%
+  as.tibble() %>%
+  dplyr::select(nta_id, gini_neighborhood) 
+
+nyc_clean <- nyc_clean %>%
+  as.tibble() %>%
+  # filter(nta_id %in% sex_assault_gini$nta_id) %>%
+  left_join(., gini_neighborhood, by="nta_id")%>% 
+  unique() %>%
+  st_as_sf()
 ```
 
+
+For the part of the project we are exploring the variable noncitizen_count. This is a variable of interest because we want to see what drives the number of citizens in a neighborhood. 
 
 ```{r}
 nyc_perc <- nyc_clean %>%
@@ -74,258 +127,33 @@ nyc_perc <- nyc_clean %>%
 
 nyc_compiled <- nyc_perc %>%
   filter(nta_type == "0")
-
-top_10_non_citizen <- nyc_clean %>%
-  mutate(noncitizen_perc = noncitizen_count / total_pop) %>%
-  filter(nta_type == 0) %>%
-  arrange(desc(noncitizen_perc)) %>%
-  head(10)
-
-top_10_asian <- nyc_clean %>%
-  mutate(asian_perc = asian_count / total_pop) %>%
-  # filter(nta_type == 0) %>%
-  arrange(desc(asian_perc)) %>%
-  head(10)
-
-non_citizen_model <- stan_glmer(
-  noncitizen_count ~  mean_income + mean_rent + 
-    unemployment_perc  + 
-    transportation_desert_4cat + sub_count + 
-    eviction_count + uninsured_perc + (1 | borough),
-  data = nyc_perc,
-  family = neg_binomial_2,
-  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
-)
-
-pp_check(non_citizen_model)
 ```
 
 ```{r}
-nyc_perc %>%
-ggplot(aes(x = asian_perc)) +
-  geom_density(alpha = 0.7, fill = "yellow") +
-  facet_wrap("transportation_desert_4cat") 
-
-nyc_perc %>%
-ggplot(aes(x = black_perc)) +
-  geom_density(alpha = 0.7, fill = "pink") +
-  facet_wrap("transportation_desert_4cat") 
-
-
-nyc_perc %>%
-ggplot(aes(x = latinx_perc)) +
-  geom_density(alpha = 0.7, fill = "orange") +
-  facet_wrap("transportation_desert_4cat") 
-
-
-nyc_perc %>%
-ggplot(aes(x = white_perc)) +
-  geom_density(alpha = 0.7, fill = "blue") +
-  facet_wrap("transportation_desert_4cat") 
-```
-
-```{r}
-borough %>%
-ggplot(aes(x = asian_count, fill = transportation_desert_4cat)) +
-  geom_density(alpha = 0.7) +
-  xlim(0,5000) +
-  facet_wrap("borough") 
-```
+#mapping non-citizen percentage in NYC residential neighborhoods
+ggplot(nyc_compiled) +
+  geom_sf(aes(fill = noncitizen_count), color = "#8f98aa") +
+  scale_fill_gradient(low = "#FCF5EE", high = "#717EC3", guide = guide_legend(title = "Percent Non-Citizen")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Non Citizen Percentage in NYC Residential Neighborhoods")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 15, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
 
 
-```{r}
-#modeling ridership : ridership models are pretty terrible ngl
-
-normal_ridership <- stan_glmer(
-  mean_ridership ~  mean_income + mean_rent + noncitizen_perc + sub_count + bus_count+  (1 | borough),
-  data = nyc_perc,
-  family = gaussian,
-  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
-)
-
-pp_check(normal_ridership)
-
-tidy(normal_ridership, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
-
-normal_ridership <- stan_glmer(
-  mean_ridership ~  mean_income + mean_rent + 
-    unemployment_perc + school_count + 
-    store_count + noncitizen_perc + 
-    evictions_perc + uninsured_perc + (1|borough),
-  data = nyc_perc,
-  family = gaussian,
-  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
-)
-
-pp_check(normal_ridership)
-
-tidy(normal_ridership, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
-
-```
-
-
-```{r}
-#subway count poisson and negative binomial models with pp_checks and tidy
-sub_count_negbin_nh <- stan_glm(
-  sub_count ~ mean_income + mean_rent + 
-    unemployment_perc + 
-    transportation_desert_4cat + school_count + 
-    store_count + noncitizen_perc + 
-    evictions_perc + uninsured_perc,
-  data = nyc_perc,
-  family = neg_binomial_2(),
-  chains = 2, iter = 500*2, seed = 84735, refresh = 0
-)
-
-
-sub_count_poisson_nh <- stan_glm(
-sub_count ~ mean_income + mean_rent + 
-    unemployment_perc + 
-    transportation_desert_4cat + school_count + 
-    store_count + noncitizen_perc + 
-    evictions_perc + uninsured_perc,
-  data = nyc_perc,
-  family = poisson,
-  chains = 2, iter = 500*2, seed = 84735, refresh = 0
-)
-
-
-sub_count_negbin <- stan_glmer(
-  sub_count ~ mean_income + mean_rent + 
-    unemployment_perc + 
-    transportation_desert_4cat + school_count + 
-    store_count + noncitizen_perc + 
-     evictions_perc + uninsured_perc + (1|borough),
-  data = nyc_perc,
-  family = neg_binomial_2(),
-  chains = 2, iter = 500*2, seed = 84735, refresh = 0
-)
-
-
-sub_count_poisson <- stan_glmer(
-sub_count ~ mean_income + mean_rent + 
-    unemployment_perc + 
-    transportation_desert_4cat + school_count + 
-    store_count + noncitizen_perc + 
-     evictions_perc + uninsured_perc + (1|borough),
-  data = nyc_perc,
-  family = poisson,
-  chains = 2, iter = 500*2, seed = 84735, refresh = 0
-)
-
-pp_check(sub_count_negbin_nh)
-pp_check(sub_count_poisson_nh)
-pp_check(sub_count_negbin)
-pp_check(sub_count_poisson)
-
-
-tidy(sub_count_negbin_nh, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
-tidy(sub_count_poisson_nh, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
-tidy(sub_count_negbin, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
-tidy(sub_count_poisson, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
-```
-
-
-
-```{r}
-#bus count poisson and negative binomial models with pp_checks and tidy
-bus_count_negbin_nh <- stan_glm(
-  bus_count ~ mean_income + mean_rent + 
-    unemployment_perc + 
-    transportation_desert_4cat + school_count + 
-    store_count + noncitizen_perc + 
-    evictions_perc + uninsured_perc,
-  data = nyc_perc,
-  family = neg_binomial_2(),
-  chains = 2, iter = 500*2, seed = 84735, refresh = 0
-)
-
-
-bus_count_poisson_nh <- stan_glm(
-bus_count ~ mean_income + mean_rent + 
-    unemployment_perc + 
-    transportation_desert_4cat + school_count + 
-    store_count + noncitizen_perc + 
-    evictions_perc + uninsured_perc,
-  data = nyc_perc,
-  family = poisson,
-  chains = 2, iter = 500*2, seed = 84735, refresh = 0
-)
-
-
-bus_count_negbin <- stan_glmer(
-  bus_count ~ mean_income + mean_rent + 
-    unemployment_perc + 
-    transportation_desert_4cat + school_count + 
-    store_count + noncitizen_perc + 
-     evictions_perc + uninsured_perc + (1|borough),
-  data = nyc_perc,
-  family = neg_binomial_2(),
-  chains = 2, iter = 500*2, seed = 84735, refresh = 0
-)
-
-
-bus_count_poisson <- stan_glmer(
-bus_count ~ mean_income + mean_rent + 
-    unemployment_perc + 
-    transportation_desert_4cat + school_count + 
-    store_count + noncitizen_perc + 
-     evictions_perc + uninsured_perc + (1|borough),
-  data = nyc_perc,
-  family = poisson,
-  chains = 2, iter = 500*2, seed = 84735, refresh = 0
-)
-
-pp_check(bus_count_negbin_nh)
-pp_check(bus_count_poisson_nh)
-pp_check(bus_count_negbin)
-pp_check(bus_count_poisson)
-
-
-tidy(bus_count_negbin_nh, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
-tidy(bus_count_poisson_nh, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
-tidy(bus_count_negbin, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
-tidy(bus_count_poisson, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
-```
-
-
-```{r}
-rent_model <- stan_glmer(
-mean_rent ~ mean_income + 
-    transportation_desert_4cat + school_count + 
-    store_count + noncitizen_perc +  uninsured_perc + asian_perc + white_perc + black_perc + latinx_perc + (1|borough),
-  data = nyc_compiled, 
-  family = gaussian,
-  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
-)
-
-pp_check(rent_model)
-
-tidy(rent_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
-```
-
-
-
-
-```{r}
-#naive bayes model
-
-# Load the package
-library(e1071)
-
-naive_model_1 <- naiveBayes(transportation_desert_4cat ~ noncitizen_perc, data = nyc_perc)
-```
-
-
-
-```{r}
-ggplot(nyc_perc) +
+#mapping non-citizen percentage in every NYC neighborhood
+ggplot(nyc_compiled) +
   geom_sf(aes(fill = noncitizen_perc), color = "#8f98aa") +
   scale_fill_gradient(low = "#FCF5EE", high = "#717EC3", guide = guide_legend(title = "Percent Non-Citizen")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
-  ggtitle("Non Citizen Count")+ 
+  ggtitle("Non Citizen Percentage in all of NYC")+ 
     theme(panel.grid.major = element_line("transparent"),
           plot.title = element_text(size = 15, face = "bold"),
           legend.title = element_text(size = 8), 
@@ -334,3 +162,280 @@ ggplot(nyc_perc) +
            color = guide_legend(override.aes = list(size = 4)))
 
 ```
+
+
+```{r}
+nyc_compiled %>%
+ggplot(aes(x = noncitizen_perc)) +
+  geom_density(alpha = 0.7, fill = "blue") +
+  facet_wrap("transportation_desert_4cat") 
+  theme_minimal() +
+   theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank())
+```
+
+This plot above tells us a little bit about non citizen percentage and public transit access. This isn't all that much informative, but it's still interesting to see how the non citizen percentage changes with different accessibility categories. 
+
+
+
+
+
+```{r}
+#modeling a negative binomial model for the number of non-citizens 
+non_citizen_model <- stan_glm(
+  noncitizen_count ~
+  transportation_desert_4cat + 
+  total_pop + borough + gini_neighborhood + mean_income + mean_rent + unemployment_perc + 
+  black_perc + latinx_perc + asian_perc,
+  data = nyc_compiled,
+  family = neg_binomial_2,
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(non_citizen_model)
+
+tidy(non_citizen_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+
+prediction_summary_cv(model = non_citizen_model, data=nyc_compiled, k=10)$cv
+```
+
+
+```{r}
+non_citizen_clean <- nyc_compiled %>%
+  na.omit()%>%
+  arrange(noncitizen_count)
+
+list <- non_citizen_clean %>%
+  arrange(noncitizen_count) %>% pull(noncitizen_count)
+
+
+set.seed(84735)
+
+predictions_non_citizen <-  posterior_predict(
+  non_citizen_model, newdata = non_citizen_clean)
+
+ppc_intervals(list, yrep = predictions_non_citizen,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = non_citizen_clean$nta_id,
+    breaks = 1:nrow(non_citizen_clean)) +
+	xaxis_text(angle = 90,  hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+
+library(kableExtra)
+tidy(non_citizen_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Non Citizen Negative Binomial - Model Summary") %>% 
+  kable_styling()
+```
+
+
+
+```{r}
+rent_model <- stan_glm(
+mean_rent  ~ 
+  transportation_desert_4cat + bus_count + school_count + store_count +
+  total_pop + borough + gini_neighborhood + mean_income + noncitizen_perc +
+  black_perc + latinx_perc + asian_perc,
+  data = nyc_compiled, 
+  family = gaussian,
+ prior_intercept = normal(1580 , 20),
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(rent_model)
+
+tidy(rent_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+
+prediction_summary_cv(model = rent_model, data=nyc_compiled, k=10)$cv
+```
+
+We thought it would be interesting to look at mean rent and looking at some of the significant explanatory variables. The model above, so much is significant!! kind of crazy 
+
+
+
+```{r}
+rent_clean <- nyc_compiled %>%
+  na.omit()%>%
+  arrange(mean_rent)
+
+list <- rent_clean %>%
+  arrange(mean_rent) %>% pull(mean_rent)
+
+
+set.seed(84735)
+
+predictions_mean_rent <-  posterior_predict(
+  rent_model, newdata = rent_clean)
+
+ppc_intervals(list, yrep = predictions_mean_rent,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = rent_clean$nta_id,
+    breaks = 1:nrow(rent_clean)) +
+	xaxis_text(angle = 90,  hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+
+library(kableExtra)
+tidy(rent_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Rent Normal Distribution - Model Summary") %>% 
+  kable_styling()
+```
+
+
+```{r}
+eviction_model <- stan_glm(
+eviction_count  ~ 
+  transportation_desert_4cat +
+  total_pop + borough + 
+  gini_neighborhood + mean_income + unemployment_perc +  mean_rent + 
+  bus_count +
+  black_perc + latinx_perc + asian_perc,
+  data = nyc_compiled, 
+  family = neg_binomial_2,
+  chains = 2, iter = 1000*2, seed = 84735, refresh = 0
+)
+
+pp_check(eviction_model)
+
+tidy(eviction_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+
+prediction_summary_cv(model = eviction_model, data=nyc_compiled, k=10)$cv
+```
+
+```{r}
+manhattan <- nyc_compiled %>%
+  filter(borough == "Manhattan")
+
+queens <- nyc_compiled %>%
+  filter(borough == "Queens")
+
+bronx <- nyc_compiled %>%
+  filter(borough == "Bronx")
+
+brooklyn <- nyc_compiled %>%
+  filter(borough == "Brooklyn")
+```
+
+```{r}
+#mapping non-citizen percentage in NYC residential neighborhoods
+ggplot(manhattan) +
+  geom_sf(aes(fill = noncitizen_perc), color = "#8f98aa") +
+  scale_fill_gradient(low = "#FCF5EE", high = "#717EC3", guide = guide_legend(title = "Percent Non-Citizen")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Non Citizen Percentage in Manhattan")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 15, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+
+ggplot(brooklyn) +
+  geom_sf(aes(fill = noncitizen_perc), color = "#8f98aa") +
+  scale_fill_gradient(low = "#FCF5EE", high = "#717EC3", guide = guide_legend(title = "Percent Non-Citizen")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Non Citizen Percentage in Brooklyn")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 15, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+ggplot(queens) +
+  geom_sf(aes(fill = noncitizen_perc), color = "#8f98aa") +
+  scale_fill_gradient(low = "#FCF5EE", high = "#717EC3", guide = guide_legend(title = "Percent Non-Citizen")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Non Citizen Percentage in Queens")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 15, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+
+ggplot(bronx) +
+  geom_sf(aes(fill = noncitizen_perc), color = "#8f98aa") +
+  scale_fill_gradient(low = "#FCF5EE", high = "#717EC3", guide = guide_legend(title = "Percent Non-Citizen")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Non Citizen Percentage in Bronx")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(size = 15, face = "bold"),
+          legend.title = element_text(size = 8), 
+          legend.text = element_text(size = 8)) + 
+    guides(shape = guide_legend(override.aes = list(size = 4)),
+           color = guide_legend(override.aes = list(size = 4)))
+```
+
+
+
+```{r}
+nyc_compiled %>%
+ggplot(aes(x = black_perc)) +
+  geom_density(alpha = 0.7, fill = "blue") +
+  facet_wrap("borough") 
+  theme_minimal() +
+   theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank())
+  
+  nyc_compiled %>%
+ggplot(aes(x = white_perc)) +
+  geom_density(alpha = 0.7, fill = "blue") +
+  facet_wrap("borough") 
+  theme_minimal() +
+   theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank())
+  
+nyc_compiled %>%
+ggplot(aes(x = noncitizen_perc, fill = transportation_desert_4cat)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap("borough") 
+  theme_minimal() +
+   theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank())
+ 
+  #this last graph is a good representation of how the boroughs vary greatly between one another. So, we decided to make hierarchical models and group it by borough to account for the differences between the different boroughs.
+
+viz_rent <- nyc_compiled %>%
+ggplot(aes(x = mean_rent, fill = transportation_desert_4cat)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap("borough") 
+  theme_minimal() +
+   theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank())  
+  
+viz_income <- nyc_compiled %>%
+ggplot(aes(x = mean_income, fill = transportation_desert_4cat)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap("borough") 
+  theme_minimal() +
+   theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank())  
+```
+
+
