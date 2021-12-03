@@ -11,8 +11,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(rstanarm)
+library(rstan)
 library(readr)
 library(dplyr)
+library(broom.mixed)
+library(bayesrules)
 ```
 
 ```{r}
@@ -26,15 +29,17 @@ nyc_clean2 <- nyc_clean %>%
    mutate(black_perc = (black_count / total_pop)* 10) %>%
    mutate(latinx_perc = (latinx_count / total_pop)* 10) %>%
    mutate(native_perc = (native_count / total_pop)* 10) %>%
+   mutate(below_poverty_perc = (below_poverty_line_count / total_pop) * 10) %>%
    mutate(noncitizen_perc = (noncitizen_count / total_pop)* 10) %>%
    mutate(evictions_perc = (eviction_count / total_pop)* 10) %>%
    mutate(uninsured_perc = (uninsured_count / total_pop)* 10) %>%
   mutate(unemployment_perc = (unemployment_count / total_pop)* 10) %>%
+  mutate(nonwhite_perc = (10-white_perc)) %>%
   filter(nta_type == 0)
 ```
 
 ```{r}
-model1 <- stan_polr(transportation_desert_4num ~ mean_income + unemployment_perc + white_perc + school_count + asian_perc + latinx_perc + store_count , data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
+model1 <- stan_polr(transportation_desert_4num ~ total_pop + mean_income + unemployment_perc + below_poverty_perc + evictions_perc + white_perc + asian_perc + black_perc + latinx_perc + school_count + store_count, data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
 saveRDS(model1, 'ordinal_model_1.rds')
 
 model2 <- stan_polr(transportation_desert_4num ~ unemployment_perc + noncitizen_perc + white_perc, data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
@@ -68,15 +73,14 @@ ordinal_accuracy<-function(post_preds,mydata){
 
 
 ```{r}
-model_data1<-nyc_clean2 %>%
-  na.omit()
+nyc_clean2[is.na(nyc_clean2)] = 0
 
 set.seed(86437)
 my_prediction1 <- posterior_predict(
   model1, 
-  newdata = model_data1)
+  newdata = nyc_clean2)
 
-ordinal_accuracy(my_prediction1,model_data1)
+ordinal_accuracy(my_prediction1,nyc_clean2)
 
 pred <- posterior_predict(
   model1, 
