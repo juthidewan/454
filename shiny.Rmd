@@ -34,11 +34,15 @@ server2 <- function(input, output) {
      # Prediciton from model
   pred <- posterior_predict(model,
                               newdata = data.frame(
+    total_pop = input$total_pop,
     mean_income= input$mean_income,
     unemployment_perc=input$unemployment_perc/10,
+    below_poverty_perc = input$below_poverty_perc/10,
+    evictions_perc = input$evictions$perc/10,
     white_perc = input$white_perc/10,
     school_count= input$school_count,
     asian_perc = input$asian_perc/10,
+    black_perc = input$black_perc/10,
     latinx_perc = input$latinx_perc/10 ,
     store_count= input$store_count
     ))
@@ -73,11 +77,15 @@ ui2 <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       h4("Demographic Information"), 
+      sliderInput("total_pop", "Total Population", min = 0, max = 100000, value = 10),
       sliderInput("mean_income", "Mean Income", min = 0, max = 300000, value = 10),
       sliderInput("unemployment_perc", "% of Unemployment", min = 0, max = 100, value = 1),
+      sliderInput("below_poverty_perc", "% Below Poverty", min = 0, max = 100, value = 1),
+      sliderInput("evictions_perc", "% of Evictions", min = 0, max=100, value =1),
       h4("Population"), 
       sliderInput("white_perc", "% of White", min = 0, max = 100, value = 1),
       sliderInput("asian_perc", "% of Asian", min = 0, max = 100, value = 1),
+      sliderInput("black_perc", "% of Black", min = 0, max = 100, value = 1),
       sliderInput("latinx_perc", "% of Latinx", min = 0, max = 100, value = 1),
       h4("Store and School Count"), 
       sliderInput("store_count", "Store Count", min = 0, max = 250, value = 1),

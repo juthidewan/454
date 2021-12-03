@@ -36,6 +36,9 @@ nyc_clean2 <- nyc_clean %>%
   mutate(unemployment_perc = (unemployment_count / total_pop)* 10) %>%
   mutate(nonwhite_perc = (10-white_perc)) %>%
   filter(nta_type == 0)
+
+
+max(nyc_clean2$total_pop)
 ```
 
 ```{r}
@@ -80,6 +83,8 @@ my_prediction1 <- posterior_predict(
   model1, 
   newdata = nyc_clean2)
 
+
+
 ordinal_accuracy(my_prediction1,nyc_clean2)
 
 pred <- posterior_predict(
@@ -103,6 +108,29 @@ pred <- posterior_predict(
     tab <- table(df) %>% sort(decreasing=TRUE)
     names(dimnames(tab)) <- c("Classification")
     tab
+    
+    
+    
+```
+
+```{r}
+df_switched <- as.data.frame(my_prediction1)
+
+# first remember the names
+n <- df_switched$name
+
+# transpose all but the first column (name)
+df_switched <- as.data.frame(t(df_switched))
+colnames(df_switched) <- n
+for (i in 1:1000) {
+  for (j in 1:180) {
+    df_switched[i,j] <- as.numeric(df_switched[i,j])
+  }
+}
+
+df_switched$mean <- mean(df_switched[1:1000])
+
+
 
 ```
 
