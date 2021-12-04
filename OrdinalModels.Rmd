@@ -42,16 +42,18 @@ max(nyc_clean2$total_pop)
 ```
 
 ```{r}
-model1 <- stan_polr(transportation_desert_4num ~ total_pop + mean_income + unemployment_perc + below_poverty_perc + evictions_perc + white_perc + asian_perc + black_perc + latinx_perc + school_count + store_count, data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
+model1 <- stan_polr(transportation_desert_4num ~ total_pop + mean_income + unemployment_perc + below_poverty_perc + evictions_perc + white_perc + asian_perc + black_perc + latinx_perc + school_count + store_count, data =nyc_clean2, prior=R2(0.5),iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
 saveRDS(model1, 'ordinal_model_1.rds')
 
-model2 <- stan_polr(transportation_desert_4num ~ unemployment_perc + noncitizen_perc + white_perc, data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
+model2 <- stan_polr(transportation_desert_4num ~ mean_income + below_poverty_perc + evictions_perc + school_count + store_count, data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
 
 model3 <- stan_polr(transportation_desert_4num ~white_perc + asian_perc + latinx_perc + black_perc, data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
 ```
 
 ```{r}
 summary(model1)
+
+print(model1)
 
 tidy(model1, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
 tidy(model2, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
@@ -74,6 +76,11 @@ ordinal_accuracy<-function(post_preds,mydata){
 }
 ```
 
+```{r}
+loo_m1 <- loo(model1)
+plot(loo_m1)
+```
+
 
 ```{r}
 nyc_clean2[is.na(nyc_clean2)] = 0
@@ -83,9 +90,16 @@ my_prediction1 <- posterior_predict(
   model1, 
   newdata = nyc_clean2)
 
+my_prediction2 <- posterior_predict(
+  model2, 
+  newdata = nyc_clean2)
+
+nyc_clean2 %>%
+  ggplot(aes(x=mean_income)) + geom_density()
 
 
-ordinal_accuracy(my_prediction1,nyc_clean2)
+
+ordinal_accuracy(my_prediction2,nyc_clean2)
 
 pred <- posterior_predict(
   model1, 
