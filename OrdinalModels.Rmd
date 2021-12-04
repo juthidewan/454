@@ -24,17 +24,16 @@ nyc_clean <- read_csv("clean_data/nyc_names_vichy_complied.csv")
 nyc_clean2 <- nyc_clean %>%
   mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
   mutate(transportation_desert_4num = factor(as.numeric(transportation_desert_4cat))) %>%
-   mutate(asian_perc = (asian_count / total_pop) * 10) %>%
-   mutate(white_perc = (white_count / total_pop)* 10) %>%
-   mutate(black_perc = (black_count / total_pop)* 10) %>%
-   mutate(latinx_perc = (latinx_count / total_pop)* 10) %>%
-   mutate(native_perc = (native_count / total_pop)* 10) %>%
-   mutate(below_poverty_perc = (below_poverty_line_count / total_pop) * 10) %>%
-   mutate(noncitizen_perc = (noncitizen_count / total_pop)* 10) %>%
-   mutate(evictions_perc = (eviction_count / total_pop)* 10) %>%
-   mutate(uninsured_perc = (uninsured_count / total_pop)* 10) %>%
-  mutate(unemployment_perc = (unemployment_count / total_pop)* 10) %>%
-  mutate(nonwhite_perc = (10-white_perc)) %>%
+   mutate(asian_perc = (asian_count / total_pop) * 100) %>%
+   mutate(white_perc = (white_count / total_pop)* 100) %>%
+   mutate(black_perc = (black_count / total_pop)* 100) %>%
+   mutate(latinx_perc = (latinx_count / total_pop)* 100) %>%
+   mutate(native_perc = (native_count / total_pop)* 100) %>%
+   mutate(below_poverty_perc = (below_poverty_line_count / total_pop) * 100) %>%
+   mutate(noncitizen_perc = (noncitizen_count / total_pop)* 100) %>%
+   mutate(evictions_perc = (eviction_count / total_pop)* 100) %>%
+   mutate(uninsured_perc = (uninsured_count / total_pop)* 100) %>%
+  mutate(unemployment_perc = (unemployment_count / total_pop)* 100) %>%
   filter(nta_type == 0)
 
 
