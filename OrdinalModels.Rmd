@@ -90,11 +90,15 @@ ordinal_accuracy(my_prediction1,nyc_clean2)
 pred <- posterior_predict(
   model1, 
   newdata = data.frame( 
+    total_pop = 50000,
     mean_income= 80000, 
     unemployment_perc=0.3, 
+    evictions_perc = 2,
+    below_poverty_perc = 2.1,
     white_perc = 4, 
     school_count= 12, 
     asian_perc = 1.2, 
+    black_perc = 10,
     latinx_perc =  3.3, 
     store_count= 320))
   df <- as.data.frame(pred) %>%

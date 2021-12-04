@@ -38,12 +38,12 @@ server2 <- function(input, output) {
     mean_income= input$mean_income,
     unemployment_perc=input$unemployment_perc/10,
     below_poverty_perc = input$below_poverty_perc/10,
-    evictions_perc = input$evictions$perc/10,
+    evictions_perc = input$evictions_perc/10,
     white_perc = input$white_perc/10,
     school_count= input$school_count,
     asian_perc = input$asian_perc/10,
     black_perc = input$black_perc/10,
-    latinx_perc = input$latinx_perc/10 ,
+    latinx_perc = input$latinx_perc/10,
     store_count= input$store_count
     ))
   df <- as.data.frame(pred) %>%
