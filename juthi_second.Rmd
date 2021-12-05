@@ -177,6 +177,19 @@ ggplot(aes(x = noncitizen_perc)) +
 This plot above tells us a little bit about non citizen percentage and public transit access. This isn't all that much informative, but it's still interesting to see how the non citizen percentage changes with different accessibility categories. 
 
 
+```{r}
+modeling_data <- nyc_compiled %>%
+  mutate(black_perc = black_perc * 10) %>%
+  mutate(white_perc = white_perc * 10) %>%
+  mutate(latinx_perc = latinx_perc * 10) %>%
+  mutate(asian_perc = asian_perc * 10) %>%
+  mutate(native_perc = native_perc * 10) %>%
+  mutate(unemployment_perc = unemployment_perc * 5) %>%
+  mutate(uninsured_perc = uninsured_perc * 5) %>%
+  mutate(mean_income = mean_income / 100) %>%
+  mutate(mean_rent = mean_rent / 100)
+  
+```
 
 
 
@@ -184,10 +197,10 @@ This plot above tells us a little bit about non citizen percentage and public tr
 #modeling a negative binomial model for the number of non-citizens 
 non_citizen_model <- stan_glm(
   noncitizen_count ~
-  transportation_desert_4cat + 
-  total_pop + borough + gini_neighborhood + mean_income + mean_rent + unemployment_perc + 
-  black_perc + latinx_perc + asian_perc,
-  data = nyc_compiled,
+transportation_desert_4cat + 
+total_pop + borough + gini_neighborhood + mean_income + mean_rent + unemployment_perc + 
+black_perc + latinx_perc + asian_perc,
+  data = modeling_data,
   family = neg_binomial_2,
   chains = 2, iter = 1000*2, seed = 84735, refresh = 0
 )
@@ -200,8 +213,10 @@ prediction_summary_cv(model = non_citizen_model, data=nyc_compiled, k=10)$cv
 ```
 
 
+
+
 ```{r}
-non_citizen_clean <- nyc_compiled %>%
+non_citizen_clean <- modeling_data %>%
   na.omit()%>%
   arrange(noncitizen_count)
 
@@ -236,6 +251,25 @@ tidy(non_citizen_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>%
   kable_styling()
 ```
 
+- Poor Subway Access: When controlling for all other predictors, a neighborhood with poor transit access is expected to have approximately 28 *LESS* non-citizens than a neighborhood with excellent transit access. There's an 80% probability that this decrease could lie anywhere between (16, 37) non citizen residents, indicating that neighborhoods with poor transit access almost certainly have less non citizen residents than neighborhoods with excellent access.
+
+- Satisfactory Subway Access: When controlling for all other predictions, a neighborhood with satisfactory transit access is expected to have approximately 9 *LESS* non-citizens than a neighborhood with excellent transit access. There's an 80% probability that this decrease could lie anywhere between (1, 17) non citizen residents, indicating that neighborhoods with satisfactory transit access almost certainly have less non citizen residents than neighborhoods with excellent access. 
+
+- Total Population: We included the total population to account for our other demographic variables, so we will not be interpreting this variable. 
+
+- Brooklyn: When controlling for all other predictors, a neighborhood in Brooklyn is expected to have approximately 15 *MORE* non-citizens than in the Bronx. There's an 80% probability that this increase could lie anywhere between (0.16, 32) non citizen residents, indicating that neighborhoods in Brooklyn almost certainly have more non citizen residents than the Bronx. 
+
+- Manhattan: When controlling for all other predictors, a neighborhood in Manhattan is expected to have approximately 19 *MORE* non-citizens than in the Bronx. There's an 80% probability that this increase could lie anywhere between (0.46, 39) non citizen residents, indicating that neighborhoods in Manhattan almost certainly have more non citizen residents than the Bronx. 
+
+- Mean Income: When controlling for all other predictors, a 100 dollar increase in mean neighborhood income is associated with approximately a 0.0025 increase in non citizen count. However, there is a 80% chance that the increase in non citizen count may be any value between (0.0023, 0.0027), indicating that there is almost certainly a positive relationship between mean income and non citizen count, but its magnitude may vary.
+  
+- Mean Rent: When controlling for all other predictors, a 100 dollar increase in mean neighborhood rent is associated with approximately a 6 person increase in non citizens. However, there is an 80% chance that the increase in non citizen count may be any value between (4, 8), indicating that there is almost certainly a positive relationship between mean rent and non citizen count, but its magnitude may vary.
+  
+- Black Percentage: When controlling for all other predictors, a 10% increase in the black population in a neighborhood is associated with approximately a 5 person increase in non citizens. However, there is an 80% chance that the increase in non citizen count may be any value between (3, 7), indicating that there is almost certainly a positive relationship between black resident percentage and non citizen count, but its magnitude may vary.
+
+- Latinx Percentage: When controlling for all other predictors, a 10% increase in the latinx population in a neighborhood is associated with approximately a 13 person increase in non citizens. However, there is an 80% chance that the increase in non citizen count may be any value between (10, 16), indicating that there is almost certainly a positive relationship between latinx resident percentage and non citizen count, but its magnitude may vary.
+
+- Asian Percentage: When controlling for all other predictors, a 10% increase in the asian population in a neighborhood is associated with approximately a 20 person increase in non citizens. However, there is an 80% chance that the increase in non citizen count may be any value between (16, 24), indicating that there is almost certainly a positive relationship between asian resident percentage and non citizen count, but its magnitude may vary.
 
 
 ```{r}
@@ -244,7 +278,7 @@ mean_rent  ~
   transportation_desert_4cat + bus_count + school_count + store_count +
   total_pop + borough + gini_neighborhood + mean_income + noncitizen_perc +
   black_perc + latinx_perc + asian_perc,
-  data = nyc_compiled, 
+  data = modeling_data, 
   family = gaussian,
  prior_intercept = normal(1580 , 20),
   chains = 2, iter = 1000*2, seed = 84735, refresh = 0
@@ -257,12 +291,9 @@ tidy(rent_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
 prediction_summary_cv(model = rent_model, data=nyc_compiled, k=10)$cv
 ```
 
-We thought it would be interesting to look at mean rent and looking at some of the significant explanatory variables. The model above, so much is significant!! kind of crazy 
-
-
 
 ```{r}
-rent_clean <- nyc_compiled %>%
+rent_clean <- modeling_data %>%
   na.omit()%>%
   arrange(mean_rent)
 
@@ -306,7 +337,7 @@ eviction_count  ~
   gini_neighborhood + mean_income + unemployment_perc +  mean_rent + 
   bus_count +
   black_perc + latinx_perc + asian_perc,
-  data = nyc_compiled, 
+  data = modeling_data, 
   family = neg_binomial_2,
   chains = 2, iter = 1000*2, seed = 84735, refresh = 0
 )
@@ -318,19 +349,43 @@ tidy(eviction_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
 prediction_summary_cv(model = eviction_model, data=nyc_compiled, k=10)$cv
 ```
 
+
 ```{r}
-manhattan <- nyc_compiled %>%
-  filter(borough == "Manhattan")
+eviction_clean <- modeling_data %>%
+  na.omit()%>%
+  arrange(eviction_count)
 
-queens <- nyc_compiled %>%
-  filter(borough == "Queens")
+list <- eviction_clean %>%
+  arrange(eviction_count) %>% pull(eviction_count)
 
-bronx <- nyc_compiled %>%
-  filter(borough == "Bronx")
 
-brooklyn <- nyc_compiled %>%
-  filter(borough == "Brooklyn")
+set.seed(84735)
+
+predictions_eviction <-  posterior_predict(
+  eviction_model, newdata = eviction_clean)
+
+ppc_intervals(list, yrep = predictions_eviction,
+              prob_outer = 0.8) +
+  ggplot2::scale_x_continuous(
+    labels = eviction_clean$nta_id,
+    breaks = 1:nrow(eviction_clean)) +
+	xaxis_text(angle = 90,  hjust = 1) +
+  theme_linedraw()+
+  theme(panel.grid.major = element_line("transparent"),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank())
+
+library(kableExtra)
+tidy(eviction_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
+  
+  mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
+         conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
+         conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
+  filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
+  kable(align = "c", caption = "Rent Normal Distribution - Model Summary") %>% 
+  kable_styling()
 ```
+
 
 ```{r}
 #mapping non-citizen percentage in NYC residential neighborhoods
