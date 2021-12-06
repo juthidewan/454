@@ -31,27 +31,27 @@ nyc_clean2 <- nyc_clean %>%
 
 ```{r}
 # Run the algorithm using only data on bill length
-# naive_model_1 <- naiveBayes(transportation_desert_4cat ~ 
-#                               mean_income +
-#                               mean_rent +
-#                               unemployment_perc + 
-#                               evictions_perc + 
-#                               noncitizen_perc + 
-#                               below_poverty_perc + 
-#                               native_perc + 
-#                               latinx_perc + 
-#                               white_perc + 
-#                               asian_perc + 
-#                               school_count + 
-#                               store_count + 
-#                               bus_count , 
-#                             data = nyc_clean2)
+naive_model_1 <- naiveBayes(transportation_desert_4cat ~
+                              mean_income +
+                              mean_rent +
+                              unemployment_perc +
+                              evictions_perc +
+                              noncitizen_perc +
+                              below_poverty_perc +
+                              native_perc +
+                              latinx_perc +
+                              white_perc +
+                              asian_perc +
+                              school_count +
+                              store_count +
+                              bus_count ,
+                            data = nyc_clean2)
 
+#  This model 2 has similar recipe as the Ordinal model
 naive_model_2 <- naiveBayes(transportation_desert_4cat ~ 
                               mean_income +
                               below_poverty_perc +
                               eviction_count + 
-                              school_count +
                               store_count,
                             data =nyc_clean2)
 
@@ -59,6 +59,8 @@ saveRDS(naive_model_2, "naive_model_2.rds")
 
 ```
 ```{r}
+naive_classification_summary(naive_model_1, nyc_clean2, y="transportation_desert_4cat")
+naive_classification_summary_cv(naive_model_1, nyc_clean2, y="transportation_desert_4cat", k=10)$cv
 naive_classification_summary(naive_model_2, nyc_clean2, y="transportation_desert_4cat")
 (naive2_prediction <- naive_classification_summary_cv(naive_model_2, nyc_clean2, y="transportation_desert_4cat", k=10)$cv)
 
