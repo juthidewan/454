@@ -10,7 +10,7 @@ library(e1071)
 
 
 ```{r}
-nyc_clean <- read_csv("clean_data/nyc_names_vichy_complied.csv")
+nyc_clean <- read_csv("clean_data/nyc_names_vichy_complied2.csv")
 
 nyc_clean2 <- nyc_clean %>%
   mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
@@ -60,7 +60,7 @@ naive_classification_summary_cv(naive_model_2, nyc_clean2, y="transportation_des
 
 saveRDS(naive_model_2, "naive_model_2.rds")
 
-(27+15+15+22)/180
+(27+3+5+52)/180
 ```
 
 ```{r}

@@ -1,0 +1,14 @@
+name: shiny
+title:
+username:
+account: samding
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 5255328
+bundleId: 5331529
+url: https://samding.shinyapps.io/shiny/
+when: 1638756390.52915
+lastSyncTime: 1638756390.52916
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: compiled_data_juthi.Rmd|CopyOfjuthi.Rmd|juthi_second.Rmd|juthi.Rmd|LICENSE|multinomialModel_vichy(Abandoned).Rmd|naive_model_2.rds|NaiveBayes.Rmd|ordinal_model_1.rds|README.md|sam.Rmd|trans_desert_multinomial_model_1.rds|trans_desert_multinomial_model_2.rds|trans_desert_multinomial_model_3.rds|trans_desert_multinomial_model_4.rds|trans_desert_multinomial_model.rds|checkpoint|demographics|ethnic|nyc_compiled|nyc_compiled2|transit
