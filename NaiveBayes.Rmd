@@ -8,7 +8,7 @@ output: html_document
 library(e1071)
 ```
 
-
+## Load Data
 ```{r}
 nyc_clean <- read_csv("clean_data/nyc_names_vichy_complied2.csv")
 
@@ -28,6 +28,7 @@ nyc_clean2 <- nyc_clean %>%
   filter(nta_type == 0)
 
 ```
+## Train Models
 
 ```{r}
 # Run the algorithm using only data on bill length
@@ -58,6 +59,10 @@ naive_model_2 <- naiveBayes(transportation_desert_4cat ~
 saveRDS(naive_model_2, "naive_model_2.rds")
 
 ```
+
+## Model Evaluation
+
+### Cross-validation
 ```{r}
 naive_classification_summary(naive_model_1, nyc_clean2, y="transportation_desert_4cat")
 naive_classification_summary_cv(naive_model_1, nyc_clean2, y="transportation_desert_4cat", k=10)$cv
@@ -65,7 +70,6 @@ naive_classification_summary(naive_model_2, nyc_clean2, y="transportation_desert
 (naive2_prediction <- naive_classification_summary_cv(naive_model_2, nyc_clean2, y="transportation_desert_4cat", k=10)$cv)
 
 ```
-
 ```{r}
 library(tidyverse)
 prediction <- as.data.frame(naive2_prediction) %>%
@@ -81,6 +85,9 @@ prediction %>%
   geom_bar(position="fill", stat="identity") 
 
 ```
+
+The bar graph shows that the second model successfully predicts __Poor__ and __Excellent__ yet fails to categories __Limited__ and __Satisfactory__. This model only predicts the extreme cases as the top outcome. 
+
 
 ```{r}
 
