@@ -31,7 +31,6 @@ nyc_clean2 <- nyc_clean %>%
    mutate(native_perc = (native_count / total_pop)* 100) %>%
    mutate(below_poverty_perc = (below_poverty_line_count / total_pop) * 100) %>%
    mutate(noncitizen_perc = (noncitizen_count / total_pop)* 100) %>%
-   mutate(evictions_perc = (eviction_count / total_pop)* 100) %>%
    mutate(uninsured_perc = (uninsured_count / total_pop)* 100) %>%
   mutate(unemployment_perc = (unemployment_count / total_pop)* 100) %>%
   filter(nta_type == 0)
@@ -41,10 +40,10 @@ max(nyc_clean2$total_pop)
 ```
 
 ```{r}
-model1 <- stan_polr(transportation_desert_4num ~ total_pop + mean_income + unemployment_perc + below_poverty_perc + evictions_perc + white_perc + asian_perc + black_perc + latinx_perc + school_count + store_count, data =nyc_clean2, prior=R2(0.5),iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
+model1 <- stan_polr(transportation_desert_4num ~   mean_income + unemployment_perc + below_poverty_perc + eviction_count + uninsured_perc +white_perc + asian_perc + black_perc + latinx_perc + school_count + store_count, data =nyc_clean2, prior=R2(0.5),iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
 saveRDS(model1, 'ordinal_model_1.rds')
 
-model2 <- stan_polr(transportation_desert_4num ~ mean_income + below_poverty_perc + evictions_perc + school_count + store_count, data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
+model2 <- stan_polr(transportation_desert_4num ~ mean_income + below_poverty_perc + eviction_count + store_count, data =nyc_clean2, prior=R2(0.5),iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
 saveRDS(model2, 'ordinal_model_2.rds')
 
 model3 <- stan_polr(transportation_desert_4num ~white_perc + asian_perc + latinx_perc + black_perc, data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
@@ -77,6 +76,12 @@ ordinal_accuracy<-function(post_preds,mydata){
 ```
 
 ```{r}
+mcmc_trace(model2)
+mcmc_dens_overlay(model2)
+```
+
+
+```{r}
 loo_m1 <- loo(model1)
 plot(loo_m1)
 ```
@@ -105,8 +110,9 @@ ordinal_accuracy(my_prediction2,nyc_clean2)
 pred <- posterior_predict(
   model2, 
   newdata = data.frame( 
+    # borough = "Manhattan",
     mean_income= 100000, 
-    evictions_perc = 2,
+    # eviction_count = 20,
     below_poverty_perc = 2.1,
     school_count= 12, 
     store_count= 50))
@@ -127,7 +133,7 @@ pred <- posterior_predict(
 ```
 
 ```{r}
-df <- as.data.frame(my_prediction1)
+df <- as.data.frame(my_prediction2)
 
 
 # first remember the names
