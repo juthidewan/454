@@ -1,0 +1,78 @@
+---
+title: "NaiveBayes"
+author: "Sam Ding"
+date: "12/4/2021"
+output: html_document
+---
+```{r}
+library(e1071)
+```
+
+
+```{r}
+nyc_clean <- read_csv("clean_data/nyc_names_vichy_complied.csv")
+
+nyc_clean2 <- nyc_clean %>%
+  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
+  mutate(transportation_desert_4num = factor(as.numeric(transportation_desert_4cat))) %>%
+   mutate(asian_perc = (asian_count / total_pop) * 100) %>%
+   mutate(white_perc = (white_count / total_pop)* 100) %>%
+   mutate(black_perc = (black_count / total_pop)* 100) %>%
+   mutate(latinx_perc = (latinx_count / total_pop)* 100) %>%
+   mutate(native_perc = (native_count / total_pop)* 100) %>%
+   mutate(below_poverty_perc = (below_poverty_line_count / total_pop) * 100) %>%
+   mutate(noncitizen_perc = (noncitizen_count / total_pop)* 100) %>%
+   mutate(evictions_perc = (eviction_count / total_pop)* 100) %>%
+   mutate(uninsured_perc = (uninsured_count / total_pop)* 100) %>%
+  mutate(unemployment_perc = (unemployment_count / total_pop)* 100) %>%
+  filter(nta_type == 0)
+
+```
+
+```{r}
+# Run the algorithm using only data on bill length
+naive_model_1 <- naiveBayes(transportation_desert_4cat ~ 
+                              mean_income +
+                              mean_rent +
+                              unemployment_perc + 
+                              evictions_perc + 
+                              noncitizen_perc + 
+                              below_poverty_perc + 
+                              native_perc + 
+                              latinx_perc + 
+                              white_perc + 
+                              asian_perc + 
+                              school_count + 
+                              store_count + 
+                              bus_count , 
+                            data = nyc_clean2)
+
+naive_model_2 <- naiveBayes(transportation_desert_4cat ~ 
+                              mean_income + 
+                              below_poverty_perc + 
+                              evictions_perc + 
+                              school_count + 
+                              store_count, 
+                            data =nyc_clean2)
+
+
+naive_classification_summary_cv(naive_model_2, nyc_clean2, y="transportation_desert_4cat", k=10)$cv
+
+saveRDS(naive_model_2, "naive_model_2.rds")
+
+(27+15+15+22)/180
+```
+
+```{r}
+pred <- predict(naive_model_2, 
+        newdata = data.frame( 
+    mean_income= 100000, 
+    evictions_perc = 2,
+    below_poverty_perc = 2.1,
+    school_count= 12, 
+    store_count= 50)
+    , type = "raw")
+
+as.data.frame(pred)
+```
+

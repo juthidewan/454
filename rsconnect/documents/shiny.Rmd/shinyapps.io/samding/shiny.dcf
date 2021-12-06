@@ -1,0 +1,11 @@
+name: shiny
+title:
+username:
+account: samding
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 5255328
+bundleId: 5320892
+url: https://samding.shinyapps.io/shiny/
+when: 1638478368.39498
+lastSyncTime: 1638478368.39499
