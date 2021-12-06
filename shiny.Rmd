@@ -19,7 +19,7 @@ library(dplyr)
 
 ```{r}
 model <- readRDS("ordinal_model_2.rds") 
-modelNaive <- readRDS("naive_model_2.rds")
+# modelNaive <- readRDS("naive_model_2.rds")
 ```
 
 ```{r}
@@ -37,8 +37,8 @@ server2 <- function(input, output) {
                               newdata = data.frame(
     mean_income= input$mean_income,
     below_poverty_perc = input$below_poverty_perc,
-    evictions_perc = input$evictions_perc,
-    school_count= input$school_count,
+    eviction_count = input$eviction_count,
+    # school_count= input$school_count,
     store_count= input$store_count
     ))
   df <- as.data.frame(pred) %>%
@@ -64,22 +64,22 @@ server2 <- function(input, output) {
   # dplyr::select(Classification,Prediction)
   })
   
-  output$resultTableNaive <- renderTable({
-     # Prediciton from model
-  pred <- predict(naive_model_2, 
-        newdata = data.frame( 
-    mean_income= input$mean_income,
-    below_poverty_perc = input$below_poverty_perc,
-    evictions_perc = input$evictions_perc,
-    school_count= input$school_count,
-    store_count= input$store_count)
-    , type = "raw")
-  pred
-    
-    # tab <- df %>% sort(decreasing=TRUE)
-    # names(dimnames(tab)) <- c("Transit_Accessibility")
-    # tab
-  })
+  # output$resultTableNaive <- renderTable({
+  #    # Prediciton from model
+  # pred <- predict(naive_model_2, 
+  #       newdata = data.frame( 
+  #   mean_income= input$mean_income,
+  #   below_poverty_perc = input$below_poverty_perc,
+  #   evictions_perc = input$evictions_perc,
+  #   school_count= input$school_count,
+  #   store_count= input$store_count)
+  #   , type = "raw")
+  # pred
+  #   
+  #   # tab <- df %>% sort(decreasing=TRUE)
+  #   # names(dimnames(tab)) <- c("Transit_Accessibility")
+  #   # tab
+  # })
 
 }
 
@@ -88,28 +88,28 @@ server2 <- function(input, output) {
 ui2 <- fluidPage(
   sidebarLayout(
     sidebarPanel(
-      h4("Demographic Information"), 
+      # h4("Demographic Information"), 
       # sliderInput("total_pop", "Total Population", min = 0, max = 100000, value = 10),
       sliderInput("mean_income", "Mean Income", min = 0, max = 300000, value = 10),
       # sliderInput("unemployment_perc", "% of Unemployment", min = 0, max = 100, value = 1),
       sliderInput("below_poverty_perc", "% Below Poverty", min = 0, max = 100, value = 1),
-      sliderInput("evictions_perc", "% of Evictions", min = 0, max=100, value =1),
-      h4("Population"), 
+      sliderInput("eviction_count", "Number of Evictions", min = 0, max=1500, value =1),
+      # h4("Population"), 
       # sliderInput("white_perc", "% of White", min = 0, max = 100, value = 1),
       # sliderInput("asian_perc", "% of Asian", min = 0, max = 100, value = 1),
       # sliderInput("black_perc", "% of Black", min = 0, max = 100, value = 1),
       # sliderInput("latinx_perc", "% of Latinx", min = 0, max = 100, value = 1),
-      h4("Store and School Count"), 
+      # h4("Store and School Count"), 
       sliderInput("store_count", "Store Count", min = 0, max = 250, value = 1),
-      sliderInput("school_count", "School Count", min = 0, max = 40, value = 1),
+      # sliderInput("school_count", "School Count", min = 0, max = 40, value = 1),
       
     ),
     mainPanel(
       # h4("Plot of the prior pdf:"), 
       # plotOutput("priorPdf"),
       h4("Model Predictions"), 
-      tableOutput("resultTableOrdinal"),
-      tableOutput("resultTableNaive")
+      tableOutput("resultTableOrdinal")
+      # tableOutput("resultTableNaive")
     )
   )
 )

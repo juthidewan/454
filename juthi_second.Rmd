@@ -40,28 +40,6 @@ theme_set(theme_minimal())
 
 
 ```{r}
-# Load packages
-library(here)
-library(dplyr)
-library(readr)
-library(rstan)
-library(bayesrules)
-library(tidyverse)
-library(bayesplot)
-library(rstanarm)
-library(janitor)
-library(tidybayes)
-library(broom.mixed)
-library(here)
-library(sf)
-library(tidycensus)
-library(openxlsx)
-library(s2)
-library(nycgeo)
-library(CARBayes)
-library(spData) 
-library(spdep)
-
 nyc_join <- merge(nta_sf,nta_acs_data)
 
 
@@ -89,8 +67,8 @@ census_data <- get_acs(state = "NY",
 
 
 ```{r}
-vari_names <- read_csv("clean_data/nyc_names_vichy_complied.csv")
-nyc_clean <- st_read("clean_data/nyc_data_vichy_complied.shp")
+vari_names <- read_csv("clean_data/nyc_names_vichy_complied2.csv")
+nyc_clean <- st_read("clean_data/nyc_data_vichy_complied2.shp")
 colnames(nyc_clean) <- colnames(vari_names)
 ```
 
@@ -162,6 +140,18 @@ ggplot(nyc_compiled) +
            color = guide_legend(override.aes = list(size = 4)))
 
 ```
+
+
+```{r}
+nyc_compiled %>%
+ggplot(aes(x = noncitizen_perc)) +
+  geom_density(alpha = 0.7, fill = "blue") +
+  facet_wrap("transportation_desert_4cat") 
+  theme_minimal() +
+   theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank())
+```
+
 
 
 ```{r}
@@ -251,17 +241,15 @@ tidy(non_citizen_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>%
   kable_styling()
 ```
 
-- Poor Subway Access: When controlling for all other predictors, a neighborhood with poor transit access is expected to have approximately 28 *LESS* non-citizens than a neighborhood with excellent transit access. There's an 80% probability that this decrease could lie anywhere between (16, 37) non citizen residents, indicating that neighborhoods with poor transit access almost certainly have less non citizen residents than neighborhoods with excellent access.
-
-- Satisfactory Subway Access: When controlling for all other predictions, a neighborhood with satisfactory transit access is expected to have approximately 9 *LESS* non-citizens than a neighborhood with excellent transit access. There's an 80% probability that this decrease could lie anywhere between (1, 17) non citizen residents, indicating that neighborhoods with satisfactory transit access almost certainly have less non citizen residents than neighborhoods with excellent access. 
+- Poor Subway Access: When controlling for all other predictors, a neighborhood with poor transit access is expected to have approximately 23 *LESS* non-citizens than a neighborhood with excellent transit access. There's an 80% probability that this decrease could lie anywhere between (12, 32) non citizen residents, indicating that neighborhoods with poor transit access almost certainly have less non citizen residents than neighborhoods with excellent access.
 
 - Total Population: We included the total population to account for our other demographic variables, so we will not be interpreting this variable. 
 
-- Brooklyn: When controlling for all other predictors, a neighborhood in Brooklyn is expected to have approximately 15 *MORE* non-citizens than in the Bronx. There's an 80% probability that this increase could lie anywhere between (0.16, 32) non citizen residents, indicating that neighborhoods in Brooklyn almost certainly have more non citizen residents than the Bronx. 
+- Brooklyn: When controlling for all other predictors, a neighborhood in Brooklyn is expected to have approximately 16 *MORE* non-citizens than in the Bronx. There's an 80% probability that this increase could lie anywhere between (1, 34) non citizen residents, indicating that neighborhoods in Brooklyn almost certainly have more non citizen residents than the Bronx. 
 
-- Manhattan: When controlling for all other predictors, a neighborhood in Manhattan is expected to have approximately 19 *MORE* non-citizens than in the Bronx. There's an 80% probability that this increase could lie anywhere between (0.46, 39) non citizen residents, indicating that neighborhoods in Manhattan almost certainly have more non citizen residents than the Bronx. 
+- Manhattan: When controlling for all other predictors, a neighborhood in Manhattan is expected to have approximately 20 *MORE* non-citizens than in the Bronx. There's an 80% probability that this increase could lie anywhere between (2, 42) non citizen residents, indicating that neighborhoods in Manhattan almost certainly have more non citizen residents than the Bronx. 
 
-- Mean Income: When controlling for all other predictors, a 100 dollar increase in mean neighborhood income is associated with approximately a 0.0025 increase in non citizen count. However, there is a 80% chance that the increase in non citizen count may be any value between (0.0023, 0.0027), indicating that there is almost certainly a positive relationship between mean income and non citizen count, but its magnitude may vary.
+- Mean Income: When controlling for all other predictors, a 100 dollar increase in mean neighborhood income is associated with approximately a 0.08 increase in non citizen count. However, there is a 80% chance that the increase in non citizen count may be any value between (0.0023, 0.0027), indicating that there is almost certainly a positive relationship between mean income and non citizen count, but its magnitude may vary.
   
 - Mean Rent: When controlling for all other predictors, a 100 dollar increase in mean neighborhood rent is associated with approximately a 6 person increase in non citizens. However, there is an 80% chance that the increase in non citizen count may be any value between (4, 8), indicating that there is almost certainly a positive relationship between mean rent and non citizen count, but its magnitude may vary.
   
