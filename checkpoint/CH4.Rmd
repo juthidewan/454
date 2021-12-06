@@ -540,7 +540,7 @@ white <- nyc_compiled %>%
   filter(nta_type == 0) %>%
   ggplot() +
   geom_sf(aes(fill = white_perc), color = "#8f98aa") +
-  scale_fill_gradientn(colors = c("#FCF5EE","#919BB6", "#5A6687", "#3D465C"),  guide = guide_legend(title = "Number White")) +
+  scale_fill_gradientn(colors = c("#FCF5EE","#919BB6", "#5A6687", "#3D465C"),  guide = guide_legend(title = "Percent White")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -556,7 +556,7 @@ black <- nyc_compiled %>%
   filter(nta_type == 0) %>%
   ggplot() +
   geom_sf(aes(fill = black_perc), color = "#8f98aa") +
-  scale_fill_gradientn(colors = c("#FCF5EE","#F8ABA6", "#F58581", "#DB3F37"), guide = guide_legend(title = "Number Black")) +
+  scale_fill_gradientn(colors = c("#FCF5EE","#F8ABA6", "#F58581", "#DB3F37"), guide = guide_legend(title = "Percent Black")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -572,7 +572,7 @@ asian <- nyc_compiled %>%
   filter(nta_type == 0) %>%
   ggplot() +
   geom_sf(aes(fill = asian_perc), color = "#8f98aa") +
-  scale_fill_gradientn(colors = c("#FCF5EE","#C1C5EC", "#A1A8E2", "#4451C5"),                      guide = guide_legend(title = "Number Asian")) +
+  scale_fill_gradientn(colors = c("#FCF5EE","#C1C5EC", "#A1A8E2", "#4451C5"),                      guide = guide_legend(title = "Percent Asian")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
@@ -589,7 +589,7 @@ latinx <- nyc_compiled %>%
   ggplot() +
   geom_sf(aes(fill = latinx_perc), color = "#8f98aa")+
   scale_fill_gradientn(colors = c("#FCF5EE","#F4E2B8", "#E9C572", "#E77E2F"), 
-                      guide = guide_legend(title = "Number Latinx")) +
+                      guide = guide_legend(title = "Percent Latinx")) +
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
