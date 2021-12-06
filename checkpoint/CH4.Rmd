@@ -203,7 +203,7 @@ Conversely, observe that the Bronx has the lowest mean income and highest evicti
 
 We will touch on the connections between demographics, transportation access, and housing more explicitly in the following sections.
 
-# Transit Accessibility
+# Subway Accessibility
 
 New York City is the most populous city in the US with more than 8.8 million people (Wiki). To support the daily commutes of its residents, NYC also built the New York City Subway, the oldest, longest, and currently busiest subway system in the US, averaging approximately 5.6 million daily rides on weekdays and a combined 5.7 million rides each weekend (Wiki). Compared to other US cities where automobiles are the most popular mode of transportation (ahem, Minneapolis), NYC only has about 32% of the population who choose to commute by cars, thanks to its efficient and far-reaching transit system, whereas most metro areas in the US have more than 70% of the population who chose to commute by cars (Wiki).
 
@@ -289,7 +289,7 @@ naive2_prediction
 ```
 
 
-> Under 10-fold cross validation, our Naive Bayes model had an overall cross-validated accuracy of `r (25+4+2+61)/nrow(nyc_naive)`%. However, our predictions were most accurate when predicting Poor transportation access (78.12%) and Excellent transportation access (72.62%). The following plot describes the cross-validated accuracy breakdown by each observed transportation access category.
+Under 10-fold cross validation, our Naive Bayes model had an overall cross-validated accuracy of `r (25+4+2+61)/nrow(nyc_naive)`%. However, our predictions were most accurate when predicting Poor transportation access (78.12%) and Excellent transportation access (72.62%). The following plot describes the cross-validated accuracy breakdown by each observed transportation access category.
 
 
 ```{r}
@@ -320,9 +320,9 @@ prediction %>%
 
 ```
 
-> From the plot, it is clear that our naive Bayes model is sufficient when predicting the extrema of subway (in)access given the overwhelming proportion of true-poor and true-excellent classifications. However, it remains imperfect when considering the inaccuracy for both the limited and satisfactory transportation categories, our data's distributions, and its interpretability.
-> 
-> Importantly, naive Bayes assumes that all quantitative predictors are normally distributed within each Y category and further it assumes (i.e. that predictors are independent within each Y category). Our data do not meet these assumptions, unfortunately. Further, naive Bayes is a blackbox classifier. That is, naive Bayes classification might give us accurate predictions, but it doesn’t give us a sense of where these predictions come from or subway access is related to the predictors.
+From the plot, it is clear that our naive Bayes model is sufficient when predicting the extrema of subway (in)access given the overwhelming proportion of true-poor and true-excellent classifications. However, it remains imperfect when considering the inaccuracy for both the limited and satisfactory transportation categories, our data's distributions, and its interpretability.
+
+Importantly, naive Bayes assumes that all quantitative predictors are normally distributed within each Y category and further it assumes (i.e. that predictors are independent within each Y category). Our data do not meet these assumptions, unfortunately. Further, naive Bayes is a blackbox classifier. That is, naive Bayes classification might give us accurate predictions, but it doesn’t give us a sense of where these predictions come from or subway access is related to the predictors.
 
 
 
@@ -370,7 +370,9 @@ tidy(model2, effects = "fixed", conf.int = TRUE, conf.level = 0.8) %>%
     term == "2|3" ~ "Limited | Satisfactory",
     term == "3|4" ~ "Satisfactory | Excellent",
     TRUE ~ term
-    ))
+    ))%>%
+  kable(align = "c", caption = "Ordinal Model - Summary") %>% 
+  kable_styling()
 ```
 
 Then using a function written by Connie Zhang's, we describe the accuracy of the ordinal model below.
@@ -782,7 +784,7 @@ Increases in White-resident proportions were uniformly associated with increases
 
 Our next section details the statistical models we used to better characterize the clear relationships between housing inequities, urban racism, and transportation access.
 
-# Bayesian Modeling
+## Bayesian Model Specification
 
 In order to understand the respective distributions of immigrant population size, evictions, and mean rental prices in NYC, we fit 3 non-hierarchical Bayesian models with each variable as an outcome. In previous iterations, we fit hierarchical models on these same relationships where neighborhood values were grouped by borough. We initially felt that the internal diversity of boroughs with respect to housing, demographics, and wealth made it more appropriate as a grouping variable. However, we ultimately saw that the non-hierarchical models we fit were largely comparable to their hierarchical counterparts. Further, we considered how even though there is a dramatic internal diversity in boroughs their effects on our outcomes were still sufficiently meaningful to warrant a true statistical adjustment.
 
@@ -803,7 +805,7 @@ For 1 and 3, we used weakly informative priors and allowed `stan_glm` to estimat
 
 Our model specifications are detailed in the following subsections
 
-## Model 1:
+### Model 1: Immigrant/Non-Citizen Count
 
 ```{r}
 modeling_data <- nyc_compiled %>%
@@ -854,7 +856,7 @@ $$\begin{split}
 r & \sim Exp(1) \\
 \end{split}$$
 
-## Model 2:
+### Model 2: Mean Neighborhood Rental Prices
 
 ```{r}
 rent_model <- stan_glm(
@@ -894,7 +896,7 @@ $$\begin{split}
 We chose our prior specifications of mean rental price using Juthi’s experience renting in NYC and a group conversation about typical rental prices we would elect to pay in NYC, Los Angeles, and other major cities we have lived in or around. 
 
 
-## Model 3:
+### Model 3: Eviction Count
 
 ```{r}
 eviction_model <- stan_glm(
@@ -932,9 +934,9 @@ r & \sim Exp(1) \\
 
 In the following sections, we go through each particular model's outcome and what they tell us about the relationships between transportation and housing.
 
-# Model Performance
+## Model Performance
 
-## Model 1: Immigrant/Non-Citizen Count
+### Model 1: Immigrant/Non-Citizen Count
 
 ```{r}
 pp_check(noncit_model)+ 
@@ -969,7 +971,7 @@ ppc_intervals(list, yrep = predictions_non_citizen,
         axis.text.x = element_blank())
 
 prediction_summary_cv(model = noncit_model, data=modeling_data, k=10)$cv %>%
-  kable(align = "c", caption = "Eviction Model - Cross-Validated Error Metrics") %>% 
+  kable(align = "c", caption = "Non-Citizen Model - Cross-Validated Error Metrics") %>% 
   kable_styling()
 ```
 
@@ -1008,7 +1010,7 @@ tidy(noncit_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>%
 - Asian Percentage: When controlling for all other predictors, a 10% increase in the Asian population in a neighborhood is associated with approximately a 19.63% increase in non citizen count. However, there is an 80% chance that the increase in non citizen count may be any value between (15.75%, 23.69%), indicating that there is almost certainly a positive relationship between Asian resident percentage and non citizen count, but its magnitude may vary.
 
 
-## Model 2: Mean Neighborhood Rental Prices
+### Model 2: Mean Neighborhood Rental Prices
 
 ```{r}
 pp_check(rent_model)+ 
@@ -1073,7 +1075,7 @@ For rent model:
 
 
 
-## Model 3: Eviction Count
+### Model 3: Eviction Count
 
 ```{r}
 pp_check(eviction_model)+ 
