@@ -115,9 +115,9 @@ pred <- posterior_predict(
   newdata = data.frame( 
     # borough = "Manhattan",
     mean_income= 100000, 
-    # eviction_count = 20,
+    eviction_count = 20,
     below_poverty_perc = 2.1,
-    school_count= 12, 
+    # school_count= 12, 
     store_count= 50))
   df <- as.data.frame(pred) %>%
     mutate(Classification  = case_when(
