@@ -40,28 +40,6 @@ theme_set(theme_minimal())
 
 
 ```{r}
-# Load packages
-library(here)
-library(dplyr)
-library(readr)
-library(rstan)
-library(bayesrules)
-library(tidyverse)
-library(bayesplot)
-library(rstanarm)
-library(janitor)
-library(tidybayes)
-library(broom.mixed)
-library(here)
-library(sf)
-library(tidycensus)
-library(openxlsx)
-library(s2)
-library(nycgeo)
-library(CARBayes)
-library(spData) 
-library(spdep)
-
 nyc_join <- merge(nta_sf,nta_acs_data)
 
 
