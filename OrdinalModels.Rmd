@@ -19,7 +19,7 @@ library(bayesrules)
 ```
 
 ```{r}
-nyc_clean <- read_csv("clean_data/nyc_names_vichy_complied.csv")
+nyc_clean <- read_csv("clean_data/nyc_names_vichy_complied2.csv")
 
 nyc_clean2 <- nyc_clean %>%
   mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
@@ -98,7 +98,8 @@ nyc_clean2 %>%
   ggplot(aes(x=mean_income)) + geom_density()
 
 
-
+set.seed(86437)
+ordinal_accuracy(my_prediction1,nyc_clean2)
 ordinal_accuracy(my_prediction2,nyc_clean2)
 
 pred <- posterior_predict(
@@ -126,7 +127,8 @@ pred <- posterior_predict(
 ```
 
 ```{r}
-df_switched <- as.data.frame(my_prediction1)
+df <- as.data.frame(my_prediction1)
+
 
 # first remember the names
 n <- df_switched$name
@@ -134,13 +136,26 @@ n <- df_switched$name
 # transpose all but the first column (name)
 df_switched <- as.data.frame(t(df_switched))
 colnames(df_switched) <- n
-for (i in 1:1000) {
-  for (j in 1:180) {
-    df_switched[i,j] <- as.numeric(df_switched[i,j])
-  }
+
+aggregated_df <- data.frame("test", "test")
+names(aggregated_df) <- c("highestPred", "actual")
+aggregated_df <- aggregated_df[-1,]
+
+names(sort(-table(df[1])))[1]
+
+
+for (i in 1:180) {
+  highestPred <- names(sort(-table(df[i])))[1]
+  actual <- nyc_clean2$transportation_desert_4num[i]
+  newdf <- data.frame(highestPred, actual)
+  names(newdf) <- c("highestPred", "actual")
+  aggregated_df <- rbind(aggregated_df, newdf)
 }
 
-df_switched$mean <- mean(df_switched[1:1000])
+aggregated_df$value = 1
+
+ggplot(aggregated_df, aes(x=actual, y=value, fill=highestPred)) + geom_bar(position="fill", stat="identity") 
+
 
 
 

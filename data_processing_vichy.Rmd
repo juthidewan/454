@@ -276,7 +276,7 @@ clean_data <- clean_data %>%
 
 ```{r}
 clean_data <- clean_data %>%
-  mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-1, 10, 75, 99, 100), 
+  mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-1, 10, 65, 90, 100), 
                                           labels = c("Poor", "Limited", "Satisfactory", "Excellent")))
 ```
 
@@ -303,11 +303,19 @@ clean_data <- clean_data %>%
 ```
 
 # Write Final Data to File
+# ```{r}
+# # write to file
+# clean_data %>% 
+#   write_csv(., "clean_data/nyc_names_vichy_complied.csv") %>%
+#   write_sf(., "clean_data/nyc_data_vichy_complied.shp")
+# ```
+
+# second try
 ```{r}
 # write to file
 clean_data %>% 
-  write_csv(., "clean_data/nyc_names_vichy_complied.csv") %>%
-  write_sf(., "clean_data/nyc_data_vichy_complied.shp")
+  write_csv(., "clean_data/nyc_names_vichy_complied2.csv") %>%
+  write_sf(., "clean_data/nyc_data_vichy_complied2.shp")
 ```
 
 # Reading Complied Data 
