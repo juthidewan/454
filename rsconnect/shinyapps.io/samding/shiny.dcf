@@ -5,10 +5,10 @@ account: samding
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 5255328
-bundleId: 5331529
+bundleId: 5340806
 url: https://samding.shinyapps.io/shiny/
-when: 1638756390.52915
-lastSyncTime: 1638756390.52916
+when: 1638896624.73535
+lastSyncTime: 1638896624.7354
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: compiled_data_juthi.Rmd|CopyOfjuthi.Rmd|juthi_second.Rmd|juthi.Rmd|LICENSE|multinomialModel_vichy(Abandoned).Rmd|naive_model_2.rds|NaiveBayes.Rmd|ordinal_model_1.rds|README.md|sam.Rmd|trans_desert_multinomial_model_1.rds|trans_desert_multinomial_model_2.rds|trans_desert_multinomial_model_3.rds|trans_desert_multinomial_model_4.rds|trans_desert_multinomial_model.rds|checkpoint|demographics|ethnic|nyc_compiled|nyc_compiled2|transit
+ignoredFiles: compiled_data_juthi.Rmd|CopyOfjuthi.Rmd|data_processing_vichy.html|data_processing_vichy.Rmd|gis_buffer.png|juthi_second.Rmd|juthi.Rmd|LICENSE|multinomialModel_vichy(Abandoned).Rmd|naive_model_2.rds|NaiveBayes.Rmd|ordinal_model_1.rds|OrdinalModelGraphs/ordinalModel2MCMCDens.png|OrdinalModelGraphs/ordinalModel2MCMCTrace.png|OrdinalModelGraphs/ordinalModelPPcheck.png|README.md|sam.Rmd|trans_desert_multinomial_model_1.rds|trans_desert_multinomial_model_2.rds|trans_desert_multinomial_model_3.rds|trans_desert_multinomial_model_4.rds|trans_desert_multinomial_model.rds|checkpoint|clean_data|demographics|ethnic|nyc_compiled|nyc_compiled2|transit

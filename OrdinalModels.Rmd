@@ -171,6 +171,6 @@ ggplot(aggregated_df, aes(x=actual, y=value, fill=highestPred)) + geom_bar(posit
 ```
 
 ```{r}
-ggplot(nyc_clean2, aes(x=perc_covered_by_traansit)) + geom_density()
+ggplot(nyc_clean2, aes(x=perc_covered_by_transit)) + geom_density()
 ```
 
