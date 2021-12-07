@@ -1,5 +1,5 @@
 ---
-title: "STAT 454: Capstone 4"
+title: "Neighborhood Deserts: Transportation Access & Housing Disparities in NYC"
 author: Freddy Barragan, Juthi Dewan, Sam Ding, Vichy Meas
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
@@ -24,6 +24,13 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE,
                       fig.align = 'center', fig.pos = 'H')
 
 ```
+
+# Motivation
+
+In collaboration with Juthi Dewan, Sam Ding, and Vichy Meas, we designed this project for our Bayesian Statistics course taught by [Dr. Alicia Johnson](https://ajohns24.github.io/portfolio/). We'd like to extend our thanks to Alicia for guiding us through Bayes and the capstone experience!
+
+We were initially interested in characterizing New York City’s internal racial dynamics using demography, geographic mobility, community health, and economic outcomes. As this project developed, we found ourselves thinking about the relationships between transportation (in)access and housing inequity. In our project, there are two major sections: **Subway Accessibility** and **Transportation and Structural Inequity**. First, however, let's do a data introduction:
+
 
 # Data Introduction
 
@@ -50,13 +57,16 @@ library(bayesplot)
 library(sf)
 library(nycgeo)
 library(tidycensus)
+library(extrafont)
+library(extrafontdb)
 # themes
-theme_set(theme_minimal())
+theme_set(theme_minimal() +
+            theme(text = element_text(family="DIN Condensed")))
 brown_green <- c("#E9DBC2","#7D9B8A","#4D6F5C","#D29B5B","#744410","#1C432D")
 color_scheme_set(brown_green)
 ```
 
-```{r}
+```{r, results='hide'}
 nyc_join <- merge(nta_sf,nta_acs_data)
 
 
@@ -82,7 +92,7 @@ census_data <- get_acs(state = "NY",
   dplyr::select(-GEOID)
 ```
 
-```{r}
+```{r, results='hide'}
 vari_names <- read_csv(here("clean_data", "nyc_names_vichy_complied2.csv"))
 nyc_clean <- st_read(here("clean_data", "nyc_data_vichy_complied2.shp"))
 colnames(nyc_clean) <- colnames(vari_names)
@@ -167,39 +177,31 @@ The process involved grouping geotagged locations by the defined neighborhood bo
 
 # Data Summaries 
 
-Our data has 224 observations of 38 variables. Below is a preview of our dataset with column names attached.
-
-```{r eval = TRUE}
-library(kableExtra)
-kable(head(nyc_compiled, n=3)) %>% kable_styling() %>% scroll_box(width = "100%", height = "200px")
-```
-
-\
-\
-
-The following table presents a numeric summary and breakdown for our variables of interests. However, note that we present most demographic count predictors using their equivalent percent variable.
+Our data has 224 observations of 38 variables. The following table presents a numeric summary and breakdown for a subset of our variables of interests. However, note that we present most demographic count variables using their equivalent percent.
 
 ```{r eval = TRUE}
 #summary(modeling_data)
 library(table1)
 table_print <- table1(~ 
-                        total_pop + mean_income + mean_rent + gini_neighborhood + 
-                        below_poverty_line_perc +  unemployment_perc + uninsured_perc + 
-                        school_count + eviction_count + store_count + 
-                        transportation_desert_4cat + sub_count + bus_count +
-                        noncitizen_perc + white_perc + black_perc + latinx_perc + asian_perc
-                        
+                        total_pop + mean_income + mean_rent +
+                        gini_neighborhood + 
+                        below_poverty_line_perc + 
+                        eviction_count + 
+                        transportation_desert_4cat + 
+                        noncitizen_perc + white_perc + black_perc +
+                        latinx_perc + asian_perc
                         | borough, data = nyc_compiled %>% as_tibble())  %>% as_tibble() 
 
 colnames(table_print) <- c("Variable", "Bronx (N=44)", "Brooklyn (N=64)","Manhattan (N=39)", "Queens (N=77)", "Overall (N=224)")
 
+library(kableExtra)
 table_print%>%
-  filter(Variable!="") %>% kable() %>% kable_styling() %>% scroll_box(width = "100%", height = "500px")
+  filter(Variable!="") %>% kable() %>% kable_styling() 
 ```
 
 From the numerical summary observe that Manhattan has the largest population counts, highest mean rental prices, highest mean income, highest income inequality (e.g. gini value), most number of neighborhoods with excellent subway access, and the greatest proportion of white citizens. 
 
-Conversely, observe that the Bronx has the lowest mean income and highest eviction counts, while having the highest proportions of people living below the poverty line, living without insurance coverage, and the highest number of people with limited subway access. Importantly, the Bronx also has the highest densities of both Latinx and Black residents of any other borough in New York, meaning that the Black and Latinx residents in New York are experiencing the burden of New York's structural inequities.
+Conversely, observe that the Bronx has the lowest mean income and highest eviction counts, while having the highest proportions of people living below the poverty line, and the highest number of people with limited subway access. Importantly, the Bronx also has the highest densities of both Latinx and Black residents of any other borough in New York, meaning that the Black and Latinx residents in New York are experiencing the burden of New York's structural inequities.
 
 We will touch on the connections between demographics, transportation access, and housing more explicitly in the following sections.
 
@@ -237,8 +239,8 @@ nyc_compiled %>%
         axis.text = element_blank()) +
   ggtitle("Subway Accessibility by \nNeighborhood in NYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 30, face = "bold"),
-          legend.title = element_text(size = 12), 
+          plot.title = element_text(family="DIN Condensed", size = 35, face = "bold"),
+          legend.title = element_text(size = 12, family="DIN Condensed"), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
@@ -285,7 +287,9 @@ naive_model <- naiveBayes(transportation_desert_4cat ~
 naive2_prediction <- naive_classification_summary_cv(naive_model, 
                                 nyc_naive, 
                                 y="transportation_desert_4cat", k=10)$cv
-naive2_prediction
+naive2_prediction %>%
+  kable(align = "c", caption = "Naive Model - Summary") %>% 
+  kable_styling()
 ```
 
 
@@ -314,7 +318,7 @@ prediction %>%
     theme(panel.grid.major.x = element_line("transparent"),
          # axis.text.y.left = element_blank(),
           axis.text.x.bottom = element_text(size = 12, face = "bold"),
-          plot.title = element_text(size = 16, hjust=.5, face = "bold")) +
+          plot.title = element_text(family="DIN Condensed", size = 20, hjust=.5, face = "bold")) +
    scale_fill_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"),
                        guide = guide_legend(title = "Subway Accessibility \nCategory"), na.value="#D6D6D6") 
 
@@ -442,7 +446,7 @@ data_test %>%
     theme(panel.grid.major.x = element_line("transparent"),
          # axis.text.y.left = element_blank(),
           axis.text.x.bottom = element_text(size = 12, face = "bold"),
-          plot.title = element_text(size = 16,hjust=.5, face = "bold")) +
+          plot.title = element_text(family="DIN Condensed", size =20, hjust=.5, face = "bold")) +
    scale_fill_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"),
                        guide = guide_legend(title = "Subway Accessibility \nCategory"), na.value="#D6D6D6")
   
@@ -466,8 +470,8 @@ desert_map <- nyc_compiled %>%
         axis.text = element_blank()) +
   ggtitle("Subway Access in \nNYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 30, face = "bold"),
-          legend.title = element_text(size = 12), 
+          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
+          legend.title = element_text(size = 12, family="DIN Condensed"), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
@@ -483,8 +487,8 @@ rent_map <- nyc_compiled %>%
         axis.text = element_blank()) +
   ggtitle("Mean Rent in \nNYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 26, face = "bold"),
-          legend.title = element_text(size = 12),
+          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
+          legend.title = element_text(size = 12, family="DIN Condensed"),
           legend.text = element_text(size = 12)) +
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
@@ -500,8 +504,8 @@ evict <- nyc_compiled %>%
         axis.text = element_blank()) +
   ggtitle("Eviction Counts in \nNYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 26, face = "bold"),
-          legend.title = element_text(size = 12), 
+          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
+          legend.title = element_text(size = 12, family="DIN Condensed"), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
@@ -517,8 +521,8 @@ scale_fill_gradient(low = "#FCF5EE", high = "#5E76AD",
         axis.text = element_blank()) +
   ggtitle("Immigrant Density in \nNYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 24, face = "bold"),
-          legend.title = element_text(size = 12), 
+          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
+          legend.title = element_text(size = 12, family="DIN Condensed"), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
@@ -544,10 +548,10 @@ white <- nyc_compiled %>%
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
-  ggtitle("White Population")+ 
+  ggtitle("White Population \nin NYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 24, face = "bold"),
-          legend.title = element_text(size = 12), 
+          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
+          legend.title = element_text(size = 12, family="DIN Condensed"), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
@@ -560,10 +564,10 @@ black <- nyc_compiled %>%
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
-  ggtitle("Black Population")+ 
+  ggtitle("Black Population \nin NYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 24, face = "bold"),
-          legend.title = element_text(size = 12), 
+          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
+          legend.title = element_text(size = 12, family="DIN Condensed"), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
@@ -576,10 +580,10 @@ asian <- nyc_compiled %>%
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
-  ggtitle("Asian Population")+ 
+  ggtitle("Asian Population \nin NYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 24, face = "bold"),
-          legend.title = element_text(size = 12), 
+          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
+          legend.title = element_text(size = 12, family="DIN Condensed"), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
@@ -593,10 +597,10 @@ latinx <- nyc_compiled %>%
   theme_minimal() +
   theme(panel.grid.major = element_line("transparent"),
         axis.text = element_blank()) +
-  ggtitle("Latinx Population")+ 
+  ggtitle("Latinx Population \nin NYC")+ 
     theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(size = 24, face = "bold"),
-          legend.title = element_text(size = 12), 
+          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
+          legend.title = element_text(size = 12, family="DIN Condensed"), 
           legend.text = element_text(size = 12)) + 
     guides(shape = guide_legend(override.aes = list(size = 8)),
            color = guide_legend(override.aes = list(size = 8)))
@@ -625,7 +629,7 @@ black_eviction <- nyc_compiled %>%
     theme(legend.position = "none",
          # axis.text.y.left = element_blank(),
         #  axis.text.x.bottom = element_text(size = 16, face = "bold"),
-          plot.title = element_text(size = 16,hjust=.5, face = "bold"),
+          plot.title = element_text(family="DIN Condensed", size = 20 ,hjust=.5, face = "bold"),
     strip.background.x = element_rect(fill="Black", color="Black"),
     strip.text.x = element_text(size = 14, 
                                 color = "White",
@@ -644,7 +648,7 @@ asian_eviction <- nyc_compiled %>%
     theme(legend.position = "none",
          # axis.text.y.left = element_blank(),
         #  axis.text.x.bottom = element_text(size = 16, face = "bold"),
-          plot.title = element_text(size = 16,hjust=.5, face = "bold"),
+          plot.title = element_text(family="DIN Condensed", size = 20,hjust=.5, face = "bold"),
     strip.background.x = element_rect(fill="Black", color="Black"),
     strip.text.x = element_text(size = 14, 
                                 color = "White",
@@ -663,7 +667,7 @@ latinx_eviction <- nyc_compiled %>%
     theme(legend.position = "none",
          # axis.text.y.left = element_blank(),
         #  axis.text.x.bottom = element_text(size = 16, face = "bold"),
-          plot.title = element_text(size = 16,hjust=.5, face = "bold"),
+          plot.title = element_text(family="DIN Condensed", size = 20,hjust=.5, face = "bold"),
     strip.background.x = element_rect(fill="Black", color="Black"),
     strip.text.x = element_text(size = 14, 
                                 color = "White",
@@ -682,7 +686,7 @@ white_eviction <- nyc_compiled %>%
     theme(legend.position = "none",
          # axis.text.y.left = element_blank(),
         #  axis.text.x.bottom = element_text(size = 16, face = "bold"),
-          plot.title = element_text(size = 16,hjust=.5, face = "bold"),
+          plot.title = element_text(family="DIN Condensed", size = 20,hjust=.5, face = "bold"),
     strip.background.x = element_rect(fill="Black", color="Black"),
     strip.text.x = element_text(size = 14, 
                                 color = "White",
@@ -711,7 +715,7 @@ black_rent <- nyc_compiled %>%
     theme(legend.position = "none",
          # axis.text.y.left = element_blank(),
         #  axis.text.x.bottom = element_text(size = 16, face = "bold"),
-          plot.title = element_text(size = 16,hjust=.5, face = "bold"),
+          plot.title = element_text(family="DIN Condensed", size =20,hjust=.5, face = "bold"),
     strip.background.x = element_rect(fill="Black", color="Black"),
     strip.text.x = element_text(size = 14, 
                                 color = "White",
@@ -730,7 +734,7 @@ asian_rent <- nyc_compiled %>%
     theme(legend.position = "none",
          # axis.text.y.left = element_blank(),
         #  axis.text.x.bottom = element_text(size = 16, face = "bold"),
-          plot.title = element_text(size = 16,hjust=.5, face = "bold"),
+          plot.title = element_text(family="DIN Condensed", size = 20,hjust=.5, face = "bold"),
     strip.background.x = element_rect(fill="Black", color="Black"),
     strip.text.x = element_text(size = 14, 
                                 color = "White",
@@ -749,7 +753,7 @@ latinx_rent <- nyc_compiled %>%
     theme(legend.position = "none",
          # axis.text.y.left = element_blank(),
         #  axis.text.x.bottom = element_text(size = 16, face = "bold"),
-          plot.title = element_text(size = 16,hjust=.5, face = "bold"),
+          plot.title = element_text(family="DIN Condensed", size = 20,hjust=.5, face = "bold"),
     strip.background.x = element_rect(fill="Black", color="Black"),
     strip.text.x = element_text(size = 14, 
                                 color = "White",
@@ -768,7 +772,7 @@ white_rent <- nyc_compiled %>%
     theme(legend.position = "none",
          # axis.text.y.left = element_blank(),
         #  axis.text.x.bottom = element_text(size = 16, face = "bold"),
-          plot.title = element_text(size = 16,hjust=.5, face = "bold"),
+          plot.title = element_text(family="DIN Condensed", size = 20,hjust=.5, face = "bold"),
     strip.background.x = element_rect(fill="Black", color="Black"),
     strip.text.x = element_text(size = 14, 
                                 color = "White",
@@ -942,7 +946,7 @@ In the following sections, we go through each particular model's outcome and wha
 pp_check(noncit_model)+ 
   xlab("Non-Citizen Count") +
   labs(title = "Negative Binomial Model of \nImmigrant/Non-Citizen Count")+
-  theme(plot.title =  element_text(face="bold", size=20, hjust=.5)) 
+  theme(plot.title =  element_text(family="DIN Condensed", face="bold", size=25, hjust=.5)) 
 ```
 
 ```{r}
@@ -1016,7 +1020,7 @@ tidy(noncit_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>%
 pp_check(rent_model)+ 
   xlab("Mean Rental Price") +
   labs(title = "Normal Model of \nMonthly Mean Rental Price")+
-  theme(plot.title =  element_text(face="bold", size=20, hjust=.5)) 
+  theme(plot.title =  element_text(family="DIN Condensed", face="bold", size=25, hjust=.5)) 
 ```
 
 ```{r}
@@ -1082,7 +1086,7 @@ pp_check(eviction_model)+
   xlab("Eviction Count") +
   xlim(0,2000)+
   labs(title = "Negative Binomial Model of \nEviction Count")+
-  theme(plot.title =  element_text(face="bold", size=20, hjust=.5)) 
+  theme(plot.title =  element_text(family="DIN Condensed", face="bold", size=25, hjust=.5)) 
 ```
 
 ```{r}
@@ -1160,6 +1164,8 @@ Next, we interpret each predictor:
 - Black Percent: When controlling for all other predictors, 10% increases in the proportion of Black residents in a neighborhood are associated with approximately 17.77% increases in the number of evictions. Further, there is a 80% chance that the relationship may be any value between (15.03%, 20.67%), indicating that there is almost certainly a strong, positive, relationship between these two variables, but its magnitude may vary slightly. 
 - Latinx Percent: When controlling for all other predictors, 10% increases in the proportion of Latinx residents in a neighborhood are associated with approximately 6.60% increases in the number of evictions. Further, there is a 80% chance that the relationship may be any value between (2.73%, 10.69%), indicating that there is almost certainly a weak, positive, relationship between these two variables, but its magnitude may vary.
 - Asian Percent: When controlling for all other predictors, 10% increases in the proportion of Asian residents in a neighborhood are associated with approximately 4.21% decreases in the number of evictions. Further, there is a 80% chance that the relationship may be any value between (-.2344%, -7.88%), indicating that there is almost certainly a weak, negative, relationship between these two variables, but its magnitude may vary slightly.
+
+# Discussion
 
 We've confirmed that even after adjusting for income, rental prices, income inequality, and borough differences, neighborhoods in NYC with a substantial proportion of Black and Latinx residents are experiencing dramatic increased risks of eviction. Interestingly, when accounting for economic and demographic predictors, the relationships with transportation we expected to see were reversed. That is, increased transportation access was associated with more evictions. This could be related to the increased population sizes in areas with the best access to transportation (e.g. Manhattan) or it could be because the disparities that transportation inaccess reflects (e.g. racial and class-based tensions) have been accounted for. However, our results are almost certainly confounded by the spatial relationships between neighborhoods and the effect of other unmeasured structural predictors in housing equity such as a neighborhood's rent control policies or the reasons behind eviction.
 
