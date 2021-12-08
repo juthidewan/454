@@ -18,7 +18,7 @@ library(dplyr)
 
 
 ```{r}
-model <- readRDS("ordinal_model_2.rds") 
+model <- readRDS("data/ordinal_model_2.rds") 
 # modelNaive <- readRDS("naive_model_2.rds")
 ```
 
