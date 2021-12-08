@@ -43,6 +43,10 @@ nyc_clean2 <- nyc_clean %>%
 data_split <- initial_split(nyc_clean2, prop = .7) 
 data_train <- training(data_split)
 data_test <- testing(data_split) 
+
+
+quantile(nyc_clean2$perc_covered_by_transit)
+
 ```
 
 ```{r}
@@ -52,7 +56,7 @@ model1 <- stan_polr(transportation_desert_4num ~   mean_income + unemployment_pe
 model2 <- stan_polr(transportation_desert_4num ~ mean_income + below_poverty_perc + eviction_count + store_count, data =data_train, prior=R2(0.5),iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
 # saveRDS(model2, 'ordinal_model_2.rds')
 
-model3 <- stan_polr(transportation_desert_4num ~white_perc + asian_perc + latinx_perc + black_perc, data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
+model3 <- stan_polr(transportation_desert_4num~ store_count+ mean_rent+ mean_income+ below_poverty_perc, data =nyc_clean2, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
 ```
 
 ## PP check and Tidy
@@ -61,10 +65,17 @@ model3 <- stan_polr(transportation_desert_4num ~white_perc + asian_perc + latinx
 
 pp_check(model1)
 pp_check(model2)
+pp_check(model3)
 
-tidy(model1, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
-tidy(model2, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
-# tidy(model3, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+# tidy(model1, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+# tidy(model2, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+tidy(model3, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+
+summary_table <- coef(model2)
+
+pval <- pnorm(abs(summary_table[, "t value"]),lower.tail = FALSE)* 2
+summary_table <- cbind(summary_table, "p value" = round(pval,3))
+summary_table
 ```
 
 ```{r}
@@ -102,6 +113,10 @@ my_prediction2 <- posterior_predict(
   model2, 
   newdata = data_test)
 
+my_prediction3 <- posterior_predict(
+  model3, 
+  newdata = data_test)
+
 nyc_clean2 %>%
   ggplot(aes(x=mean_income)) + geom_density()
 
@@ -109,6 +124,7 @@ nyc_clean2 %>%
 set.seed(86437)
 ordinal_accuracy(my_prediction1,data_test)
 ordinal_accuracy(my_prediction2,data_test)
+ordinal_accuracy(my_prediction3,data_test)
 
 pred <- posterior_predict(
   model2, 
@@ -171,6 +187,6 @@ ggplot(aggregated_df, aes(x=actual, y=value, fill=highestPred)) + geom_bar(posit
 ```
 
 ```{r}
-ggplot(nyc_clean2, aes(x=perc_covered_by_transit)) + geom_density()
+ggplot(nyc_clean2, aes(x=perc_covered_by_traansit)) + geom_density()
 ```
 
