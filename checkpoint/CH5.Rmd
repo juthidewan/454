@@ -808,7 +808,7 @@ We list our non-hierarchical models and their predictors below:
   + Symbolic Equivalents: `$x_1, x_2, ..., x_{14}$`
 
 - Average Rental Price Model (2)
-  + Predictors: `transportation_desert_4cat`, `borough`, `gini_neighborhood`, `mean_income`, `black_perc`, `latinx_perc`, `asian_perc`, `bus_count`,`school_count`,`store_count`
+  + Predictors: `transportation_desert_4cat`, `borough`, `gini_neighborhood`, `mean_income`, `black_perc`, `latinx_perc`, `asian_perc`, `below_poverty_line_perc`,`school_count`,`store_count`
   + Symbolic Equivalents: `$x_1, x_2, ..., x_{14}$`
   
   
@@ -898,14 +898,14 @@ $$`
 
 #### Model 2: Mean Neighborhood Rental Prices
 
-`transportation_desert_4cat`, `borough`, `gini_neighborhood`, `mean_income`, `black_perc`, `latinx_perc`, `asian_perc`, `bus_count`,`school_count`,`store_count``
+`transportation_desert_4cat`, `borough`, `gini_neighborhood`, `mean_income`, `black_perc`, `latinx_perc`, `asian_perc`, `below_poverty_line_perc`,`school_count`,`store_count``
 
 ```{r}
 rent_model <- stan_glm(
   mean_rent  ~ 
   transportation_desert_4cat + borough + gini_neighborhood +
     mean_income + black_perc + latinx_perc + asian_perc+
-    bus_count + school_count + store_count,
+    below_poverty_line_perc + school_count + store_count,
   data = modeling_data, 
   family = gaussian,
   prior_intercept = normal(1600 , 20),
@@ -915,7 +915,7 @@ rent_model <- stan_glm(
 
 `$$
 \begin{split}
-\text{Mean Rental Price}_{i} \mid  \beta_{0c}, \beta_1, ..., \beta_k, r & \sim \text{N}(\mu_i, \sigma^2) \; \; \; \; \text{where } \mu_i = \beta_{0c} + \sum^{14}_{k=1} \beta_{k}X_{ik} \\
+\text{Mean Rental Price}_{i} \mid  \beta_{0c}, \beta_1, ..., \beta_k, r & \sim N(\mu_i, \sigma^2) \; \; \; \; \text{where } \mu_i = \beta_{0c} + \sum^{14}_{k=1} \beta_{k}X_{ik} \\
 \beta_{0c} &\sim N(1600,20^2)\\	
 \sigma &\sim \text{Exp}(0.23)\\
 \beta_{k} &\sim N(0,s_k^2)
@@ -927,20 +927,21 @@ $$`
 `$$
 \begin{align}
 s_k \in \{
-&24.1301,				
-34.8009,				
-21.9225,				
-23.9953,				
-28.2651,				
-23.403,			
-249.6185,		\\		
-&0.0325,				
-4.3562,				
-5.0098,
-7.0204,				
-0.316,				
-1.716,				
-0.2803
+&24.1301				
+34.8009				
+21.9225				
+23.9953				
+28.2651				
+23.4030				
+249.6185		\\			
+&		
+0.0325	
+4.3562				
+5.0098	
+7.0204				
+110.1265				
+1.7160				
+0.2803	
 \}
 \end{align}
 $$`
@@ -1297,68 +1298,90 @@ hi_noncit_model <- stan_glmer(
   family = neg_binomial_2,
   chains = 4, iter = 1000*2, seed = 84735, refresh = 0
 )
-
 ```
 
-$$\begin{split}
-\text{Non-Citizen Count} \mid  \beta_{0c}, \beta_1, ..., \beta_k, r & \sim \text{NegBin}(\mu, r) \; \; \; \; \text{where} \log(\mu) = \beta_{0c} + \sum^{14}_{k=1}X_{k}\beta_k \\
-\beta_{0c} &\sim N(0,2.5^2)\\				
-\beta_{1} &\sim N(0,6.2785^2)\\				
-\beta_{2} &\sim N(0,6.7918^2)\\				
-\beta_{3} &\sim N(0,5.0879^2)\\				
-\beta_{4} &\sim N(0, 0.0001^2)\\				
-\beta_{5} &\sim N(0,5.5216^2)\\				
-\beta_{6} &\sim N(0,6.5781^2)\\				
-\beta_{7} &\sim N(0,5.2519^2)\\				
-\beta_{8} &\sim N(0,56.96^2)\\				
-\beta_{9} &\sim N(0,0.006^2)\\				
-\beta_{10} &\sim N(0,0.3317^2)\\	
-\beta_{11} &\sim N(0,7.3986^2)\\				
-\beta_{12} &\sim N(0,0.9779^2)\\				
-\beta_{13} &\sim N(0,1.0952^2)\\				
-\beta_{14} &\sim N(0,1.638^2)\\				
-r & \sim Exp(1) \\
-\end{split}$$
+`$$
+\begin{split}
+\text{Non-Citizen Count}_{ij} \mid  \beta_{0}, \beta_1, ..., \beta_k, r & \sim \text{NegBin}(\mu_{ij}, r) \; \; \; \text{where } \log((\mu_{ij}) = \beta_{0j} + \sum^{14}_{k=1} \beta_{k}X_{ijk} \\
+
+
+\beta_{0j}\mid \beta_{0}, \sigma_0 & \stackrel{ind}{\sim} N(\beta_0, \sigma_0^2)\\	
+\beta_{0c} &\sim N(0, 2.5^2) \\
+r &\sim \text{Exp}(1)\\
+\sigma_0 &\sim \text{Exp}(1)\\
+\beta_{k} &\sim N(0,s_k^2) 
+\end{split}
+$$`
+
+`$\text{and where}$`
+
+`$$
+\begin{align}
+s_k \in \{
+&5.5004,				
+7.9328,				
+4.9972,				
+.0004,				
+56.9002,\\			
+&	0.0074,				
+0.5699,				
+39.9937,				
+0.993,				
+1.142,
+1.6003
+\}
+\end{align}
+$$`
+
 
 #### Model 2: Mean Neighborhood Rental Prices
 
 ```{r}
 hi_rent_model <- stan_glmer(
   mean_rent  ~ 
-  transportation_desert_4cat + 
-    transportation_desert_4cat + 
-    bus_count + school_count + store_count +
-    total_pop + borough + 
-    gini_neighborhood + mean_income + black_perc + latinx_perc + asian_perc+ (1 | borough),
+    transportation_desert_4cat + gini_neighborhood +
+    mean_income + black_perc + latinx_perc + asian_perc+
+    below_poverty_line_perc + school_count + store_count + (1 | borough),
   data = modeling_data, 
   family = gaussian,
-  prior_intercept = normal(1600 , 20),
-  # prior = hs_prior,
+  prior_intercept = normal(1600, 20, autoscale = TRUE),
+  prior = normal(0, 2.5, autoscale = TRUE), 
   chains = 4, iter = 1000*2, seed = 84735, refresh = 0
 )
-
 ```
 
-$$\begin{split}
-\text{Mean Rent} \mid  \beta_{0c}, \beta_1, ..., \beta_k, r & \sim \text{Normal}(\mu, \sigma) \; \; \; \; \text{where} \mu = \beta_{0c} + \sum^{14}_{k=1}X_{k}\beta_k \\
-\beta_ {0c} &\sim N(1600,20^2)\\				
-\beta_{1} &\sim N(0,47.315^2)\\				
-\beta_{2} &\sim N(0,51.1837^2)\\				
-\beta_{3} &\sim N(0,38.3432^2)\\				
-\beta_{4} &\sim N(0,0.4958^2)\\				
-\beta_{5} &\sim N(0,2.9378^2)\\				
-\beta_{6} &\sim N(0,0.4371^2)\\				
-\beta_{7} &\sim N(0,0.0008^2)\\				
-\beta_{8} &\sim N(0,41.6113^2)\\				
-\beta_{9} &\sim N(0,49.5728^2)\\				
-\beta_{10} &\sim N(0,39.5783^2)\\
-\beta_{11} &\sim N(0,429.2544^2)\\				
-\beta_{12} &\sim N(0,0.0454^2)\\				
-\beta_{13} &\sim N(0,7.3695^2)\\				
-\beta_{14} &\sim N(0,8.2532^2)\\				
-\beta_{15} &\sim N(0,12.3441^2)\\
-\sigma & \sim Exp(0.13) \\
-\end{split}$$
+`$$
+\begin{split}
+\text{Mean Rental Price}_{ij} \mid  \beta_{0j}, \beta_1, \dots, \beta_k,\sigma_y & \sim N(\mu_{ij}, \sigma_y^2) \; \; \; \text{where } \mu_{ij} = \beta_{0j} + \sum^{11}_{k=1} \beta_{k}X_{ijk} \\
+
+\beta_{0j} & \stackrel{ind}{\sim} N(\beta_0, \sigma_0^2)\\	
+\beta_{0c} &\sim N(1600, 20^2) \\
+\sigma_y  &\sim \text{Exp}(1)\\
+\sigma_0 &\sim \text{Exp}(1)\\
+\beta_{k} &\sim N(0,s_k^2) 
+\end{split}
+$$`
+
+`$\text{and where}$`
+
+`$$
+\begin{align}
+s_k \in \{
+&24.1301				
+34.8009				
+21.9225				
+249.6185				
+0.0325
+4.3562		\\			
+&			
+5.0098				
+7.0204				
+110.1265				
+1.7160	
+0.2803
+\}
+\end{align}
+$$`
 
 We chose our prior specifications of mean rental price (`$\beta_{0c}$`) using Juthi’s experience renting in NYC and a group conversation about typical rental prices we would elect to pay in NYC, Los Angeles, and other major cities we have lived in or around. 
 
@@ -1369,7 +1392,7 @@ We chose our prior specifications of mean rental price (`$\beta_{0c}$`) using Ju
 hi_eviction_model <- stan_glmer(
   eviction_count  ~ 
     transportation_desert_4cat +
-    total_pop + 
+    total_pop + below_poverty_line_perc+
     gini_neighborhood + mean_income +  mean_rent + 
     black_perc + latinx_perc + asian_perc + (1|borough),
   data = modeling_data, 
@@ -1664,7 +1687,7 @@ rbind(table1, table2) %>%
   dplyr::select(-Model)%>% kable() %>% kable_styling()
 ```
 
-Using in-sample scaled MAE, it’s evident that the differences between our two negative binomial models of non-citizen counts were negligible. In other settings, we would typically recommend to use cross-validated error metrics to truly compare these models. However, because we are comparing a hierarchical model to a non-hierarchical model, cross-validation works slightly differently. In the former case, cross-validation via the `prediction_summary_cv` function in `bayesrules` makes data permutations to represent a "new borough", rather than a set of arbitrary models. To circumvent these differences, we use the expected-log predictive density (ELPD) of each respective model to compare the performance of each model. The details of this approach can be found [here](https://www.bayesrulesbook.com/chapter-10.html#chapter-10-train-test).
+Using in-sample scaled MAE, it’s evident that the differences between our two negative binomial models of non-citizen counts were minute In other settings, we would typically recommend to use cross-validated error metrics to truly compare these models. However, because we are comparing a hierarchical model to a non-hierarchical model, cross-validation works slightly differently. In the former case, cross-validation via the `prediction_summary_cv` function in `bayesrules` makes data permutations to represent a "new borough", rather than a set of arbitrary models. To circumvent these differences, we use the expected-log predictive density (ELPD) of each respective model to compare the performance of each model. The details of this approach can be found [here](https://www.bayesrulesbook.com/chapter-10.html#chapter-10-train-test).
 
 
 ```{r}
@@ -1677,8 +1700,78 @@ loo_compare(mod1_elpd, hi_mod1_elpd)  %>%
   kable_styling()
 ```
 
-From the above ELPD rankings, it seems that the non-hierarchical model of non-citizen counts performed better than its hierarchical parallel. So, we will use the non-hierarchical model of non-citizen counts. 
+From the above ELPD rankings, it seems that the non-hierarchical model of non-citizen counts performed better than its hierarchical parallel. Explicitly, there was a decrease of .536 standard deviations when comparing the non-hiearchical to its hiearchical parallel.
 
+```{r, fig.height=10*1, fig.width=10*1}
+noncit_resid <- modeling_data %>%
+  mutate(resid = noncit_model$residuals) %>%
+  ggplot() +
+  geom_sf(aes(fill = resid), color = "#8f98aa")+
+scale_fill_gradient(low = "#FCF5EE", high = "#5E76AD",
+                      guide = guide_legend(title = "Residual")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Non-Hierarchical Model:\nNon-Citizen Count Residuals \nin NYC")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(family="DIN Condensed", size = 2* 28, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+
+hi_noncit_resid <- modeling_data %>%
+  mutate(resid = hi_rent_model$residuals) %>%
+  ggplot() +
+  geom_sf(aes(fill = resid), color = "#8f98aa")+
+scale_fill_gradient(low = "#FCF5EE", high = "#5E76AD",
+                      guide = guide_legend(title = "Residual")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Hierarchical Model:\nNon-Citizen Count Residuals \nin NYC")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(family="DIN Condensed", size = 2* 28, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+```
+
+```{r, fig.height=8*2, fig.width=8*2}
+ggarrange(noncit_resid, hi_noncit_resid, ncol=2, nrow=1)
+```
+
+The residuals on our hierarchical model are not perfectly randomly distributed across all neighborhoods in NYC, but the scale of these residuals is much smaller than the non-hierarchical model. One could also make the case that there are slight over predictions (darker blue) of non-citizen counts in the Brooklyn (bottom left) for the non-hierarchical model. However, these differences are mostly negligible.
+
+```{r}
+waic_tab1 <- waic(noncit_model)$estimates%>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  as.tibble()%>% 
+  filter(rowname=="waic") %>%
+  dplyr::select(-c(rowname)) %>%
+  mutate(Model = "Non-Hierarchical", .before=1) %>%
+  dplyr::rename(WAIC = Estimate)
+
+
+
+waic_tab2 <-waic(hi_noncit_model)$estimates%>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  as.tibble()%>% 
+  filter(rowname=="waic") %>%
+  dplyr::select(-c(rowname)) %>%
+  mutate(Model = "Hierarchical", .before=1) %>%
+  dplyr::rename(WAIC = Estimate)
+
+rbind(waic_tab1, waic_tab2) %>%
+  kable() %>% kable_styling()
+
+
+```
+
+Our last error metric of non-citizen counts is the Watanabe–Akaike information criterion (WAIC). When comparing two models with the WAIC, the better predicting model would be the model with the smaller WAIC value. Here, it seems that non-hierarchical model of non-citizen counts has the lowest WAIC, but the difference is largely minimal. Altogether, we choose the hierarchical model of non-citizen counts given its lower ELPD, WAIC, and spatial residual patterning.
 
 ## Mean Neighborhood Rental Prices
 
@@ -1748,7 +1841,37 @@ hi_rent_resid <- modeling_data %>%
 ggarrange(rent_resid, hi_rent_resid, ncol=2, nrow=1)
 ```
 
-In the case of the non-hierarchical model, the distribution of our residuals indicate that our model's mispredictions are randomly distributed. Further, our residuals in the non-hiearchical model are relatively small when compared to the hierarcichal model. Tthe hierarcichal model must be addressed. In the hiearchical model grouped by borough there is a clear indication of systematic mispredictions that appear distributed by borough. Crucially, it seems that we are systematically overpredicting rental prices in both Queens (bottom right) and Brooklyn (bottom left), but with greater overprediction occurring for Brooklyn. The hierarchical model's residual patterning, ELPD metric, and in-sample residual metrics all indicate that the non-hierarchical version is much more appropriate.
+In the case of the non-hierarchical model, the distribution of our residuals indicate that our model's mispredictions are randomly distributed. Further, our residuals in the non-hiearchical model are relatively small when compared to the hierarcichal model. Tthe hierarcichal model must be addressed. In the hiearchical model grouped by borough there is a clear indication of systematic mispredictions that appear distributed by borough. Crucially, it seems that we are systematically overpredicting rental prices in both Queens (bottom right) and Brooklyn (bottom left), but with greater overprediction occurring for Brooklyn. 
+
+
+```{r}
+waic_tab1 <- waic(rent_model)$estimates%>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  as.tibble()%>% 
+  filter(rowname=="waic") %>%
+  dplyr::select(-c(rowname)) %>%
+  mutate(Model = "Non-Hierarchical", .before=1) %>%
+  dplyr::rename(WAIC = Estimate)
+
+
+
+waic_tab2 <-waic(hi_rent_model)$estimates%>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  as.tibble()%>% 
+  filter(rowname=="waic") %>%
+  dplyr::select(-c(rowname)) %>%
+  mutate(Model = "Hierarchical", .before=1) %>%
+  dplyr::rename(WAIC = Estimate)
+
+rbind(waic_tab1, waic_tab2) %>%
+  kable() %>% kable_styling()
+
+
+```
+
+It seems that hierarchical model of rental prices has the lowest WAIC, but the difference is largely minimal. The hierarchical model's residual patterning, ELPD metric, in-sample residual patterns, and WAIC all indicate that the hierarchical version may be more appropriate.
 
 
 ## Eviction Count
@@ -1776,7 +1899,7 @@ loo_compare(mod1_elpd, hi_mod1_elpd)  %>%
   kable_styling()
 ```
 
-From the above ELPD rankings, it also seems that the hierarchical model of eviction counts performed better than its non-hierarchical parallel. Lastly, we will compare how these 2 models' residuals are spatially distributed.
+From the above ELPD rankings, it also seems that the hierarchical model of eviction counts performed better than its non-hierarchical parallel. Next, we will compare how these 2 models' residuals are spatially distributed.
 
 ```{r, fig.height=10*1, fig.width=10*1}
 evict_resid <- modeling_data %>%
@@ -1818,7 +1941,37 @@ hi_evict_resid <- modeling_data %>%
 ggarrange(evict_resid, hi_evict_resid, ncol=2, nrow=1)
 ```
 
-Our residuals are randomly distributed across all neighborhoods indicating that our model's bias is consistent across observations— this is really good! One could make the case that there are slight under predictions (darker red) of eviction counts in the Bronx (top) for both models. However, these differences are once again negligible. Altogether, we are selecting the hiearchical model of eviction counts given its relative computational efficiency.
+Our residuals are randomly distributed across all neighborhoods indicating that our model's bias is consistent across observations— this is really good! One could make the case that there are slight under predictions (darker red) of eviction counts in the Bronx (top) for both models. However, these patterns are relatively minute. 
+
+```{r}
+waic_tab1 <- waic(eviction_model)$estimates%>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  as.tibble()%>% 
+  filter(rowname=="waic") %>%
+  dplyr::select(-c(rowname)) %>%
+  mutate(Model = "Non-Hierarchical", .before=1) %>%
+  dplyr::rename(WAIC = Estimate)
+
+
+
+waic_tab2 <-waic(hi_eviction_model)$estimates%>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  as.tibble()%>% 
+  filter(rowname=="waic") %>%
+  dplyr::select(-c(rowname)) %>%
+  mutate(Model = "Hierarchical", .before=1) %>%
+  dplyr::rename(WAIC = Estimate)
+
+rbind(waic_tab1, waic_tab2) %>%
+  kable() %>% kable_styling()
+
+
+```
+
+It seems that hierarchical model of rental prices has the lowest WAIC, but only by .03 units. But given the hierarchical model's residual patterning, ELPD metric, in-sample residual patterns, and WAIC we select the hierarchical model of eviction counts.
+
 
 # Discussion & Extensions
 
@@ -1859,19 +2012,15 @@ Across our models, it becomes clear that many of the structural housing and demo
 
 ## Spatial Rent
 
+Knowing that there is spatial clustering mean rental prices by neighborhood, we fit a normal model with weakly informative priors for the $\beta_k$, our scaled prior intercept $N(1600, 20^2)$, and Besag prior for a random spatial effect via the `CARBayes` package's S.CARleroux function. If there was a non-constant spatial effect on rental prices in a neighborhood, we would edit the `rho` parameter below to approximate this new spatial effect prior called a Leroux.
+
 ```{r}
 library(CARBayes)
 
 equation <- mean_rent ~ total_pop  + 
-  transportation_desert_4cat +  bus_count +
-  school_count + store_count + borough + 
-  gini_neighborhood + mean_income + black_perc + latinx_perc + asian_perc
-
-
-
-tidy(moran.mc(col_sp$asian_perc, listw = col_listw, nsim = 999, alternative = "greater")) %>%
-  mutate(Term = "Eviction", .before=1)   
-
+  transportation_desert_4cat + borough + gini_neighborhood +
+    mean_income + black_perc + latinx_perc + asian_perc+
+    below_poverty_line_perc + school_count + store_count
 
 carbayes_rent <- S.CARleroux(equation,
                  data = modeling_data, 
@@ -1881,16 +2030,25 @@ carbayes_rent <- S.CARleroux(equation,
                  burnin = 20000, n.sample = 100000, rho=1,
                  thin = 10, verbose=F)
 
-moran.mc(x = as.vector(carbayes_rent$residuals$response), listw = col_listw, nsim = 9999, alternative = "greater")
+tidy(moran.mc(x = as.vector(carbayes_rent$residuals$response), listw = col_listw, nsim = 9999, alternative = "greater")) %>%
+  mutate(Term = "Residual", .before=1) %>%
+  kable(caption ="Residual Clustering - Rent") %>%
+  kable_styling()
 ```
+
+Non-significant Moran I clustering of residuals indicates that our residuals of rental prices are uniformly distributed across neighborhoods. Therefore, this spatial model is sufficiently built to study these rental price trends.
 
 ```{r, fig.height=5, fig.width=10}
 
 t(carbayes_rent$modelfit)%>%
   as.tibble() %>%
-  kable(align = "c", caption = "CARBayes Spatial Eviction Model - DIC Metrics") %>% 
+  kable(align = "c", caption = "CARBayes Spatial Rent Model - DIC Metrics") %>% 
   kable_styling()
+```
 
+Our WAIC metrics for this spatial model is slightly better than the best of our non-spatial models (Difference = 9.4086). Once again, in a more detailed analysis we could edit our spatial effect prior.
+
+```{r, fig.height=10*1, fig.width=10*1}
 round(carbayes_rent$summary.results[, 1:7], 4) %>%
   as.data.frame() %>%
   rownames_to_column() %>%
@@ -1905,6 +2063,8 @@ round(carbayes_rent$summary.results[, 1:7], 4) %>%
   kable_styling()
 
 ```
+
+Here, the only significant predictor of is mean income which is positively associated with increased rental prices.
 
 ```{r, fig.height=10*1, fig.width=10*1}
 modeling_data %>%
@@ -1925,20 +2085,20 @@ modeling_data %>%
            color = guide_legend(override.aes = list(size = 8)))
 ```
 
-```{r}
-waic(rent_model)$estimates
-waic(hi_rent_model)$estimates
-carbayes_rent$modelfit 
-```
+Our Besag model residuals look very evenly distributed!
+
 
 ## Spatial Eviction
+
+We fit a Besag model using a Poisson likelihood to study eviction counts across New York. 
+
 ```{r}
 library(CARBayes)
 
 equation <- eviction_count ~ offset(log(total_pop)) + 
-  transportation_desert_4cat + borough + unemployment_count+
-  below_poverty_line_perc  + mean_income +  
-  mean_rent + black_perc + latinx_perc + asian_perc
+  transportation_desert_4cat + borough +
+    below_poverty_line_perc + gini_neighborhood + mean_income + mean_rent+ 
+    black_perc + latinx_perc + asian_perc
 
 
 carbayes_evictions <- S.CARleroux(equation,
@@ -1949,8 +2109,37 @@ carbayes_evictions <- S.CARleroux(equation,
 
 
 
-moran.mc(x = as.vector(carbayes_evictions$residuals$response), listw = col_listw, nsim = 9999, alternative = "greater")
+tidy(moran.mc(x = as.vector(carbayes_evictions$residuals$response), listw = col_listw, nsim = 9999, alternative = "greater")) %>%
+  mutate(Term = "Residual", .before=1) %>%
+  kable(caption ="Residual Clustering - Evictions") %>%
+  kable_styling()
 ```
+
+We found no residual clustering! The plot below shows them spatially. 
+
+```{r, fig.height=10*1, fig.width=10*1}
+modeling_data %>%
+  mutate(resid = carbayes_evictions$residuals$response) %>%
+  ggplot() +
+  geom_sf(aes(fill = resid), color = "#8f98aa")+
+  scale_fill_gradient(low = "#FCF5EE", high = "#C47572", 
+                      guide = guide_legend(title = "Number of Evictions")) +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("CARBayes Besag:\nEviction Count Residuals in \nNYC")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
+```
+
+Our residuals look fantastic! Woohoo!
+
+
+Our WAIC metrics for this spatial model on eviction counts is **dramatically** better than the best of our non-spatial models (Difference = 501.104), indicating that this a much better fit to our data than our previous models. 
 
 ```{r, fig.height=5, fig.width=10}
 
@@ -1974,32 +2163,6 @@ round(carbayes_evictions$summary.results[, 1:7], 4) %>%
 
 ```
 
-```{r, fig.height=10*1, fig.width=10*1}
-modeling_data %>%
-  mutate(resid = carbayes_evictions$residuals$response) %>%
-  ggplot() +
-  geom_sf(aes(fill = resid), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#C47572", 
-                      guide = guide_legend(title = "Number of Evictions")) +
-  theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("CARBayes Besag:\nEviction Count Residuals in \nNYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
-```
-
-
-```{r}
-waic(eviction_model)$estimates # best
-waic(hi_eviction_model)$estimates 
-carbayes_evictions$modelfit
-```
-
-
+Although this model has performed phenomenally, we could likely improve this model by choosing a different family for our regression. In NYC, neighborhood eviction counts are zero-inflated, so a count regression model that allows for increased variance or zero-inflation— like Negative-Binomial (NB) or Zero-Inflated Poisson (ZIP) regression— could improve this analysis. Unfortunately, `CARBayes` does not support such regressions. `INLA` is a good computational alternative. `INLA` is a computationally efficient modeling alternative to MCMC based methods— like those in `CARBayes` or `STAN`— that use numerical integration on Laplace approximations of estimate the posterior distributions without any sampling from the posterior. Beyond its computational efficiency, `INLA` supports spatial models using both ZIP and NB data distributions.
 
 
