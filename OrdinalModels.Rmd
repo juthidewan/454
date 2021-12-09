@@ -56,26 +56,17 @@ model1 <- stan_polr(transportation_desert_4num ~   mean_income + unemployment_pe
 model2 <- stan_polr(transportation_desert_4num ~ mean_income + below_poverty_perc + eviction_count + store_count, data =data_train, prior=R2(0.5),iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
 # saveRDS(model2, 'ordinal_model_2.rds')
 
-model3 <- stan_polr(transportation_desert_4num~ store_count+ mean_rent+ mean_income+ below_poverty_perc, data =data_train, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
-```
-
 ## PP check and Tidy
-```{r}
 # summary(model1)
 
 # pp_check(model1)
 # pp_check(model2)
 # pp_check(model3)
 
-# tidy(model1, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
-# tidy(model2, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+tidy(model1, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+tidy(model2, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
 tidy(model3, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
 
-# summary_table <- coef(model2)
-# 
-# pval <- pnorm(abs(summary_table[, "t value"]),lower.tail = FALSE)* 2
-# summary_table <- cbind(summary_table, "p value" = round(pval,3))
-# summary_table
 ```
 
 ```{r}
@@ -125,6 +116,8 @@ set.seed(86437)
 ordinal_accuracy(my_prediction1,data_test)
 ordinal_accuracy(my_prediction2,data_test)
 ordinal_accuracy(my_prediction3,data_test)
+
+prior_summary(model2)
 
 pred <- posterior_predict(
   model2, 
@@ -221,6 +214,45 @@ data_test %>%
 ```
 
 
+
+----------------------------
 ```{r}
-ggplot(nyc_clean2, aes(x=perc_covered_by_traansit)) + geom_density()
+model3
 ```
+
+
+$$
+
+Y_i| \zeta_1, \zeta_2,\zeta_3,\beta_1, \beta_2,\beta_3, \beta_4 =
+\begin{cases}
+1 &, y^{*} < \zeta_1 \\
+2 &, \zeta_1 \leq y^{*} < \zeta_2 \\
+3 &, \zeta_2 \leq y^{*} < \zeta_3 \\
+4 &, y^{*} \geq \zeta_3 \\
+\end{cases} 
+
+
+y^{*} = \beta_1x_1 + \beta_2x_2 + \beta_3x_3 + \beta_4x_4 + \epsilon \\
+
+$$
+- $\zeta_i$ : is a vector of cut-points for categories. 
+- $y^{*}$ : a linear combination of 6 predictor variables consisting of `mean income`, `below poverty percentage`, `eviction count`, and `store_count`.
+- $\beta_i$ : is the coefficient for the $ith$ predictor variable. 
+
+$$
+\zeta_1 \sim N(m_{\zeta 1}, s_{\zeta 1}^{2}) \\
+\zeta_2 \sim N(m_{\zeta 2}, s_{\zeta 2}^{2}) \\
+\zeta_3 \sim N(m_{\zeta 3}, s_{\zeta 3}^{2}) \\
+\zeta_4 \sim N(m_{\zeta 4}, s_{\zeta 4}^{2}) \\
+\beta_1 \sim N(m_{\beta 1}, s_{\beta 1}^{2}) \\
+\beta_2 \sim N(m_{\beta 2}, s_{\beta 2}^{2}) \\
+\beta_3 \sim N(m_{\beta 3}, s_{\beta 3}^{2}) \\
+\beta_4 \sim N(m_{\beta 4}, s_{\beta 4}^{2}) \\
+$$
+Since we do not have prior information about the data, we will be using the default prior R2 given by the `stan_polr` function. 
+
+Note:
+- There is no intercept in this model because the data cannot distinguish an intercept from the cut points. 
+
+
+
