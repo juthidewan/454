@@ -18,7 +18,7 @@ library(dplyr)
 
 
 ```{r}
-model <- readRDS("ordinal_model_2.rds") 
+model <- readRDS("data/ordinal_model_2.rds") 
 # modelNaive <- readRDS("naive_model_2.rds")
 ```
 
@@ -90,7 +90,7 @@ ui2 <- fluidPage(
     sidebarPanel(
       # h4("Demographic Information"), 
       # sliderInput("total_pop", "Total Population", min = 0, max = 100000, value = 10),
-      sliderInput("mean_income", "Mean Income", min = 0, max = 300000, value = 10),
+      sliderInput("mean_income", "Mean Income per Year (in USD)", min = 0, max = 300000, value = 10),
       # sliderInput("unemployment_perc", "% of Unemployment", min = 0, max = 100, value = 1),
       sliderInput("below_poverty_perc", "% Below Poverty", min = 0, max = 100, value = 1),
       sliderInput("eviction_count", "Number of Evictions", min = 0, max=1500, value =1),
