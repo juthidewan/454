@@ -1,0 +1,148 @@
+---
+title: "Transportation Plots"
+author: "Vichearith"
+date: "12/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(here)
+library(rstan)
+library(rstanarm)
+library(bayesrules)
+library(tidyverse)
+library(rstanarm)
+library(broom.mixed)
+library(tidybayes)
+library(bayesplot)
+library(bayesrules)
+library(tidyverse)
+library(rstanarm)
+library(broom.mixed)
+library(tidybayes)
+library(forcats)
+library(bayesplot)
+library(sf)
+library(nycgeo)
+library(tidycensus)
+```
+# Load Data
+```{r}
+nyc_clean <- read_csv("clean_data/nyc_names_vichy_complied2.csv")
+
+nyc_clean2 <- nyc_clean %>%
+  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
+  mutate(transportation_desert_4num = factor(as.numeric(transportation_desert_4cat))) %>%
+   mutate(asian_perc = (asian_count / total_pop) * 100) %>%
+   mutate(white_perc = (white_count / total_pop)* 100) %>%
+   mutate(black_perc = (black_count / total_pop)* 100) %>%
+   mutate(latinx_perc = (latinx_count / total_pop)* 100) %>%
+   mutate(native_perc = (native_count / total_pop)* 100) %>%
+   mutate(below_poverty_perc = (below_poverty_line_count / total_pop) * 100) %>%
+   mutate(noncitizen_perc = (noncitizen_count / total_pop)* 100) %>%
+   mutate(uninsured_perc = (uninsured_count / total_pop)* 100) %>%
+  mutate(unemployment_perc = (unemployment_count / total_pop)* 100) %>%
+  filter(nta_type == 0)
+```
+
+
+# Transportation Cat Densitiy Distribution
+
+```{r}
+# names(nyc_clean2)
+```
+
+```{r}
+quantile <- quantile(nyc_clean2$perc_covered_by_transit) %>%  as.tibble()
+
+
+nyc_clean2 %>%
+  dplyr::select(perc_covered_by_transit) %>% 
+  mutate(quantile = cut(perc_covered_by_transit, breaks=c(-1,34,86.42,99.9,100), label=c('Q1','Q2','Q3','Q4'))) %>%
+  ggplot(aes(x= perc_covered_by_transit, fill= quantile)) +
+  labs(x = 'Percentage Covered by Subway', 
+       y = 'Density', 
+       title= 'Density Distribution of Percentage Subway Coverage', 
+       fill='Quantile')+
+  expand_limits(x=100)+
+  geom_histogram(binwidth = 1)
+```
+
+
+# data exploration
+- hist 
+- the uneven dist data
+- --> expected impact on model because of the data
+
+- discuss how we break categories
+
+# naive model
+- model building
+- model analysis & performance
+- link back to data uneven dist good for cat 1 & 4 only
+
+
+# ordinal model
+- why ordinal
+- model building
+- model analysis & performance
+- link back to data uneven dist good for cat 1 & 4 only
+
+```{r}
+nyc_clean2 %>%
+  count(transportation_desert_4cat) %>% 
+  ggplot(aes(x=transportation_desert_4cat , y = n, fill= transportation_desert_4cat))+
+  labs(x = 'Subway Desert Categories', 
+       y = 'Observation Count', 
+       title= 'Observation Count of Subway Coverage By Categories', 
+       fill='Subway Desert')+
+  theme(legend.position = 'none')+
+  scale_fill_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"),
+                    guide = guide_legend(title = "Subway Accessibility \nCategory"))+
+  geom_col()
+```
+
+
+
+```{r}
+
+library(ggtext) 
+ggplot(nyc_clean2, aes(x=borough, fill=transportation_desert_4cat)) + 
+  geom_bar() + 
+  labs(
+       title ="Observation Count Per Subway Desert Categories",
+       x='Borough',
+       y="Observation Count",
+       subtitle="<span style='color : #895F32'><b> Poor </b></span>,
+       <span style= 'color : #F9EBD2 '><b> Limited </b>  </span>,
+       <span style= 'color : #709080'> <b> Satisfactory </b> </span> and
+       <span style= 'color : #395645'> <b> Excellent </b> </span>")+
+   scale_fill_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"))+
+  theme(plot.title.position = "plot",
+        legend.position = 'none',
+        plot.title = element_textbox_simple(
+          size = 11,
+          lineheight = 1,
+          padding = margin(5.5, 5.5, 5.5, 5.5),
+          margin = margin(0, 0, 0, 0),
+          fill=rgb(0.9,0.9,1,0.3)),
+        plot.subtitle = element_textbox_simple(
+          size = 11,
+          lineheight = 1,
+          padding = margin(5.5, 5.5, 5.5, 5.5),
+          margin = margin(0, 0, 5.5, 0),
+          fill=rgb(0.9,0.9,1,0.1)
+        ))
+```
+
+
+
+
+
+
