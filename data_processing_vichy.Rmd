@@ -276,7 +276,7 @@ clean_data <- clean_data %>%
 
 ```{r}
 clean_data <- clean_data %>%
-  mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-1, 1, 75, 90, 100), 
+  mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-1, 10, 75, 90, 100), 
                                           labels = c("Poor", "Limited", "Satisfactory", "Excellent")))
 ```
 

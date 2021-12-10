@@ -23,7 +23,9 @@ library(rsample)
 nyc_clean <- read_csv("clean_data/nyc_names_vichy_complied2.csv")
 
 nyc_clean2 <- nyc_clean %>%
-  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
+  # mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
+  mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-1, 10, 60, 90, 100), 
+                                          labels = c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
   mutate(transportation_desert_4num = factor(as.numeric(transportation_desert_4cat))) %>%
    mutate(asian_perc = (asian_count / total_pop) * 100) %>%
    mutate(white_perc = (white_count / total_pop)* 100) %>%
@@ -40,20 +42,30 @@ nyc_clean2 <- nyc_clean %>%
 
 
 ```{r}
-data_split <- initial_split(nyc_clean2, prop = .8) 
+data_split <- initial_split(nyc_clean2, prop = .7) 
 data_train <- training(data_split)
 data_test <- testing(data_split) 
 
 
-quantile(nyc_clean2$perc_covered_by_transit)
+quantile(data_train$perc_covered_by_transit)
 
+data_train %>%
+  # dplyr::select(perc_covered_by_transit) %>% 
+  # mutate(quantile = cut(perc_covered_by_transit, breaks=c(-1,41.4,88.1,99.97,100), label=c('Q1','Q2','Q3','Q4'))) %>%
+  ggplot(aes(x= perc_covered_by_transit, fill= transportation_desert_4cat)) +
+  labs(x = 'Percentage Covered by Subway', 
+       y = 'Density', 
+       title= 'Density Distribution of Percentage Subway Coverage', 
+       fill='Quantile')+
+  expand_limits(x=100)+
+  geom_histogram(binwidth = 1)
 ```
 
 ```{r}
 model1 <- stan_polr(transportation_desert_4num ~   mean_income + unemployment_perc + below_poverty_perc + eviction_count + uninsured_perc +white_perc + asian_perc + black_perc + latinx_perc + school_count + store_count, data =data_train, prior=R2(0.5),iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
 # saveRDS(model1, 'ordinal_model_1.rds')
 
-model2 <- stan_polr(transportation_desert_4num ~ mean_income + below_poverty_perc + eviction_count + store_count, data =data_train, prior=R2(0.5),iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
+model2 <- stan_polr(transportation_desert_4num ~ mean_income + below_poverty_perc + eviction_count + store_count, data =data_train, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
 # saveRDS(model2, 'ordinal_model_2.rds')
 
 ## PP check and Tidy
@@ -65,7 +77,7 @@ model2 <- stan_polr(transportation_desert_4num ~ mean_income + below_poverty_per
 
 tidy(model1, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
 tidy(model2, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
-tidy(model3, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
+# tidy(model3, effects = "fixed", conf.int = TRUE, conf.level = 0.8)
 
 ```
 
@@ -104,18 +116,18 @@ my_prediction2 <- posterior_predict(
   model2, 
   newdata = data_test)
 
-my_prediction3 <- posterior_predict(
-  model3, 
-  newdata = data_test)
+# my_prediction3 <- posterior_predict(
+#   model3, 
+#   newdata = data_test)
 
-nyc_clean2 %>%
-  ggplot(aes(x=mean_income)) + geom_density()
+# nyc_clean2 %>%
+  # ggplot(aes(x=mean_income)) + geom_density()
 
 
 set.seed(86437)
 ordinal_accuracy(my_prediction1,data_test)
 ordinal_accuracy(my_prediction2,data_test)
-ordinal_accuracy(my_prediction3,data_test)
+# ordinal_accuracy(my_prediction3,data_test)
 
 prior_summary(model2)
 
@@ -145,42 +157,42 @@ pred <- posterior_predict(
 ```
 
 ```{r, eval=false}
-df <- as.data.frame(my_prediction2)
-
-
-# first remember the names
-n <- df_switched$name
-
-# transpose all but the first column (name)
-df_switched <- as.data.frame(t(df_switched))
-colnames(df_switched) <- n
-
-aggregated_df <- data.frame("test", "test")
-names(aggregated_df) <- c("highestPred", "actual")
-aggregated_df <- aggregated_df[-1,]
-
-names(sort(-table(df[1])))[1]
-
-
-for (i in 1:36) {
-  highestPred <- names(sort(-table(df[i])))[1]
-  actual <- data_test$transportation_desert_4num[i]
-  newdf <- data.frame(highestPred, actual)
-  names(newdf) <- c("highestPred", "actual")
-  aggregated_df <- rbind(aggregated_df, newdf)
-}
-
-aggregated_df$value = 1
-
-ggplot(aggregated_df, aes(x=actual, y=value, fill=highestPred)) + geom_bar(position="fill", stat="identity") 
-
-
+# df <- as.data.frame(my_prediction2)
+# 
+# 
+# # first remember the names
+# n <- df_switched$name
+# 
+# # transpose all but the first column (name)
+# df_switched <- as.data.frame(t(df_switched))
+# colnames(df_switched) <- n
+# 
+# aggregated_df <- data.frame("test", "test")
+# names(aggregated_df) <- c("highestPred", "actual")
+# aggregated_df <- aggregated_df[-1,]
+# 
+# names(sort(-table(df[1])))[1]
+# 
+# 
+# for (i in 1:55) {
+#   highestPred <- names(sort(-table(df[i])))[1]
+#   actual <- data_test$transportation_desert_4num[i]
+#   newdf <- data.frame(highestPred, actual)
+#   names(newdf) <- c("highestPred", "actual")
+#   aggregated_df <- rbind(aggregated_df, newdf)
+# }
+# 
+# aggregated_df$value = 1
+# 
+# ggplot(aggregated_df, aes(x=actual, y=value, fill=highestPred)) + geom_bar(position="fill", stat="identity") 
+# 
+# 
 
 
 ```
 
 ```{r}
-prediction_long <- my_prediction3 %>% 
+prediction_long <- my_prediction2 %>% 
   t() %>% 
   as.tibble() %>%
   mutate_if(is.character, as.numeric) %>%
@@ -216,9 +228,6 @@ data_test %>%
 
 
 ----------------------------
-```{r}
-model3
-```
 
 
 $$
