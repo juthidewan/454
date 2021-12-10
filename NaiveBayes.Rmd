@@ -6,6 +6,8 @@ output: html_document
 ---
 ```{r}
 library(e1071)
+library(ggplot2)
+library(tidyverse)
 ```
 
 ## Load Data
@@ -28,6 +30,11 @@ nyc_clean2 <- nyc_clean %>%
   filter(nta_type == 0)
 
 ```
+```{r}
+ggplot(nyc_clean2, aes(x=asian_perc)) + geom_density()
+```
+
+
 ## Train Models
 
 ```{r}
