@@ -9,7 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r echo = FALSE}
+# Load packages
 library(tidyverse)
 library(janitor)
 library(here)
@@ -31,81 +32,151 @@ library(bayesplot)
 library(sf)
 library(nycgeo)
 library(tidycensus)
+library(extrafont)
+library(extrafontdb)
+# themes
+theme_set(theme_minimal())
+brown_green <- c("#E9DBC2","#7D9B8A","#4D6F5C","#D29B5B","#744410","#1C432D")
+color_scheme_set(brown_green)
+
+nyc_join <- merge(nta_sf,nta_acs_data)
+
+
+nyc_join <- nyc_join %>%
+  st_transform(., 4269)
+
+county_list <- nyc_join %>% pull(county_name) %>% unique()
+
+
+census_api_key("0cc07f06386e317f312adef5e0892b0d002b7254")
+
+census_data <- get_acs(state = "NY", 
+        county = c(county_list), 
+        geography = "tract", 
+        variables = c(gini_inequality ="B19083_001"),
+        year = 2019,
+        output = "wide",
+        survey = "acs5",
+        geometry = TRUE) %>% 
+  dplyr::select(-c(NAME, ends_with("M"))) %>%
+         rename_at(vars(ends_with("E")), .funs = list(~str_sub(., end = -2)))  %>%
+  st_transform(., 4269) %>%
+  dplyr::select(-GEOID)
+
+vari_names <- read_csv(here("clean_data", "nyc_names_vichy_complied2.csv"))
+nyc_clean <- st_read(here("clean_data", "nyc_data_vichy_complied2.shp"))
+colnames(nyc_clean) <- colnames(vari_names)
+
+gini_neighborhood <- st_join(nyc_clean, census_data, left = TRUE) %>%
+  group_by(nta_id) %>%
+  summarize(gini_neighborhood=median(gini_inequality, na.rm=T)) %>%
+  as.tibble() %>%
+  dplyr::select(nta_id, gini_neighborhood) 
+
+nyc_clean <- nyc_clean %>%
+  as.tibble() %>%
+  left_join(., gini_neighborhood, by="nta_id")%>% 
+  unique() %>%
+  st_as_sf()
+
+nyc_compiled <- nyc_clean %>%
+   mutate(asian_perc = asian_count / total_pop) %>%
+   mutate(white_perc = white_count / total_pop) %>%
+   mutate(black_perc = black_count / total_pop) %>%
+   mutate(latinx_perc = latinx_count / total_pop) %>%
+   mutate(native_perc = native_count / total_pop) %>%
+   mutate(noncitizen_perc = noncitizen_count / total_pop) %>%
+   mutate(evictions_perc = eviction_count / total_pop) %>%
+   mutate(uninsured_perc = uninsured_count / total_pop) %>%
+  mutate(unemployment_perc = unemployment_count / total_pop) %>%
+  mutate(below_poverty_line_perc = below_poverty_line_count / total_pop) %>%
+  mutate(transportation_desert_4cat = 
+           factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent")))
 ```
-# Load Data
-```{r}
-nyc_clean <- read_csv("clean_data/nyc_names_vichy_complied2.csv")
 
-nyc_clean2 <- nyc_clean %>%
-  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
-  mutate(transportation_desert_4num = factor(as.numeric(transportation_desert_4cat))) %>%
-   mutate(asian_perc = (asian_count / total_pop) * 100) %>%
-   mutate(white_perc = (white_count / total_pop)* 100) %>%
-   mutate(black_perc = (black_count / total_pop)* 100) %>%
-   mutate(latinx_perc = (latinx_count / total_pop)* 100) %>%
-   mutate(native_perc = (native_count / total_pop)* 100) %>%
-   mutate(below_poverty_perc = (below_poverty_line_count / total_pop) * 100) %>%
-   mutate(noncitizen_perc = (noncitizen_count / total_pop)* 100) %>%
-   mutate(uninsured_perc = (uninsured_count / total_pop)* 100) %>%
-  mutate(unemployment_perc = (unemployment_count / total_pop)* 100) %>%
-  filter(nta_type == 0)
+# Subway Accessibility
+
+New York City is the most populous city in the US with [more than 8.8 million people](https://en.wikipedia.org/wiki/New_York_City). To support the daily commutes of its residents, NYC also built the New York City Subway, the oldest, longest, and currently busiest subway system in the US, averaging [approximately 5.6 million daily rides on weekdays and a combined 5.7 million rides each weekend](https://en.wikipedia.org/wiki/New_York_City_Subway). 
+
+Compared to other US cities where automobiles are the most popular mode of transportation (ahem, Minneapolis), only 32% of NYC's population chooses to commute by cars. NYC's far-reaching transit system is then unique, given that [more than 70% of the population](https://en.wikipedia.org/wiki/Modal_share) commute by cars in other metropolitan areas.
+
+Despite having the most extensive transit network in the entire US, NYC is still lacking in terms of transit accessibility for some neighborhoods. The general consensus in academia is that residents who walk more than 0.5 miles to get to reliable transit are considered lacking transportation access, or residing in a transportation desert. For our research, we adopted this concept to study these gaps in transportation access. Specifically, we attempt to identify and study "Subway Deserts". 
+
+## Subway Desert Definition 
+
+Extending the USDA's definition of a food desert, we define subway deserts as the percentage of a neighborhood— or any arbitrary geographic area— that is within walking distance of any subway stop. Citing the U.S. Federal Highway Administration, we defined walking distance as [a 0.5 mile radius](https://safety.fhwa.dot.gov/ped_bike/ped_transit/ped_transguide/ch4.cfm) and computed these regions in ArcGIS. We chose subway stations because of the subway's reliable frequency, high connectivity between boroughs, and high ridership per vehicle. Our argument against including the number of bus stops in our calculations of transportation access is that the quantity of bus stops does not accurately imply public transport accessibility due to the variability in bus efficiency, punctuality, and use. A major limitation of our work was the omission of Staten Island because it is not connected to any other borough by subway. Rather, Staten Island users typically drive or train into the city. Further, we felt that the inclusion of Staten Island would mischaracterize the relationship between lacking access and not needing access since Staten Island is an overwhelmingly white, wealthy, borough that has high levels of [car ownership](https://edc.nyc/article/new-yorkers-and-their-cars).
+
+We first geocoded subway stop locations in NYC from the NYC Department of Transportation. Then, using ArcGIS we created a 0.5-mile-radius buffer for each station and calculated what percent of each neighborhood was covered by a buffer region. We display an example below.
+
+
+```{r, echo=FALSE, out.height="50%", out.width="50%", fig.cap="A nice image."}
+knitr::include_graphics(here("gis_buffer.png"))
 ```
 
 
-# Transportation Cat Densitiy Distribution
+In the graph, buffer zones are in light pink with overlapping boundaries dissolved between stations, while the dark pink dots indicate the exact geographic locations of the stations. Each neighborhood, then, had a percentage score that defined it's subway accessibility score. 
 
-```{r}
-# names(nyc_clean2)
+Upon observation, we categorized the areas served by the subway network into four ordinal categories: Poor, Limited, Satisfactory, and Excellent. These categories are defined at 0-1\%, 1-75\%, 75-90\%, and 90-100\% of area covered by transit, respectively. We defined these cutoffs using the distribution of subway coverage percentages and our own judgment on what constitutes a desert. As such, these cutoffs are specific to New York City and may not be perfectly reproducible. The following plot details the spatial locations of these transportation categories.
+
+
+```{r, fig.height=5*1.2, fig.width=5*1.2}
+nyc_compiled %>%
+  ggplot() +
+  geom_sf(aes(fill = transportation_desert_4cat), color = "#8f98aa") +
+  scale_fill_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"),
+                       guide = guide_legend(title = "Subway Accessibility \nCategory"), na.value="#D6D6D6") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line("transparent"),
+        axis.text = element_blank()) +
+  ggtitle("Subway Accessibility by \nNeighborhood in NYC")+ 
+    theme(panel.grid.major = element_line("transparent"),
+          plot.title = element_text(family="DIN Condensed", size = 35, face = "bold"),
+          legend.title = element_text(size = 12), 
+          legend.text = element_text(size = 12)) + 
+    guides(shape = guide_legend(override.aes = list(size = 8)),
+           color = guide_legend(override.aes = list(size = 8)))
 ```
+
+In the following two subsections, we describe how we understood and classified transportation deserts using two models.
+
+# The Observation Distribution of Subway Coverage Percentage 
+
+The distribution of data in each categories can impact the performance of classification model. In fact, the our dataset, observation with subway coverage percentage between 99% to 100% accounts for more than 25% of the total observation. In another word, for the number of observation labeled excellent sub way coverage is significantly higher than those of other categories. 
 
 ```{r}
 quantile <- quantile(nyc_clean2$perc_covered_by_transit) %>%  as.tibble()
 
-
-nyc_clean2 %>%
+nyc_compiled %>%
   dplyr::select(perc_covered_by_transit) %>% 
   mutate(quantile = cut(perc_covered_by_transit, breaks=c(-1,34,86.42,99.9,100), label=c('Q1','Q2','Q3','Q4'))) %>%
   ggplot(aes(x= perc_covered_by_transit, fill= quantile)) +
   labs(x = 'Percentage Covered by Subway', 
        y = 'Density', 
-       title= 'Density Distribution of Percentage Subway Coverage', 
+       title= 'Density Distribution of Percentage Subway Coverage Color in Quantile', 
        fill='Quantile')+
   expand_limits(x=100)+
-  geom_histogram(binwidth = 1)
+  geom_histogram(binwidth = 1)+
+   theme(legend.position = 'top',
+        panel.grid.major.x = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size =10, hjust=.5, face = "bold"))
 ```
 
-
-# data exploration
-- hist 
-- the uneven dist data
-- --> expected impact on model because of the data
-
-- discuss how we break categories
-
-# naive model
-- model building
-- model analysis & performance
-- link back to data uneven dist good for cat 1 & 4 only
-
-
-# ordinal model
-- why ordinal
-- model building
-- model analysis & performance
-- link back to data uneven dist good for cat 1 & 4 only
 
 ```{r}
 nyc_clean2 %>%
   count(transportation_desert_4cat) %>% 
   ggplot(aes(x=transportation_desert_4cat , y = n, fill= transportation_desert_4cat))+
+  geom_col() + 
   labs(x = 'Subway Desert Categories', 
        y = 'Observation Count', 
        title= 'Observation Count of Subway Coverage By Categories', 
        fill='Subway Desert')+
-  theme(legend.position = 'none')+
   scale_fill_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"),
                     guide = guide_legend(title = "Subway Accessibility \nCategory"))+
-  geom_col()
+    theme(legend.position = 'none',
+        axis.title.x = element_blank(),
+        panel.grid.major.x = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size =10, hjust=.5, face = "bold")) 
 ```
 
 
@@ -116,29 +187,35 @@ library(ggtext)
 ggplot(nyc_clean2, aes(x=borough, fill=transportation_desert_4cat)) + 
   geom_bar() + 
   labs(
-       title ="Observation Count Per Subway Desert Categories",
+       title ="Observation Count Per Subway Desert Categories By Borough",
        x='Borough',
        y="Observation Count",
        subtitle="<span style='color : #895F32'><b> Poor </b></span>,
-       <span style= 'color : #F9EBD2 '><b> Limited </b>  </span>,
+       <span style= 'color : #E5c7B5 '><b> Limited </b>  </span>,
        <span style= 'color : #709080'> <b> Satisfactory </b> </span> and
        <span style= 'color : #395645'> <b> Excellent </b> </span>")+
    scale_fill_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"))+
   theme(plot.title.position = "plot",
         legend.position = 'none',
+
+        axis.title.x = element_blank(),
         plot.title = element_textbox_simple(
-          size = 11,
+         family="DIN Condensed",
+         size =11, hjust=.5, 
+         face = "bold", 
           lineheight = 1,
           padding = margin(5.5, 5.5, 5.5, 5.5),
           margin = margin(0, 0, 0, 0),
           fill=rgb(0.9,0.9,1,0.3)),
         plot.subtitle = element_textbox_simple(
-          size = 11,
+          size = 10,
+          family="DIN Condensed",
           lineheight = 1,
           padding = margin(5.5, 5.5, 5.5, 5.5),
           margin = margin(0, 0, 5.5, 0),
           fill=rgb(0.9,0.9,1,0.1)
         ))
+
 ```
 
 
