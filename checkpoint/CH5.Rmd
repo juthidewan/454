@@ -344,6 +344,40 @@ Importantly, naive Bayes assumes that all quantitative predictors are normally d
 
 Having realized the shortcomings of the naive Bayes model, we wanted to see if there are any alternatives. We land on the ordinal regression model.
 
+$$
+
+Y_i| \zeta_1, \zeta_2,\zeta_3,\beta_1, \beta_2,\beta_3, \beta_4 =
+\begin{cases}
+1 &, y^{*} < \zeta_1 \\
+2 &, \zeta_1 \leq y^{*} < \zeta_2 \\
+3 &, \zeta_2 \leq y^{*} < \zeta_3 \\
+4 &, y^{*} \geq \zeta_3 \\
+\end{cases} 
+
+
+y^{*} = \beta_1x_1 + \beta_2x_2 + \beta_3x_3 + \beta_4x_4 + \epsilon \\
+
+$$
+- $\zeta_i$ : is a vector of cut-points for categories. 
+- $y^{*}$ : a linear combination of 6 predictor variables consisting of `mean income`, `below poverty percentage`, `eviction count`, and `store_count`.
+- $\beta_i$ : is the coefficient for the $ith$ predictor variable. 
+
+$$
+\zeta_1 \sim N(m_{\zeta 1}, s_{\zeta 1}^{2}) \\
+\zeta_2 \sim N(m_{\zeta 2}, s_{\zeta 2}^{2}) \\
+\zeta_3 \sim N(m_{\zeta 3}, s_{\zeta 3}^{2}) \\
+\zeta_4 \sim N(m_{\zeta 4}, s_{\zeta 4}^{2}) \\
+\beta_1 \sim N(m_{\beta 1}, s_{\beta 1}^{2}) \\
+\beta_2 \sim N(m_{\beta 2}, s_{\beta 2}^{2}) \\
+\beta_3 \sim N(m_{\beta 3}, s_{\beta 3}^{2}) \\
+\beta_4 \sim N(m_{\beta 4}, s_{\beta 4}^{2}) \\
+$$
+Since we do not have prior information about the data, we will be using the default prior R2 given by the `stan_polr` function. 
+
+Note:
+- There is no intercept in this model because the data cannot distinguish an intercept from the cut points. 
+
+
 ```{r}
 library(rsample)
 set.seed(454)
