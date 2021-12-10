@@ -796,7 +796,6 @@ Increases in White-resident proportions were uniformly associated with increases
 Our next section details the statistical models we used to better characterize the clear relationships between housing inequities, urban racism, and transportation access.
 
 ## Non-Hierarchical Models
-### Bayesian Model Specification
 
 In order to understand the respective distributions of immigrant population size, evictions, and mean rental prices in NYC, we fit 3 non-hierarchical Bayesian models with each variable as an outcome. In the following section, we fit hierarchical regression models with similar likelihood and prior structure. However, in those models neighborhood values are grouped by borough. 
 
@@ -831,7 +830,7 @@ For 2, we also used weakly informative normal priors on all predictors. However,
 
 Our model specifications are detailed in the following subsections
 
-#### Model 1: Immigrant/Non-Citizen Count
+### Model 1: Immigrant/Non-Citizen Count
 
 ```{r}
 modeling_data <- nyc_compiled  %>%
@@ -895,10 +894,17 @@ s_k \in \{
 \end{align}
 $$`
 
+```{r, fig.height=6, fig.width=12}
+pp_check(noncit_model)+ 
+  xlab("Non-Citizen Count") +
+  labs(title = "Negative Binomial Model of \nImmigrant/Non-Citizen Count")+
+  theme(plot.title =  element_text(family="DIN Condensed", face="bold", size=25, hjust=.5)) 
+```
 
-#### Model 2: Mean Neighborhood Rental Prices
+It seems that our simulations (light green) of non-citizen count distributions were largely consistent across our iterations. However, our simulations were strongly biased from the observed non-citizen counts where we would typically predict smaller non-citizen counts more frequently. Additionally, it seemed that variance between simulations increased as non-citizen counts increased. Acknowledging these trends, our negative-binomial model seems to be a pretty good distributional fit, but could certainly be improved upon! 
 
-`transportation_desert_4cat`, `borough`, `gini_neighborhood`, `mean_income`, `black_perc`, `latinx_perc`, `asian_perc`, `below_poverty_line_perc`,`school_count`,`store_count``
+
+### Model 2: Mean Neighborhood Rental Prices
 
 ```{r}
 rent_model <- stan_glm(
@@ -949,7 +955,18 @@ $$`
 Once again note that we are specifying the parameters of our scaled intercept prior, `$\beta_{0c}$`, so that the the typical mean neighborhood rental price `$\sim $N(1600,20^2)$`, while our priors for the $\beta_k$ are weakly-informed negative priors. We chose our prior intercept specifications of mean rental price (`$\beta_{0c}$`) using Juthi’s experience renting in NYC and a group conversation about typical rental prices we would elect to pay in NYC, Los Angeles, and other major cities we have lived in or around. However, we decided to continue using weakly-informative normal priors for the predictors because we were unsure about their relationship— if any— to rental prices.
 
 
-#### Model 3: Eviction Count
+```{r, fig.height=6, fig.width=12}
+pp_check(rent_model)+ 
+  xlab("Mean Rental Price") +
+  labs(title = "Normal Model of \nMonthly Mean Rental Price")+
+  theme(plot.title =  element_text(family="DIN Condensed", face="bold", size=25, hjust=.5)) 
+```
+
+Our simulations are relatively consistent. However, these simulated distributions are much more variable than the simulated distributions we saw in our non-citizen rent model. Importantly, it also seems our simulated normal posterior distributions had higher variance than what was observed and that is likely because the mean rental prices themselves are not perfectly normally distributed. Theoretically, we could change our likelihood model to adjust for the skew, but for now this is good!
+
+
+
+### Model 3: Eviction Count
 
 ```{r}
 eviction_model <- stan_glm(
@@ -996,20 +1013,20 @@ s_k \in \{
 \end{align}
 $$`
 
-In the following sections, we go through each particular model's outcome and what they tell us about the relationships between transportation and housing.
-
-### Model Performance
-
-#### Model 1: Immigrant/Non-Citizen Count
-
 ```{r, fig.height=6, fig.width=12}
-pp_check(noncit_model)+ 
-  xlab("Non-Citizen Count") +
-  labs(title = "Negative Binomial Model of \nImmigrant/Non-Citizen Count")+
+pp_check(eviction_model)+ 
+  xlab("Eviction Count") +
+  xlim(0,2000)+
+  labs(title = "Negative Binomial Model of \nEviction Count")+
   theme(plot.title =  element_text(family="DIN Condensed", face="bold", size=25, hjust=.5)) 
 ```
 
-It seems that our simulations (light green) of non-citizen count distributions were largely consistent across our iterations. However, our simulations were relatively biased from the observed non-citizen counts where we would typically predict smaller non-citizen counts more frequently. Additionally, it seemed that variance between simulations increased as non-citizen counts increased. Acknowledging these trends, our negative-binomial model seems to be a pretty good distributional fit, but could certainly be improved upon! 
+Our simulations of eviction count distributions are dramatically consistent across the iterations. Further, our simulations were relatively consistent with the observed eviction counts. Our negative-binomial model seems to be a pretty good distributional fit, but could certainly be improved upon! 
+
+
+## Model Performance
+
+### Model 1: Immigrant/Non-Citizen Count
 
 ```{r, fig.height=6, fig.width=12}
 non_citizen_clean <- modeling_data %>%
@@ -1089,17 +1106,7 @@ tidy(noncit_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>%
 - Asian Percentage: When controlling for all other predictors, a 10% increase in the Asian population in a neighborhood is associated with approximately a 19.63% increase in non citizen count. However, there is an 80% chance that the increase in non citizen count may be any value between (15.75%, 23.69%), indicating that there is almost certainly a positive relationship between Asian resident percentage and non citizen count, but its magnitude may vary.
 
 
-#### Model 2: Mean Neighborhood Rental Prices
-
-```{r, fig.height=6, fig.width=12}
-pp_check(rent_model)+ 
-  xlab("Mean Rental Price") +
-  labs(title = "Normal Model of \nMonthly Mean Rental Price")+
-  theme(plot.title =  element_text(family="DIN Condensed", face="bold", size=25, hjust=.5)) 
-```
-
-Our simulations are relatively consistent. However, these simulated distributions are much more variable than the simulated distributions we saw in our non-citizen rent model. Importantly, it also seems our simulated normal posterior distributions had higher variance than what was observed and that is likely because the mean rental prices themselves are not perfectly normally distributed. Theoretically, we could change our likelihood model to adjust for the skew, but for now this is good!
-
+### Model 2: Mean Neighborhood Rental Prices
 
 ```{r, fig.height=6, fig.width=12}
 rent_clean <- modeling_data %>%
@@ -1165,15 +1172,7 @@ For rent model:
 
 
 
-#### Model 3: Eviction Count
-
-```{r, fig.height=6, fig.width=12}
-pp_check(eviction_model)+ 
-  xlab("Eviction Count") +
-  xlim(0,2000)+
-  labs(title = "Negative Binomial Model of \nEviction Count")+
-  theme(plot.title =  element_text(family="DIN Condensed", face="bold", size=25, hjust=.5)) 
-```
+### Model 3: Eviction Count
 
 ```{r, fig.height=6, fig.width=12}
 eviction_clean <- modeling_data %>%
@@ -1260,7 +1259,6 @@ Next, we interpret each predictor:
 
 
 ## Hierarchical Models
-### Bayesian Model Specification
 
 We also fit 3 Bayesian hierarchical models similar to those in the previous section. Now, however, we let borough be a natural grouping variable of our data. Note that prior distributions for predictors' associated $\beta$ values and the data are the same.
 
@@ -1284,7 +1282,7 @@ Again for 1 and 3, we used weakly informative priors and allowed `stan_glm` to e
 
 Our model specifications are detailed in the following subsections
 
-#### Model 1: Immigrant/Non-Citizen Count
+### Model 1: Immigrant/Non-Citizen Count
 
 
 ```{r}
@@ -1302,9 +1300,7 @@ hi_noncit_model <- stan_glmer(
 
 `$$
 \begin{split}
-\text{Non-Citizen Count}_{ij} \mid  \beta_{0}, \beta_1, ..., \beta_k, r & \sim \text{NegBin}(\mu_{ij}, r) \; \; \; \text{where } \log((\mu_{ij}) = \beta_{0j} + \sum^{14}_{k=1} \beta_{k}X_{ijk} \\
-
-
+\text{Non-Citizen Count}_{ij} \mid  \beta_{0}, \beta_1, ..., \beta_k, r & \sim \text{NegBin}(\mu_{ij}, r) \; \; \; \text{where } \log(\mu_{ij}) = \beta_{0j} + \sum^{11}_{k=1} \beta_{k}X_{ijk} \\
 \beta_{0j}\mid \beta_{0}, \sigma_0 & \stackrel{ind}{\sim} N(\beta_0, \sigma_0^2)\\	
 \beta_{0c} &\sim N(0, 2.5^2) \\
 r &\sim \text{Exp}(1)\\
@@ -1328,13 +1324,22 @@ s_k \in \{
 39.9937,				
 0.993,				
 1.142,
-1.6003
-\}
+1.6003\}
 \end{align}
 $$`
 
 
-#### Model 2: Mean Neighborhood Rental Prices
+```{r, fig.height=6, fig.width=12}
+pp_check(hi_noncit_model)+ 
+  xlab("Non-Citizen Count") +
+  labs(title = "Hierarchical Negative Binomial Model of \nImmigrant/Non-Citizen Count")+
+  theme(plot.title =  element_text(family="DIN Condensed", face="bold", size=25, hjust=.5)) 
+```
+
+It seems that our simulations of non-citizen count distributions in the hierarchical model were largely consistent across the iterations. Similar to the non-hierarchical model, our simulations are biased away from the observed non-citizen counts as our model predicts a higher number of non-citizens more frequently. 
+
+
+### Model 2: Mean Neighborhood Rental Prices
 
 ```{r}
 hi_rent_model <- stan_glmer(
@@ -1353,7 +1358,6 @@ hi_rent_model <- stan_glmer(
 `$$
 \begin{split}
 \text{Mean Rental Price}_{ij} \mid  \beta_{0j}, \beta_1, \dots, \beta_k,\sigma_y & \sim N(\mu_{ij}, \sigma_y^2) \; \; \; \text{where } \mu_{ij} = \beta_{0j} + \sum^{11}_{k=1} \beta_{k}X_{ijk} \\
-
 \beta_{0j} & \stackrel{ind}{\sim} N(\beta_0, \sigma_0^2)\\	
 \beta_{0c} &\sim N(1600, 20^2) \\
 \sigma_y  &\sim \text{Exp}(1)\\
@@ -1373,8 +1377,7 @@ s_k \in \{
 249.6185				
 0.0325
 4.3562		\\			
-&			
-5.0098				
+& 5.0098				
 7.0204				
 110.1265				
 1.7160	
@@ -1385,8 +1388,17 @@ $$`
 
 We chose our prior specifications of mean rental price (`$\beta_{0c}$`) using Juthi’s experience renting in NYC and a group conversation about typical rental prices we would elect to pay in NYC, Los Angeles, and other major cities we have lived in or around. 
 
+```{r, fig.height=6, fig.width=12}
+pp_check(hi_rent_model)+
+  xlab("Mean Rental Price") +
+  labs(title = "Hierarchical Normal Model of \nMonthly Mean Rental Price")+
+  theme(plot.title =  element_text(family="DIN Condensed", face="bold", size=25, hjust=.5)) 
+```
 
-#### Model 3: Eviction Count
+Our simulations are relatively consistent. However, these simulated distributions are much more variable than the simulated distributions we saw in our non-citizen rent model. Importantly, it also seems our simulated normal posterior distributions had higher variance than what was observed and that is likely because the mean rental prices themselves are not perfectly normally distributed. Theoretically, we could change our likelihood model to adjust for the skew, but for now this is good!
+
+
+### Model 3: Eviction Count
 
 ```{r}
 hi_eviction_model <- stan_glmer(
@@ -1401,39 +1413,51 @@ hi_eviction_model <- stan_glmer(
 )
 ```
 
-$$\begin{split}
-\text{Eviction Count} \mid  \beta_{0c}, \beta_1, ..., \beta_k, r & \sim \text{NegBin}(\mu, r) \; \; \; \; \text{where} \log(\mu) = \beta_{0c} + \sum^{14}_{k=1}X_{k}\beta_k \\
-\beta_{0c} &\sim N(0,2.5^2)\\				
-\beta_{1} &\sim N(0,6.2992^2)\\				
-\beta_{2} &\sim N(0,6.7813^2)\\				
-\beta_{3} &\sim N(0,4.9972^2)\\				
-\beta_{4} &\sim N(0,1e-04^2)\\				
-\beta_{5} &\sim N(0,5.4697^2)\\				
-\beta_{6} &\sim N(0,6.443^2)\\				
-\beta_{7} &\sim N(0,5.3347^2)\\				
-\beta_{8} &\sim N(0,56.9002^2)\\				
-\beta_{9} &\sim N(0,0.0074^2)\\				
-\beta_{10} &\sim N(0,0.5699^2)\\
-\beta_{11} &\sim N(0,0.993^2)\\				
-\beta_{12} &\sim N(0,1.142^2)\\				
-\beta_{13} &\sim N(0,1.6003^2)\\	
-r & \sim Exp(1) \\
-\end{split}$$
+`$$
+\begin{split}
+\text{Eviction Count}_{ij} \mid  \beta_{0}, \beta_1, ..., \beta_k, r & \sim \text{NegBin}(\mu_{ij}, r) \; \; \; \text{where } \log(\mu_{ij}) = \beta_{0j} + \sum^{11}_{k=1} \beta_{k}X_{ijk} \\
+\beta_{0j}\mid \beta_{0}, \sigma_0 & \stackrel{ind}{\sim} N(\beta_0, \sigma_0^2)\\	
+\beta_{0c} &\sim N(0, 2.5^2) \\
+r &\sim \text{Exp}(1)\\
+\sigma_0 &\sim \text{Exp}(1)\\
+\beta_{k} &\sim N(0,s_k^2) 
+\end{split}
+$$`
 
+`$\text{and where}$`
 
+`$$
+\begin{align}
+s_k \in \{
+&5.5004,				
+7.9328,				
+4.9972,				
+0.0001,				
+25.1032,	56.9002,		\\			
+&	0.0074,				
+0.5699,				
+0.9930,				
+1.1420,
+1.6003
+\}
+\end{align}
+$$`
+
+```{r, fig.height=6, fig.width=12}
+pp_check(eviction_model)+ 
+  xlab("Eviction Count") +
+  xlim(0,2000)+
+  labs(title = "Negative Binomial Model of \nEviction Count")+
+  theme(plot.title =  element_text(family="DIN Condensed", face="bold", size=25, hjust=.5)) 
+```
+
+Our simulations of eviction count distributions are dramatically consistent across the iterations. Further, our simulations were relatively consistent with the observed eviction counts. Our negative-binomial model seems to be a pretty good distributional fit, but could certainly be improved upon! 
 
 In the following sections, we go through each particular model's outcome and what they tell us about the relationships between transportation and housing.
 
-### Model Performance
+## Model Performance
 
-#### Model 1: Immigrant/Non-Citizen Count
-
-```{r, fig.height=6, fig.width=12}
-pp_check(hi_noncit_model)+ 
-  xlab("Non-Citizen Count") +
-  labs(title = "Hierarchical Negative Binomial Model of \nImmigrant/Non-Citizen Count")+
-  theme(plot.title =  element_text(family="DIN Condensed", face="bold", size=25, hjust=.5)) 
-```
+### Model 1: Immigrant/Non-Citizen Count
 
 ```{r, fig.height=6, fig.width=12}
 non_citizen_clean <- modeling_data %>%
@@ -1509,14 +1533,7 @@ tidy(hi_noncit_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>%
 - Asian Percentage: When controlling for all other predictors, a 10% increase in the Asian population in a neighborhood is associated with approximately a 19.63% increase in non citizen count. However, there is an 80% chance that the increase in non citizen count may be any value between (15.75%, 23.69%), indicating that there is almost certainly a positive relationship between Asian resident percentage and non citizen count, but its magnitude may vary.
 
 
-#### Model 2: Mean Neighborhood Rental Prices
-
-```{r, fig.height=6, fig.width=12}
-pp_check(hi_rent_model)+ 
-  xlab("Mean Rental Price") +
-  labs(title = "Hierarchical Normal Model of \nMonthly Mean Rental Price")+
-  theme(plot.title =  element_text(family="DIN Condensed", face="bold", size=25, hjust=.5)) 
-```
+### Model 2: Mean Neighborhood Rental Prices
 
 ```{r, fig.height=6, fig.width=12}
 rent_clean <- modeling_data %>%
@@ -1580,15 +1597,7 @@ For rent model:
 
 
 
-#### Model 3: Eviction Count
-
-```{r, fig.height=6, fig.width=12}
-pp_check(hi_eviction_model)+ 
-  xlab("Eviction Count") +
-  xlim(0,2000)+
-  labs(title = "Hierarchical Negative Binomial Model of \nEviction Count")+
-  theme(plot.title =  element_text(family="DIN Condensed", face="bold", size=25, hjust=.5)) 
-```
+### Model 3: Eviction Count
 
 ```{r, fig.height=6, fig.width=12}
 eviction_clean <- modeling_data %>%
