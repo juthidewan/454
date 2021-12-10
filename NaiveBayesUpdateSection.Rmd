@@ -1,0 +1,161 @@
+---
+title: "Naive Bayes Model Update"
+author: "Vichearith"
+date: "12/10/2021"
+output: html_document
+---
+```{r}
+library(tidyverse)
+library(janitor)
+library(here)
+library(rstan)
+library(rstanarm)
+library(bayesrules)
+library(tidyverse)
+library(rstanarm)
+library(broom.mixed)
+library(tidybayes)
+library(bayesplot)
+library(bayesrules)
+library(tidyverse)
+library(rstanarm)
+library(broom.mixed)
+library(tidybayes)
+library(forcats)
+library(bayesplot)
+library(sf)
+library(nycgeo)
+library(tidycensus)
+library(extrafont)
+library(extrafontdb)
+library(table1)
+
+library(kableExtra)
+# themes
+theme_set(theme_minimal())
+brown_green <- c("#E9DBC2","#7D9B8A","#4D6F5C","#D29B5B","#744410","#1C432D")
+color_scheme_set(brown_green)
+vari_names <- read_csv(here("clean_data", "nyc_names_vichy_complied2.csv"))
+nyc_clean <- st_read(here("clean_data", "nyc_data_vichy_complied2.shp"))
+colnames(nyc_clean) <- colnames(vari_names)
+```
+
+## Naive Bayes Model
+
+Naive Bayes Model is one of the most popular models for classifying a response variable with 2 or more categories.
+
+We implemented a Naive Bayes classifier on subway access because it is both computationally efficient and applicable to Bayesian classification settings where outcomes may have 2+ categories. Specifically, we fit transportation access by taking mean income, percentage below the poverty line, eviction count, and the number of grocery stores. Because we are predicting 4 levels of transportation access, we initially fit this model using the `e1071` package to classify subway transit level. 
+
+The goal of using Naive Bayes model is to see how this algorithm make prediction about the data. The result from Naive Bayes model can be used to compare with the Ordinal Model, which we will explore in the next section,in showing how various algorithm differ fundamentally and consequentially from one another. 
+
+
+```{r}
+library(e1071)
+
+nyc_naive <- read_csv(here("clean_data", "nyc_names_vichy_complied2.csv"))%>%
+  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
+  mutate(transportation_desert_4num = factor(as.numeric(transportation_desert_4cat))) %>%
+   mutate(asian_perc = (asian_count / total_pop) * 100) %>%
+   mutate(white_perc = (white_count / total_pop)* 100) %>%
+   mutate(black_perc = (black_count / total_pop)* 100) %>%
+   mutate(latinx_perc = (latinx_count / total_pop)* 100) %>%
+   mutate(native_perc = (native_count / total_pop)* 100) %>%
+   mutate(below_poverty_perc = (below_poverty_line_count / total_pop) * 100) %>%
+   mutate(noncitizen_perc = (noncitizen_count / total_pop)* 100) %>%
+   mutate(evictions_perc = (eviction_count / total_pop)* 100) %>%
+   mutate(uninsured_perc = (uninsured_count / total_pop)* 100) %>%
+  mutate(unemployment_perc = (unemployment_count / total_pop)* 100) %>%
+  filter(nta_type == 0)
+
+set.seed(454)
+naive_model <- naiveBayes(transportation_desert_4cat ~ 
+                              mean_income + 
+                            below_poverty_perc + 
+                            eviction_count +
+                            store_count, 
+                            data = nyc_naive)
+
+```
+
+
+```{r}
+naive2_prediction <- naive_classification_summary_cv(naive_model, 
+                                nyc_naive, 
+                                y="transportation_desert_4cat", k=10)$cv
+naive2_prediction %>%
+  kable(align = "c", caption = "Naive Model - Summary") %>% 
+  kable_styling()
+```
+
+
+Under 10-fold cross validation, our Naive Bayes model had an overall cross-validated accuracy of 51.11\%. However, our predictions were most accurate when predicting Poor transportation access (78.12\%) and Excellent transportation access (72.62\%). The following plot describes the cross-validated accuracy breakdown by each observed transportation access category.
+
+
+
+```{r}
+prediction <- as.data.frame(naive2_prediction) %>%
+  pivot_longer(
+  cols= Poor:Excellent, 
+  names_to = 'Predictions', 
+  values_to = 'Probability'
+) %>% 
+  mutate(Probability = as.numeric(str_extract(Probability,'\\d+\\.\\d+'))/100) %>%
+  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
+  mutate(Predictions = factor(Predictions, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) 
+
+
+prediction %>%  
+  ggplot(aes(x=transportation_desert_4cat, y=Probability, fill=Predictions)) + 
+  geom_bar(position="fill", stat="identity")  +
+  scale_y_continuous(labels = seq(0, 100, by = 25)) +
+  labs(title="Accessibility Predictions by Observed Category", y="Proportion", x="")+
+    theme(panel.grid.major.x = element_line("transparent"),
+         # axis.text.y.left = element_blank(),
+          axis.text.x.bottom = element_text(size = 12, face = "bold"),
+          plot.title = element_text(size = 20, hjust=.5, face = "bold", family="DIN Condensed")) +
+   scale_fill_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"),
+                       guide = guide_legend(title = "Subway Accessibility \nCategory"), na.value="#D6D6D6") 
+
+```
+
+From the plot, it is clear that our naive Bayes model is sufficient when predicting the extrema of subway (in)access given the overwhelming proportion of true-poor and true-excellent classifications. However, it remains imperfect when considering the inaccuracy for both the limited and satisfactory transportation categories, our data's distributions, and its interpretability.
+
+Importantly, naive Bayes assumes that all quantitative predictors are normally distributed within each Y category and further it assumes (i.e. that predictors are independent within each Y category). Our data do not meet these assumptions, unfortunately. Further, naive Bayes is a black box classifier. That is, naive Bayes classification might give us accurate predictions, but it doesn’t give us a sense of where these predictions come from or subway access is related to the predictors.
+
+```{r}
+plot_distribution <- function(data, category,  title){
+  return(
+    data %>% 
+      ggplot(aes(x={{category}}, color= transportation_desert_4cat))+
+      geom_density() +
+      labs(y= "Density Distribution", 
+           title= title) + 
+      facet_wrap(~transportation_desert_4cat)+
+      theme(legend.position = 'none',
+        panel.grid.major.x = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size =10, hjust=.5, face = "bold"), 
+        axis.title.x = element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.x=element_blank() ) + 
+      scale_color_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645")) 
+  )
+}
+
+library(egg)
+ggarrange(
+plot_distribution(nyc_naive, mean_income,  'Mean Income Distribution'),
+plot_distribution(nyc_naive, eviction_count, 'Eviction Count Distribution'),
+plot_distribution(nyc_naive, store_count, 'Store Count Distribution'),
+plot_distribution(nyc_naive, below_poverty_perc,  'Percentage Below Poverty Distribution')
+)
+  
+
+
+```
+
+
+
+
+
+
+
