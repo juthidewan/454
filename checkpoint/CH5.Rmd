@@ -342,7 +342,7 @@ Importantly, naive Bayes assumes that all quantitative predictors are normally d
 
 ## Ordinal Model
 
-Having realized the shortcomings of the naive Bayes model, we wanted to see if there are any alternatives. We land on the ordinal regression model.
+Having realized the shortcomings of the naive Bayes model, we wanted to see if there are any alternatives. We land on the ordinal regression model. An ordinal regression model
 
 $$
 
@@ -354,7 +354,7 @@ Y_i| \zeta_1, \zeta_2,\zeta_3,\beta_1, \beta_2,\beta_3, \beta_4 =
 4 &, y^{*} \geq \zeta_3 \\
 \end{cases} 
 
-
+\\
 y^{*} = \beta_1x_1 + \beta_2x_2 + \beta_3x_3 + \beta_4x_4 + \epsilon \\
 
 $$
