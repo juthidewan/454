@@ -277,7 +277,9 @@ clean_data <- clean_data %>%
 ```{r}
 clean_data <- clean_data %>%
   mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-1, 10, 75, 90, 100), 
-                                          labels = c("Poor", "Limited", "Satisfactory", "Excellent")))
+                                          labels = c("Poor", "Limited", "Satisfactory", "Excellent"))) %>% 
+  mutate(transportation_desert_3cat = cut(perc_covered_by_transit, breaks=c(-1, 25, 75, 100), 
+                                          labels = c("Poor", "Typical", "Excellent"))) 
 ```
 
 
@@ -321,9 +323,9 @@ clean_data %>%
 # Reading Complied Data 
 ```{r}
 #  Read CSV File
-csv_file_clean <- read_csv("clean_data/nyc_names_vichy_complied.csv")
+csv_file_clean <- read_csv("clean_data/nyc_names_vichy_complied2.csv")
 #  Read Shape File
-shape_file_clean <- st_read("clean_data/nyc_data_vichy_complied.shp", crs = 4269)
+shape_file_clean <- st_read("clean_data/nyc_names_vichy_complied2.csv", crs = 4269)
 #  Replace Column abbr Names in Shape File with full name from CSV
 colnames(shape_file_clean) <- colnames(csv_file_clean)
 
