@@ -1,0 +1,193 @@
+---
+title: "OrdinalSectionUpdate"
+author: "Sam Ding"
+date: "12/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# data intro
+```{r}
+# Load packages
+library(tidyverse)
+library(janitor)
+library(here)
+library(rstan)
+library(rstanarm)
+library(bayesrules)
+library(tidyverse)
+library(rstanarm)
+library(broom.mixed)
+library(tidybayes)
+library(bayesplot)
+library(bayesrules)
+library(forcats)
+library(sf)
+library(nycgeo)
+library(tidycensus)
+library(extrafont)
+library(extrafontdb)
+library(kableExtra)
+# themes
+theme_set(theme_minimal())
+brown_green <- c("#E9DBC2","#7D9B8A","#4D6F5C","#D29B5B","#744410","#1C432D")
+color_scheme_set(brown_green)
+```
+## Ordinal Model
+
+Having realized the shortcomings of the naive Bayes model, we wanted to see if there are any alternatives. We land on the ordinal regression model. 
+
+An ordinal regression model, or ordered logistic regression model, predicts the outcome of an ordinal variable, which is a variable whose value exists on an arbitrary scale where only the relative ordering between different values is significant. In this case, our subway desert classification is the ordinal variable with categories ranging from the least covered to the most covered (1 ~ 4) by the NYC subway system. 
+
+Here we introduce a latent variable $y^*$, which would be a linear combination of the predictor variables. After going through a variable selection process, we took out variables with a confidence interval consisting model consisting of mean income, percentage below poverty, number of evictions, and number of stores in our compiled data. A mathematical expression of the categorization would be as follows:
+
+$$
+
+Y_i| \zeta_1, \zeta_2,\zeta_3,\beta_1, \beta_2,\beta_3, \beta_4 =
+\begin{cases}
+1 &, y^{*} < \zeta_1 \\
+2 &, \zeta_1 \leq y^{*} < \zeta_2 \\
+3 &, \zeta_2 \leq y^{*} < \zeta_3 \\
+4 &, y^{*} \geq \zeta_3 \\
+\end{cases} 
+
+\\
+\text{where }
+y^{*} = \beta_1x_1 + \beta_2x_2 + \beta_3x_3 + \beta_4x_4 + \epsilon \\
+\zeta_1 \sim N(m_{\zeta 1}, s_{\zeta 1}^{2}) \\
+\zeta_2 \sim N(m_{\zeta 2}, s_{\zeta 2}^{2}) \\
+\zeta_3 \sim N(m_{\zeta 3}, s_{\zeta 3}^{2}) \\
+\zeta_4 \sim N(m_{\zeta 4}, s_{\zeta 4}^{2}) \\
+\beta_1 \sim N(m_{\beta 1}, s_{\beta 1}^{2}) \\
+\beta_2 \sim N(m_{\beta 2}, s_{\beta 2}^{2}) \\
+\beta_3 \sim N(m_{\beta 3}, s_{\beta 3}^{2}) \\
+\beta_4 \sim N(m_{\beta 4}, s_{\beta 4}^{2}) \\
+
+$$
+Each $\zeta_i$ is a vector of cut-points for categories, and each $\beta_i$ is the coefficient for the $i^{th}$ predictor variable. 
+
+Since we do not have prior information about the data, we will be using the default prior R2 given by the `stan_polr` function, which is null, or a uniform prior. 
+
+Note:
+- There is no intercept in this model because the data cannot distinguish an intercept from the cut points. 
+
+
+```{r}
+library(rsample)
+set.seed(454)
+
+nyc_compiled_classify <- nyc_compiled %>%
+  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
+  mutate(transportation_desert_4num = factor(as.numeric(transportation_desert_4cat))) %>%
+   mutate(asian_perc = (asian_count / total_pop) * 100) %>%
+   mutate(white_perc = (white_count / total_pop)* 100) %>%
+   mutate(black_perc = (black_count / total_pop)* 100) %>%
+   mutate(latinx_perc = (latinx_count / total_pop)* 100) %>%
+   mutate(native_perc = (native_count / total_pop)* 100) %>%
+   mutate(below_poverty_perc = (below_poverty_line_count / total_pop) * 100) %>%
+   mutate(noncitizen_perc = (noncitizen_count / total_pop)* 100) %>%
+   mutate(uninsured_perc = (uninsured_count / total_pop)* 100) %>%
+  mutate(unemployment_perc = (unemployment_count / total_pop)* 100) %>%
+  filter(nta_type == 0) %>%
+  as.tibble()
+
+data_split <- initial_split(nyc_compiled_classify, prop = .8) 
+data_train <- training(data_split)
+data_test <- testing(data_split) 
+```
+
+```{r}
+model2 <- stan_polr(as.factor(transportation_desert_4num) ~ mean_income + below_poverty_line_perc + store_count, 
+                    data =data_train, prior_counts = dirichlet(1),
+                    prior=NULL, iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
+
+
+tidy(model2, effects = "fixed", conf.int = TRUE, conf.level = 0.8) %>%
+  mutate(term = case_when(
+    term == "1|2" ~ "Poor | Limited",
+    term == "2|3" ~ "Limited | Satisfactory",
+    term == "3|4" ~ "Satisfactory | Excellent",
+    TRUE ~ term
+    ))%>%
+  kable(align = "c", caption = "Ordinal Model - Summary") %>% 
+  kable_styling() 
+```
+
+Then using a function written by [Connie Zhang](https://connie-zhang.github.io/pet-adoption/modelling.html), we describe the accuracy of the ordinal model below.
+
+```{r}
+ordinal_accuracy<-function(post_preds,mydata){
+  post_preds<-as.data.frame(post_preds)
+  results<-c()
+  for (j in (1:length(post_preds))){
+    results[j]<-as.numeric(tail(names(sort(table(post_preds[,j]))))[4])
+    }
+  results<-as.data.frame(results)
+  compare<-cbind(results,mydata$transportation_desert_4num)%>%
+    mutate(results=as.numeric(results)) %>%
+    mutate(`mydata$transportation_desert_4num`=as.numeric(`mydata$transportation_desert_4num`)) %>% 
+    mutate(accuracy=ifelse(as.numeric(results)==as.numeric(`mydata$transportation_desert_4num`),1,0))
+  print(sum(compare$accuracy)/length(post_preds))
+}
+```
+
+
+
+
+```{r}
+nyc_compiled[is.na(nyc_compiled)] = 0
+
+set.seed(86437)
+
+my_prediction2 <- posterior_predict(
+  model2, 
+  newdata = data_test)
+
+ordinal_accuracy(my_prediction2, data_test)
+```
+
+The current model gives an accuracy of 0.564, which is pretty decent.
+
+```{r}
+my_prediction2 <- posterior_predict(
+  model2, 
+  newdata = data_test)
+
+prediction_long <- my_prediction2 %>% 
+  t() %>% 
+  as.tibble() %>%
+  mutate_if(is.character, as.numeric) %>%
+  rownames_to_column() %>% 
+  rowwise(id=rowname) %>%
+  summarize(median=ifelse(mean(c_across(where(is.numeric)))>3.5, ceiling(mean(c_across(where(is.numeric)))), floor(mean(c_across(where(is.numeric)))))) %>%
+  rename(predicted_desert = median)%>%
+  mutate(predicted_desert = case_when(
+    predicted_desert==1 ~ "Poor",
+    predicted_desert ==2 ~ "Limited",
+    predicted_desert ==3 ~ "Satisfactory",
+    TRUE ~ "Excellent",
+  ))  %>%
+  mutate(predicted_desert = factor(predicted_desert, levels=c("Poor", "Limited", "Satisfactory", "Excellent")))
+
+data_test %>%
+  dplyr::select(nta_id, borough, transportation_desert_4cat) %>%
+  rownames_to_column() %>%
+  left_join(., prediction_long, by="rowname") %>%
+  
+  ggplot(aes(x=transportation_desert_4cat, fill=predicted_desert)) + 
+  geom_bar(position="fill")+
+  scale_y_continuous(labels = seq(0, 100, by = 25)) +
+  labs(title="Accessibility Predictions by Observed Category", y="Proportion", x="")+
+    theme(panel.grid.major.x = element_line("transparent"),
+         # axis.text.y.left = element_blank(),
+          axis.text.x.bottom = element_text(size = 12, face = "bold"),
+          plot.title = element_text(family="DIN Condensed", size =20, hjust=.5, face = "bold")) +
+   scale_fill_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"),
+                       guide = guide_legend(title = "Subway Accessibility \nCategory"), na.value="#D6D6D6")
+```
+  Discuss the predictions in more depth. For what categories are the predictions the best? What’s a common misclassification? Why do you think this might be the case?
+  
+  
