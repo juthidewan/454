@@ -73,7 +73,7 @@ nyc_join <- merge(nta_sf,nta_acs_data)
 
 
 nyc_join <- nyc_join %>%
-  st_transform(., 4269)
+  st_transform(., crs=4269)
 
 county_list <- nyc_join %>% pull(county_name) %>% unique()
 
@@ -149,30 +149,30 @@ All data used in this project are from two major sources: the Tidycensus package
 
 Note that these predictors are all measured at the census level. To aggregate these estimates at the neighborhood level, we performed two transformations:
 
-- Compute total sums by neighborhood for every count-based measurement.
-- Compute mean average estimates by neighborhood for remaining non-count predictors.
+- Compute total sums  for every count-based measurement.
+- Compute mean average estimates  for remaining non-count predictors.
 
 Then, for count based demographic predictors, we divide by the total population in each neighborhood to define scaled demographic metrics. They are as follows:
 
-- `asian_perc`: Percentage of Asian People by Neighborhood
-- `white_perc`: Percentage of White People by Neighborhood
-- `black_perc`: Percentage of Black People by Neighborhood
-- `latinx_perc`: Percentage of Latinx People by Neighborhood
-- `native_perc`: Percentage of Native People by Neighborhood
-- `noncitizen_perc`: Percentage of Foreign Born People by Neighborhood 
-- `uninsured_perc`: Percentage of Uninsured Citizens of any Age by Neighborhood 
-- `unemployment_perc`: Percentage of People on Unemployment by Neighborhood
+- `asian_perc`: Percentage of Asian People 
+- `white_perc`: Percentage of White People 
+- `black_perc`: Percentage of Black People 
+- `latinx_perc`: Percentage of Latinx People 
+- `native_perc`: Percentage of Native People 
+- `noncitizen_perc`: Percentage of Foreign Born People  
+- `uninsured_perc`: Percentage of Uninsured Citizens of any Age  
+- `unemployment_perc`: Percentage of People on Unemployment 
 - `below_poverty_line_perc`: Percentage of people living below the 100% poverty line.
 
 We used [NYC's Open Data](https://opendata.cityofnewyork.us/data/) portal and the [Baruch College GIS Lab](https://www.baruch.cuny.edu/confluence/pages/viewpage.action?pageId=28016896) to collect information on the remaining predictors. In particular, we used geotagged locations of [Subway Stops](https://data.cityofnewyork.us/Transportation/Subway-Stations/arq3-7z49), [Bus Stops](https://www.baruch.cuny.edu/confluence/pages/viewpage.action?pageId=28016896), [Grocery Stores](https://data.ny.gov/Economic-Development/Retail-Food-Stores/9a8c-vfzj), [Schools](https://data.cityofnewyork.us/Education/School-Point-Locations/jfju-ynrr), and [Evictions](https://data.cityofnewyork.us/City-Government/Evictions/6z8x-wfk4) from the Departments of Transportation, Health, Education, and Housing, respectively, to calculate the following variables: 
 
-- `school_count`: Public school counts by Neighborhood 
-- `eviction_count`: Eviction counts by Neighborhood 
-- `store_count`: Grocery store and food vendor counts by Neighborhood 
-- `sub_count`: Subway station counts by Neighborhood 
-- `bus_count`: Bus station counts by Neighborhood
+- `school_count`: Public school counts  
+- `eviction_count`: Eviction counts  
+- `store_count`: Grocery store and food vendor counts  
+- `sub_count`: Subway station counts  
+- `bus_count`: Bus station counts 
 - `perc_covered_by_transit`: Percent of Neighborhood Within Walking Distance (.5 miles) of Any Subway Stop. 
-- `transportation_desert_4cat`: Subway Accessibility by Neighborhood (Poor, Limited, Satisfactory, Excellent)
+- `transportation_desert_4cat`: Subway Accessibility  (Poor, Limited, Satisfactory, Excellent)
 
 The process involved grouping geotagged locations by the defined neighborhood boundary regions in R’s SF package and ArcGIS. We will detail the process of identifying subway deserts in the "Subway Deserts" section. 
 
@@ -234,22 +234,22 @@ In the graph, buffer zones are in light pink with overlapping boundaries dissolv
 Upon observation, we categorized the areas served by the subway network into four ordinal categories: Poor, Limited, Satisfactory, and Excellent. These categories are defined at 0-1\%, 1-75\%, 75-90\%, and 90-100\% of area covered by transit, respectively. We defined these cutoffs using the distribution of subway coverage percentages and our own judgment on what constitutes a desert. As such, these cutoffs are specific to New York City and may not be perfectly reproducible. The following plot details the spatial locations of these transportation categories.
 
 
-```{r, fig.height=5*1.2, fig.width=5*1.2}
+```{r, fig.height=8*1.2, fig.width=8*1.2}
 nyc_compiled %>%
   ggplot() +
-  geom_sf(aes(fill = transportation_desert_4cat), color = "#8f98aa") +
+  geom_sf(aes(fill = transportation_desert_4cat),  color = "#8f98aa") +
   scale_fill_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"),
-                       guide = guide_legend(title = "Subway Accessibility \nCategory"), na.value="#D6D6D6") +
+                       guide = guide_legend(title = "Accessibility:"), na.value="#D6D6D6") +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Subway Accessibility by \nNeighborhood in NYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 35, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("Subway Accessibility in NYC")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+  guides(fill = guide_legend(title = "Acessibility", title.position="top", title.hjust = 0.5))
 ```
 
 In the following two subsections, we describe how we understood and classified transportation deserts using two models.
@@ -319,13 +319,17 @@ prediction %>%
   ggplot(aes(x=transportation_desert_4cat, y=Probability, fill=Predictions)) + 
   geom_bar(position="fill", stat="identity")  +
   scale_y_continuous(labels = seq(0, 100, by = 25)) +
-  labs(title="Accessibility Predictions by Observed Category", y="Proportion", x="")+
+  labs(title="Subway Accessibility Predictions by Observed Category", y="Proportion", x="")+
     theme(panel.grid.major.x = element_line("transparent"),
          # axis.text.y.left = element_blank(),
           axis.text.x.bottom = element_text(size = 12, face = "bold"),
-          plot.title = element_text(size = 20, hjust=.5, face = "bold", family="DIN Condensed")) +
+          plot.title = element_text(size = 20, hjust=.5, face = "bold", family="DIN Condensed"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
    scale_fill_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"),
-                       guide = guide_legend(title = "Subway Accessibility \nCategory"), na.value="#D6D6D6") 
+                       guide = guide_legend(title = "Accessibility:"), na.value="#D6D6D6") 
 
 ```
 
@@ -452,9 +456,13 @@ data_test %>%
     theme(panel.grid.major.x = element_line("transparent"),
          # axis.text.y.left = element_blank(),
           axis.text.x.bottom = element_text(size = 12, face = "bold"),
-          plot.title = element_text(family="DIN Condensed", size =20, hjust=.5, face = "bold")) +
+          plot.title = element_text(size = 20, hjust=.5, face = "bold", family="DIN Condensed"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
    scale_fill_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"),
-                       guide = guide_legend(title = "Subway Accessibility \nCategory"), na.value="#D6D6D6")
+                       guide = guide_legend(title = "Accessibility:"), na.value="#D6D6D6") 
   
 ```
 
@@ -462,76 +470,72 @@ data_test %>%
 
 Transportation access is a pervasive structural issue. However, previous research on transportation access has demonstrated that many of these gaps in access also deepen the chasms of racial and class-based inequity. In this analysis, it seemed that low-income and racialized— typically Black and Latinx— communities were most likely to confront [transportation inequities](https://nyc.streetsblog.org/2021/06/18/report-racial-and-economic-inequities-in-transit-affect-accessibility-to-jobs-healthcare/). Additionally, we have observed that predominantly Black and Latinx neighborhoods in the Bronx faced some of the highest rates of eviction, likely indicating that these inequities may overlap.
 
-This next section aims to connect transportation access to housing-inequities that we know also have racial and class dimensions. In particular, we wanted to assess transportation access’s relationship with immigrant community size, rental prices, and eviction counts by neighborhood. 
+This next section aims to connect transportation access to housing-inequities that we know also have racial and class dimensions. In particular, we wanted to assess transportation access’s relationship with immigrant community size, rental prices, and eviction counts . 
 
 ```{r}
 desert_map <- nyc_compiled %>%
   filter(nta_type == 0) %>%
   ggplot() +
   geom_sf(aes(fill = transportation_desert_4cat), color = "#8f98aa") +
-  scale_fill_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"),
-                       guide = guide_legend(title = "Subway Accessibility \nCategory"), na.value="#D6D6D6") +
+  scale_fill_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"), na.value="#D6D6D6") +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Subway Access in \nNYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("Subway Access ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+    guides(fill = guide_legend(title = "Acessibility", title.position="top", title.hjust = 0.5))
 
 rent_map <- nyc_compiled %>%
   filter(nta_type == 0) %>%
   ggplot() +
   geom_sf(aes(fill = mean_rent), color = "#8f98aa") +
-  scale_fill_gradient(low = "#FCF5EE", high = "#30969C",
-                      guide = guide_legend(title = "Dollars")) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#30969C") +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Mean Rent in \nNYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
-          legend.title = element_text(size = 12),
-          legend.text = element_text(size = 12)) +
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("Mean Rent ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+    guides(fill = guide_colourbar(title = "Dollars", title.position="top", title.hjust = 0.5))
 
 evict <- nyc_compiled %>%
   filter(nta_type == 0) %>%
   ggplot() +
   geom_sf(aes(fill = eviction_count), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#C47572", 
-                      guide = guide_legend(title = "Number of Evictions")) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#C47572") +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Eviction Counts in \nNYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("Eviction Counts ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+  guides(fill = guide_colourbar(title = "Number of Evictions", title.position="top", title.hjust = 0.5))
 
 noncit <- nyc_compiled %>%
   filter(nta_type == 0) %>%
   ggplot() +
   geom_sf(aes(fill = noncitizen_perc), color = "#8f98aa") +
-scale_fill_gradient(low = "#FCF5EE", high = "#5E76AD",
-                    guide = guide_legend(title = "Percent Non-Citizen")) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#5E76AD")  + 
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Immigrant Density in \nNYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("Immigrant Density ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+  guides(fill = guide_colourbar(title = "Percent Non-Citizen", title.position="top", title.hjust = 0.5))
 ```
 
 
@@ -550,71 +554,71 @@ white <- nyc_compiled %>%
   filter(nta_type == 0) %>%
   ggplot() +
   geom_sf(aes(fill = white_perc), color = "#8f98aa") +
-  scale_fill_gradientn(colors = c("#FCF5EE","#919BB6", "#5A6687", "#3D465C"),  guide = guide_legend(title = "Percent White")) +
+  scale_fill_gradientn(colors = c("#FCF5EE","#919BB6", "#5A6687", "#3D465C")) +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("White Population \nin NYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("White Population ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+    guides(fill = guide_colourbar(title = "Percent White", title.position="top", title.hjust = 0.5))
 
 black <- nyc_compiled %>%
   filter(nta_type == 0) %>%
   ggplot() +
   geom_sf(aes(fill = black_perc), color = "#8f98aa") +
-  scale_fill_gradientn(colors = c("#FCF5EE","#F8ABA6", "#F58581", "#DB3F37"), guide = guide_legend(title = "Percent Black")) +
+  scale_fill_gradientn(colors = c("#FCF5EE","#F8ABA6", "#F58581", "#DB3F37")) +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Black Population \nin NYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("Black Population ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+    guides(fill = guide_colourbar(title = "Percent Black", title.position="top", title.hjust = 0.5))
 
 asian <- nyc_compiled %>%
   filter(nta_type == 0) %>%
   ggplot() +
   geom_sf(aes(fill = asian_perc), color = "#8f98aa") +
-  scale_fill_gradientn(colors = c("#FCF5EE","#C1C5EC", "#A1A8E2", "#4451C5"),                      guide = guide_legend(title = "Percent Asian")) +
+  scale_fill_gradientn(colors = c("#FCF5EE","#C1C5EC", "#A1A8E2", "#4451C5"),                      
+                       guide = guide_colourbar(title = "Percent Asian")) +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Asian Population \nin NYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("Asian Population ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+    guides(fill = guide_colourbar(title = "Percent Asian", title.position="top", title.hjust = 0.5))
 
 latinx <- nyc_compiled %>%
   filter(nta_type == 0) %>%
   ggplot() +
   geom_sf(aes(fill = latinx_perc), color = "#8f98aa")+
-  scale_fill_gradientn(colors = c("#FCF5EE","#F4E2B8", "#E9C572", "#E77E2F"), 
-                      guide = guide_legend(title = "Percent Latinx")) +
+  scale_fill_gradientn(colors = c("#FCF5EE","#F4E2B8", "#E9C572", "#E77E2F")) +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Latinx Population \nin NYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("Latinx Population ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+  guides(fill = guide_colourbar(title = "Percent Latinx", title.position="top", title.hjust = 0.5))
 
 ```
 
 
-```{r, fig.height=16, fig.width=16+4}
+```{r, fig.height=8*2*1.5, fig.width=8*3*1.5}
 ggarrange(desert_map, white, black, latinx, asian, ncol=3, nrow=2)
 ```
 
@@ -700,11 +704,11 @@ white_eviction <- nyc_compiled %>%
    scale_color_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"))+  facet_wrap(.~transportation_desert_4cat, scales = "free") 
 ```
 
-```{r, fig.height=8*2, fig.width=8*2}
+```{r, fig.height=8*2*1.5, fig.width=8*2*1.5}
 ggarrange(black_eviction, latinx_eviction, asian_eviction, white_eviction, ncol=2, nrow=2)
 ```
 
-Black and Latinx residential proportions by neighborhood are associated with increased eviction counts. However, we must specify that Black resident proportions are uniformly associated with increases in eviction counts across transportation levels, while the relationship between eviction counts and Latinx resident proportion is not. In contrast, both White and Asian proportions are uniformly associated with decreases in eviction counts.
+Black and Latinx residential proportions  are associated with increased eviction counts. However, we must specify that Black resident proportions are uniformly associated with increases in eviction counts across transportation levels, while the relationship between eviction counts and Latinx resident proportion is not. In contrast, both White and Asian proportions are uniformly associated with decreases in eviction counts.
 
 Lastly, let's consider mean neighborhood rental prices. The following visualizations detail the relationships between the proportion of Black, Latinx, Asian, and White residents in a neighborhood with that neighborhood mean rental price.
 
@@ -894,7 +898,7 @@ s_k \in \{
 \end{align}
 $$`
 
-```{r, fig.height=6, fig.width=12}
+```{r, fig.height=5, fig.width=8}
 pp_check(noncit_model)+ 
   xlab("Non-Citizen Count") +
   labs(title = "Negative Binomial Model of \nImmigrant/Non-Citizen Count")+
@@ -955,7 +959,7 @@ $$`
 Once again note that we are specifying the parameters of our scaled intercept prior, `$\beta_{0c}$`, so that the the typical mean neighborhood rental price `$\sim $N(1600,20^2)$`, while our priors for the $\beta_k$ are weakly-informed negative priors. We chose our prior intercept specifications of mean rental price (`$\beta_{0c}$`) using Juthi’s experience renting in NYC and a group conversation about typical rental prices we would elect to pay in NYC, Los Angeles, and other major cities we have lived in or around. However, we decided to continue using weakly-informative normal priors for the predictors because we were unsure about their relationship— if any— to rental prices.
 
 
-```{r, fig.height=6, fig.width=12}
+```{r, fig.height=5, fig.width=8}
 pp_check(rent_model)+ 
   xlab("Mean Rental Price") +
   labs(title = "Normal Model of \nMonthly Mean Rental Price")+
@@ -1013,7 +1017,7 @@ s_k \in \{
 \end{align}
 $$`
 
-```{r, fig.height=6, fig.width=12}
+```{r, fig.height=5, fig.width=8}
 pp_check(eviction_model)+ 
   xlab("Eviction Count") +
   xlim(0,2000)+
@@ -1329,7 +1333,7 @@ s_k \in \{
 $$`
 
 
-```{r, fig.height=6, fig.width=12}
+```{r, fig.height=5, fig.width=8}
 pp_check(hi_noncit_model)+ 
   xlab("Non-Citizen Count") +
   labs(title = "Hierarchical Negative Binomial Model of \nImmigrant/Non-Citizen Count")+
@@ -1388,7 +1392,7 @@ $$`
 
 We chose our prior specifications of mean rental price (`$\beta_{0c}$`) using Juthi’s experience renting in NYC and a group conversation about typical rental prices we would elect to pay in NYC, Los Angeles, and other major cities we have lived in or around. 
 
-```{r, fig.height=6, fig.width=12}
+```{r, fig.height=5, fig.width=8}
 pp_check(hi_rent_model)+
   xlab("Mean Rental Price") +
   labs(title = "Hierarchical Normal Model of \nMonthly Mean Rental Price")+
@@ -1443,7 +1447,7 @@ s_k \in \{
 \end{align}
 $$`
 
-```{r, fig.height=6, fig.width=12}
+```{r, fig.height=5, fig.width=8}
 pp_check(eviction_model)+ 
   xlab("Eviction Count") +
   xlim(0,2000)+
@@ -1716,35 +1720,33 @@ noncit_resid <- modeling_data %>%
   mutate(resid = noncit_model$residuals) %>%
   ggplot() +
   geom_sf(aes(fill = resid), color = "#8f98aa")+
-scale_fill_gradient(low = "#FCF5EE", high = "#5E76AD",
-                      guide = guide_legend(title = "Residual")) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#5E76AD") +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Non-Hierarchical Model:\nNon-Citizen Count Residuals \nin NYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 28, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("Non-Hierarchical Model:\nNon-Citizen Count Residuals ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+  guides(fill = guide_colourbar(title = "Residual Error", title.position="top", title.hjust = 0.5))
 
 hi_noncit_resid <- modeling_data %>%
-  mutate(resid = hi_rent_model$residuals) %>%
+  mutate(resid = hi_noncit_model$residuals) %>%
   ggplot() +
   geom_sf(aes(fill = resid), color = "#8f98aa")+
-scale_fill_gradient(low = "#FCF5EE", high = "#5E76AD",
-                      guide = guide_legend(title = "Residual")) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#5E76AD") +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Hierarchical Model:\nNon-Citizen Count Residuals \nin NYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 28, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("Hierarchical Model:\nNon-Citizen Count Residuals ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+  guides(fill = guide_colourbar(title = "Residual Error", title.position="top", title.hjust = 0.5))
 ```
 
 ```{r, fig.height=8*2, fig.width=8*2}
@@ -1815,35 +1817,33 @@ rent_resid <- modeling_data %>%
   mutate(resid = rent_model$residuals) %>%
   ggplot() +
   geom_sf(aes(fill = resid), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#30969C",
-                      guide = guide_legend(title = "Residual")) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#30969C") +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Non-Hierarchical Model:\nMean Rental Price Residuals \nin NYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 28, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("Non-Hierarchical Model:\nMean Rental Price Residuals ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+  guides(fill = guide_colourbar(title = "Residual Error", title.position="top", title.hjust = 0.5))
 
 hi_rent_resid <- modeling_data %>%
   mutate(resid = hi_rent_model$residuals) %>%
   ggplot() +
   geom_sf(aes(fill = resid), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#30969C",
-                      guide = guide_legend(title = "Residual")) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#30969C") +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Hierarchical Model:\nMean Rental Price Residuals \nin NYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 28, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("Hierarchical Model:\nMean Rental Price Residuals ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+  guides(fill = guide_colourbar(title = "Residual Error", title.position="top", title.hjust = 0.5))
 ```
 
 ```{r, fig.height=8*2, fig.width=8*2}
@@ -1915,18 +1915,17 @@ evict_resid <- modeling_data %>%
   mutate(resid = eviction_model$residuals) %>%
   ggplot() +
   geom_sf(aes(fill = resid), color = "#8f98aa")+
-  scale_fill_gradient(low = "#FCF5EE", high = "#C47572", 
-                      guide = guide_legend(title = "Residual")) +
+  scale_fill_gradient(low = "#FCF5EE", high = "#C47572") +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Non-Hierarchical Model:\nEviction Count Residuals \nin NYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 28, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("Non-Hierarchical Model:\nEviction Count Residuals ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+  guides(fill = guide_colourbar(title = "Residual Error", title.position="top", title.hjust = 0.5))
 
 hi_evict_resid <- modeling_data %>%
   mutate(resid = hi_eviction_model$residuals) %>%
@@ -1935,15 +1934,15 @@ hi_evict_resid <- modeling_data %>%
   scale_fill_gradient(low = "#FCF5EE", high = "#C47572", 
                       guide = guide_legend(title = "Residual")) +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("Hierarchical Model:\nEviction Count Residuals \nin NYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 28, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("Hierarchical Model:\nEviction Count Residuals ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+  guides(fill = guide_colourbar(title = "Residual Error", title.position="top", title.hjust = 0.5))
 ```
 
 ```{r, fig.height=8*2, fig.width=8*2}
@@ -2021,7 +2020,7 @@ Across our models, it becomes clear that many of the structural housing and demo
 
 ## Spatial Rent
 
-Knowing that there is spatial clustering mean rental prices by neighborhood, we fit a normal model with weakly informative priors for the $\beta_k$, our scaled prior intercept $N(1600, 20^2)$, and Besag prior for a random spatial effect via the `CARBayes` package's S.CARleroux function. If there was a non-constant spatial effect on rental prices in a neighborhood, we would edit the `rho` parameter below to approximate this new spatial effect prior called a Leroux.
+Knowing that there is spatial clustering mean rental prices , we fit a normal model with weakly informative priors for the $\beta_k$, our scaled prior intercept $N(1600, 20^2)$, and Besag prior for a random spatial effect via the `CARBayes` package's S.CARleroux function. If there was a non-constant spatial effect on rental prices in a neighborhood, we would edit the `rho` parameter below to approximate this new spatial effect prior called a Leroux.
 
 ```{r}
 library(CARBayes)
@@ -2083,15 +2082,15 @@ modeling_data %>%
   scale_fill_gradient(low = "#FCF5EE", high = "#30969C",
                       guide = guide_legend(title = "Residuals")) +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("CARBayes Besag:\nMean Rental Price Residuals in \nNYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("CARBayes Besag:\nMean Rental Price Residuals ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+  guides(fill = guide_colourbar(title = "Residual Error", title.position="top", title.hjust = 0.5))
 ```
 
 Our Besag model residuals look very evenly distributed!
@@ -2134,15 +2133,15 @@ modeling_data %>%
   scale_fill_gradient(low = "#FCF5EE", high = "#C47572", 
                       guide = guide_legend(title = "Number of Evictions")) +
   theme_minimal() +
-  theme(panel.grid.major = element_line("transparent"),
-        axis.text = element_blank()) +
-  ggtitle("CARBayes Besag:\nEviction Count Residuals in \nNYC")+ 
-    theme(panel.grid.major = element_line("transparent"),
-          plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold"),
-          legend.title = element_text(size = 12), 
-          legend.text = element_text(size = 12)) + 
-    guides(shape = guide_legend(override.aes = list(size = 8)),
-           color = guide_legend(override.aes = list(size = 8)))
+  ggtitle("CARBayes Besag:\nEviction Count Residuals ")+ 
+  theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 25, face = "bold"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+  guides(fill = guide_colourbar(title = "Residual Error", title.position="top", title.hjust = 0.5))
 ```
 
 Our residuals look fantastic! Woohoo!
@@ -2172,6 +2171,6 @@ round(carbayes_evictions$summary.results[, 1:7], 4) %>%
 
 ```
 
-Although this model has performed phenomenally, we could likely improve this model by choosing a different family for our regression. In NYC, neighborhood eviction counts are zero-inflated, so a count regression model that allows for increased variance or zero-inflation— like Negative-Binomial (NB) or Zero-Inflated Poisson (ZIP) regression— could improve this analysis. Unfortunately, `CARBayes` does not support such regressions. `INLA` is a good computational alternative. `INLA` is a computationally efficient modeling alternative to MCMC based methods— like those in `CARBayes` or `STAN`— that use numerical integration on Laplace approximations of estimate the posterior distributions without any sampling from the posterior. Beyond its computational efficiency, `INLA` supports spatial models using both ZIP and NB data distributions.
+Although this model has performed phenomenally, we could likely improve this model by choosing a different family for our regression. In NYC, neighborhood eviction counts are zero-inflated, so a count regression model that allows for increased variance or zero-inflation— like Negative-Binomial (NB) or Zero-Inflated Poisson (ZIP) regression— could improve this analysis. Unfortunately, `CARBayes` does not support such regressions. `INLA` is a good computational alternative. `INLA` is a computationally efficient modeling alternative to MCMC based methods— like those in `CARBayes` or `STAN`— that use numerical integration by way of Laplace approximations to estimate the posterior distributions. The key difference is that `INLA` can approximate what MCMC does, but without any sampling or simulation. Beyond its computational efficiency, it's important to note that `INLA` supports spatial models using both ZIP and NB data distributions.
 
 
