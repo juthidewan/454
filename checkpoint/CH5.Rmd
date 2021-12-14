@@ -298,6 +298,11 @@ naive_model <- naiveBayes(transportation_desert_3cat ~
 ```
 
 
+```{r  Save Naive Model for Shiny App}
+# saveRDS(nyc_naive, 'shiny_app_naive_model.rds')
+```
+
+
 ```{r}
 naive2_prediction <- naive_classification_summary_cv(naive_model, 
                                 nyc_naive, 
@@ -439,8 +444,15 @@ ordinal_model <- stan_polr(transportation_desert_3num ~ mean_income +
                              below_poverty_perc + store_count + borough, 
                     data =data_train, prior_counts = dirichlet(1),
                     prior=R2(0.5), iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
+```
 
 
+```{r Save Ordinal Model for Shiny App}
+# saveRDS(ordinal_model, 'shiny_app_ordinal_model.rds')
+```
+
+
+```{r}
 tidy(ordinal_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8) %>%
   mutate(term = case_when(
     term == "1|2" ~ "Poor | Typical",
