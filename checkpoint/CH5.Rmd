@@ -234,7 +234,7 @@ knitr::include_graphics(here("gis_buffer.png"))
 
 In the graph, buffer zones are in light pink with overlapping boundaries dissolved between stations, while the dark pink dots indicate the exact geographic locations of the stations. Each neighborhood, then, had a percentage score that defined it's subway accessibility score. 
 
-Upon observation, we categorized the areas served by the subway network into four ordinal categories: Poor, Typical, and Excellent. These categories are defined at 0-1\%, 1-75\%, 75-90\%, and 90-100\% of area covered by transit, respectively. We defined these cutoffs using the distribution of subway coverage percentages and our own judgment on what constitutes a desert. As such, these cutoffs are specific to New York City and may not be perfectly reproducible. The following plot details the spatial locations of these transportation categories.
+Upon observation, we categorized the areas served by the subway network into four ordinal categories: Poor, Typical, and Excellent. These categories are defined at 0-25\%, 25-75\%, and 75-100\% of area covered by transit, respectively. We defined these cutoffs using the distribution of subway coverage percentages and our own judgment on what constitutes a desert. As such, these cutoffs are specific to New York City and may not be perfectly reproducible. The following plot details the spatial locations of these transportation categories.
 
 
 ```{r, fig.height=8*1.2, fig.width=8*1.2}
@@ -383,38 +383,38 @@ Naive Bayes's assumption of normality within categories does not hold, unfortuna
 
 Having realized the shortcomings of the naive Bayes model, we wanted to see if there are any alternatives. We land on the ordinal regression model. 
 
-An ordinal regression model, or ordered logistic regression model, predicts the outcome of an ordinal variable, which is a variable whose value exists on an arbitrary scale where only the relative ordering between different values is significant. In this case, our subway desert classification is the ordinal variable with categories ranging from the least covered to the most covered (1 ~ 4) by the NYC subway system. 
+An ordinal regression model, or ordered logistic regression model, predicts the outcome of an ordinal variable, which is a variable whose value exists on an arbitrary scale where only the relative ordering between different values is significant. In this case, our subway desert classification is the ordinal variable with categories ranging from the least covered to the most covered (1 ~ 3) by the NYC subway system. 
 
 Here we introduce a latent variable $y^*$, which would be a linear combination of the predictor variables. After going through a variable selection process, we took out variables with a confidence interval consisting model consisting of mean income, percentage below poverty, number of evictions, and number of stores in our compiled data. A mathematical expression of the categorization would be as follows:
 
 $$
 
-Y_i| \zeta_1, \zeta_2,\zeta_3,\beta_1, \beta_2,\beta_3, \beta_4 =
+Y_i| \zeta_1, \zeta_2,\zeta_3,\beta_1, \beta_2,\beta_3, \beta_4, \beta_5,\beta_6=
 \begin{cases}
 1 &, y^{*} < \zeta_1 \\
 2 &, \zeta_1 \leq y^{*} < \zeta_2 \\
-3 &, \zeta_2 \leq y^{*} < \zeta_3 \\
-4 &, y^{*} \geq \zeta_3 \\
+3 &, y^{*} \geq \zeta_2 \\
 \end{cases} 
 
 \\
-y^{*} = \beta_1x_1 + \beta_2x_2 + \beta_3x_3 + \beta_4x_4 + \epsilon \\
+y^{*} = \beta_1x_1 + \beta_2x_2 + \beta_3x_3 + \beta_4x_4 + \beta_5x_5 + \beta_6x_6 +  \epsilon \\
 
 $$
 
 - $\zeta_i$ : is a vector of cut-points for categories. 
-- $y^{*}$ : a linear combination of 4 predictor variables consisting of `mean income`, `below poverty percentage`, `borough`, and `store_count`.
+- $y^{*}$ : a linear combination of 3 predictor variables consisting of `mean income`, `below poverty percentage`, `borough`, and `store_count`.
 - $\beta_i$ : is the coefficient for the $ith$ predictor variable. 
 
 $$
 \zeta_1 \sim N(m_{\zeta 1}, s_{\zeta 1}^{2}) \\
 \zeta_2 \sim N(m_{\zeta 2}, s_{\zeta 2}^{2}) \\
 \zeta_3 \sim N(m_{\zeta 3}, s_{\zeta 3}^{2}) \\
-\zeta_4 \sim N(m_{\zeta 4}, s_{\zeta 4}^{2}) \\
 \beta_1 \sim N(m_{\beta 1}, s_{\beta 1}^{2}) \\
 \beta_2 \sim N(m_{\beta 2}, s_{\beta 2}^{2}) \\
 \beta_3 \sim N(m_{\beta 3}, s_{\beta 3}^{2}) \\
 \beta_4 \sim N(m_{\beta 4}, s_{\beta 4}^{2}) \\
+\beta_5 \sim N(m_{\beta 5}, s_{\beta 5}^{2}) \\
+\beta_6 \sim N(m_{\beta 6}, s_{\beta 6}^{2}) \\
 $$
 
 Each $\zeta_i$ is a vector of cut-points for categories, and each $\beta_i$ is the coefficient for the $i^{th}$ predictor variable. 
@@ -516,7 +516,7 @@ my_prediction2 <- posterior_predict(
 tidy_ordinal_accuracy(data_test, my_prediction2)
 ```
 
-It seems our model is dramatically accurate when classifying neighborhoods with excellent subway access (72.22%), while entirely inaccurate when studying a neighborhood with satisfactory subway access (0.00%). For the remaining categories of transportation access, there was only a .02 difference in accuracy. Note that in both the ordinal and the naive model, we could not accurately predict this "Satisfactory" category. Likely, this must be a byproduct of our interval criteria for each respective level of transportation inaccess— that is, these categories may not be sufficiently different to find differences.
+It seems our model is dramatically accurate when classifying neighborhoods with excellent subway access (72.22%), while almost inaccurate when studying a neighborhood with satisfactory subway access (9.09%). For the remaining categories of transportation access, there was only a .02 difference in accuracy. Note that in both the ordinal and the naive model, we could not accurately predict this "Satisfactory" category. Likely, this must be a byproduct of our interval criteria for each respective level of transportation inaccess— that is, these categories may not be sufficiently different to find differences.
 
 
 ```{r}

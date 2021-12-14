@@ -24,7 +24,7 @@ nyc_clean <- read_csv("clean_data/nyc_names_vichy_complied2.csv")
 
 nyc_clean2 <- nyc_clean %>%
   # mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
-  mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-1, 10, 60, 90, 100), 
+  mutate(transportation_desert_4cat = cut(perc_covered_by_transit, breaks=c(-1, 10, 65, 90, 100), 
                                           labels = c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
   mutate(transportation_desert_4num = factor(as.numeric(transportation_desert_4cat))) %>%
    mutate(asian_perc = (asian_count / total_pop) * 100) %>%
@@ -42,6 +42,7 @@ nyc_clean2 <- nyc_clean %>%
 
 
 ```{r}
+set.seed(86437)
 data_split <- initial_split(nyc_clean2, prop = .7) 
 data_train <- training(data_split)
 data_test <- testing(data_split) 
@@ -65,7 +66,7 @@ data_train %>%
 model1 <- stan_polr(transportation_desert_4num ~   mean_income + unemployment_perc + below_poverty_perc + eviction_count + uninsured_perc +white_perc + asian_perc + black_perc + latinx_perc + school_count + store_count, data =data_train, prior=R2(0.5),iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
 # saveRDS(model1, 'ordinal_model_1.rds')
 
-model2 <- stan_polr(transportation_desert_4num ~ mean_income + below_poverty_perc + eviction_count + store_count, data =data_train, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
+model2 <- stan_polr(transportation_desert_4num ~ mean_income + below_poverty_perc + eviction_count + store_count + borough, data =data_train, prior=NULL,iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
 # saveRDS(model2, 'ordinal_model_2.rds')
 
 ## PP check and Tidy
