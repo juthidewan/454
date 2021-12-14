@@ -93,19 +93,40 @@ Under 10-fold cross validation, our Naive Bayes model had an overall cross-valid
 
 
 ```{r}
-prediction <- as.data.frame(naive2_prediction) %>%
+# prediction <- as.data.frame(naive2_prediction) %>%
+#   pivot_longer(
+#   cols= Poor:Excellent,
+#   names_to = 'Predictions',
+#   values_to = 'Probability'
+# ) %>%
+#   mutate(Probability = as.numeric(str_extract(Probability,'\\d+\\.\\d+'))/100) %>%
+#   mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
+#   mutate(Predictions = factor(Predictions, levels=c("Poor", "Limited", "Satisfactory", "Excellent")))
+# prediction %>%  
+#   ggplot(aes(x=transportation_desert_4cat, y=Probability, fill=Predictions)) + 
+#   geom_bar(position="fill", stat="identity")  +
+#   scale_y_continuous(labels = seq(0, 100, by = 25)) +
+#   labs(title="Accessibility Predictions by Observed Category", y="Proportion", x="")+
+#     theme(panel.grid.major.x = element_line("transparent"),
+#          # axis.text.y.left = element_blank(),
+#           axis.text.x.bottom = element_text(size = 12, face = "bold"),
+#           plot.title = element_text(size = 20, hjust=.5, face = "bold", family="DIN Condensed")) +
+#    scale_fill_manual(values=c("#895F32","#E9DBC2","#7D9B8A", "#395645"),
+#                        guide = guide_legend(title = "Subway Accessibility \nCategory"), na.value="#D6D6D6") 
+
+prediction3 <- as.data.frame(naive2_prediction) %>%
   pivot_longer(
   cols= Poor:Excellent, 
   names_to = 'Predictions', 
   values_to = 'Probability'
 ) %>% 
   mutate(Probability = as.numeric(str_extract(Probability,'\\d+\\.\\d+'))/100) %>%
-  mutate(transportation_desert_4cat = factor(transportation_desert_4cat, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) %>%
-  mutate(Predictions = factor(Predictions, levels=c("Poor", "Limited", "Satisfactory", "Excellent"))) 
+  mutate(transportation_desert_4cat = factor(transportation_desert_3cat, levels=c("Poor", "Typical", "Excellent"))) %>%
+  mutate(Predictions = Predictions) 
 
 
-prediction %>%  
-  ggplot(aes(x=transportation_desert_4cat, y=Probability, fill=Predictions)) + 
+prediction3 %>%  
+  ggplot(aes(x=transportation_desert_3cat, y=Probability, fill=Predictions)) + 
   geom_bar(position="fill", stat="identity")  +
   scale_y_continuous(labels = seq(0, 100, by = 25)) +
   labs(title="Accessibility Predictions by Observed Category", y="Proportion", x="")+
