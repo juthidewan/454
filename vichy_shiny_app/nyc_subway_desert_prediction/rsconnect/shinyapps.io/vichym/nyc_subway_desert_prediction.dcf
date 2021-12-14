@@ -1,0 +1,13 @@
+name: nyc_subway_desert_prediction
+title:
+username:
+account: vichym
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 5323353
+bundleId: 5370150
+url: https://vichym.shinyapps.io/nyc_subway_desert_prediction/
+when: 1639465727.89968
+lastSyncTime: 1639465727.89968
+asMultiple: FALSE
+asStatic: FALSE
