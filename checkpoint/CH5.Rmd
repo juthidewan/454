@@ -466,6 +466,22 @@ tidy(ordinal_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8) %>%
 prior_summary(ordinal_model)
 ```
 
+Here is an interpretation of the coefficients in the tidy table:
+
+`mean_income`: When controlling all other factors, for each additional dollar a given neighborhood’s mean income has, the model estimates that the latent variable $y^*$ increases by 0.0000197. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (0.0000010, 0.0000383), indicating that there is almost certainly a positive relationship between mean income and $y^*$, but its magnitude may vary.
+
+`below_poverty_perc`: When controlling all other factors, for each additional % people below poverty a given neighborhood has, the model estimates that the latent variable $y^*$ increases by 0.0977415. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (0.0422522, 0.1576466), indicating that there is almost certainly a positive relationship between below poverty percentage and $y^*$, but its magnitude may vary.
+
+`store_count`: When controlling all other factors, for each additional store a given neighborhood has, the model estimates that the latent variable $y^*$ increases by 0.0224638. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (0.0138214, 0.0316698), indicating that there is almost certainly a positive relationship between number of stores and $y^*$, but its magnitude may vary.
+
+`boroughBrooklyn`: When controlling all other factors, if a neighborhood is in Brooklyn, the model estimates that the latent variable $y^*$ increases by 0.1084268 compared to that neighborhood in Bronx. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (-0.6968746, 0.8669477), indicating that we are not certain with the relationship between between a neighborhood being in Brooklyn and $y^*$.
+
+`boroughManhattan`: When controlling all other factors, if a neighborhood is in Manhattan, the model estimates that the latent variable $y^*$ increases by 2.5965602 compared to that neighborhood in Bronx. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (1.2840073, 4.3013850), indicating that we are not certain with the relationship between between a neighborhood being in Manhattan and $y^*$, but its magnitude may vary.
+
+`boroughQueens`: When controlling all other factors, if a neighborhood is in Queens, the model estimates that the latent variable $y^*$ increases by -0.4148264 compared to that neighborhood in Bronx. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (-1.1315662, 0.3349786), indicating that we are not certain with the relationship between between a neighborhood being in Queens and $y^*$.
+
+
+
 Then extending a function written by [Connie Zhang](https://connie-zhang.github.io/pet-adoption/modelling.html) into a tidy format, we compute the accuracy of the ordinal model when predicting transportation desert categories below.
 
 ```{r}
