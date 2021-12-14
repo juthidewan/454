@@ -424,7 +424,7 @@ $$
 
 Each $\zeta_i$ is a vector of cut-points for categories, and each $\beta_i$ is the coefficient for the $i^{th}$ predictor variable. 
 
-Since we do not have prior information about the data, we will be using the default prior R2 given by the `stan_polr` function, which is null, or a uniform prior. 
+Since we do not have prior information about the data, we will be using the default prior R2 given by the `stan_polr` function, which is null, or a uniform prior. We would also use a default prior count dirichlet(1), which is a uniform prior.
 
 Note:
 - There is no intercept in this model because the data cannot distinguish an intercept from the cut points. 
@@ -461,6 +461,9 @@ tidy(ordinal_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8) %>%
     ))%>%
   kable(align = "c", caption = "Ordinal Model - Summary") %>% 
   kable_styling() 
+```
+```{r}
+prior_summary(ordinal_model)
 ```
 
 Then extending a function written by [Connie Zhang](https://connie-zhang.github.io/pet-adoption/modelling.html) into a tidy format, we compute the accuracy of the ordinal model when predicting transportation desert categories below.
