@@ -5,37 +5,46 @@ date: "12/14/2021"
 output: html_document
 ---
 
-```{r}
 
+
+```{r}
 library(shiny)
 library(bayesrules)  # for the plotting functions
 library(rstanarm)
 library(dplyr)
 
-
+set.seed(123)
 ordinal_model <- readRDS("shiny_app_ordinal_model.rds")
 # naive_model<- readRDS("shiny_app_naive_model.rds")
- ordinal_pred <- posterior_predict(ordinal_model,
-                          newdata = data.frame(
-                            mean_income  = 10000,
-                            below_poverty_perc  =20,
-                            store_count = 30, 
-                            borough = as.factor(c('Manhattan'))
-                          ))
+ordinal_pred <- ordinal_pred %>% 
+  as.matrix() %>% 
+  as_tibble() %>% 
+    select(1)
+ df <- as.data.frame(ordinal_pred) %>%
+            mutate(Classification  = case_when(
+                `1` == 1 ~ 'Poor',
+                `1` == 2 ~ 'Typical',
+                `1` == 3 ~ 'Excellent' )) %>%
+            dplyr::select(Classification)
+        
+        tab <- table(df) %>% sort(decreasing=TRUE) %>% prop.table()
+        names(dimnames(tab)) <- c("Transit Accessibility")
+        tab
+        
 
 # Build the server
 server2 <- function(input, output) {
     
     output$resultTableOrdinal <- renderTable({
         # Prediciton from model
-       ordinal_pred <- posterior_predict(ordinal_model,
-                          newdata = data.frame(
-                            mean_income  = input$mean_income,
-                            below_poverty_perc  =input$below_poverty_perc,
-                            store_count = input$store_count,
-                            borough = 'Manhattan'
-                          ))
-
+        ordinal_pred <- posterior_predict(ordinal_model,
+                                          newdata = data.frame(
+                                              mean_income  = input$mean_income,
+                                              below_poverty_perc  = input$below_poverty_perc,
+                                              store_count = input$store_count,
+                                              borough = as.factor(c(input$borough, 'Manhattan'))
+                                          ))
+        
         df <- as.data.frame(ordinal_pred) %>%
             mutate(Classification  = case_when(
                 `1` == 1 ~ 'Poor',
@@ -44,27 +53,27 @@ server2 <- function(input, output) {
             dplyr::select(Classification)
         
         tab <- table(df) %>% sort(decreasing=TRUE) %>% prop.table()
-        names(dimnames(tab)) <- c("Transit_Accessibility")
+        names(dimnames(tab)) <- c("Transit Accessibility")
         tab
-        })
+        
+    })
     
-# 
-#     output$resultTableNaive <- renderTable({
-#        # Prediciton from model
-#       naive_pre <- predict(naive_model,
-#           newdata = data.frame(
-#                             mean_income  = input$mean_income,
-#                              below_poverty_perc  = input$below_poverty_perc,
-#                              store_count = input$store_count
-#                           )
-#         , type = "raw")
-#       naive_pre
+    # 
+    #     output$resultTableNaive <- renderTable({
+    #        # Prediciton from model
+    #       naive_pre <- predict(naive_model,
+    #           newdata = data.frame(
+    #                             mean_income  = input$mean_income,
+    #                              below_poverty_perc  = input$below_poverty_perc,
+    #                              store_count = input$store_count
+    #                           )
+    #         , type = "raw")
+    #       naive_pre
+    
+    # tab <- df %>% sort(decreasing=TRUE)
+    # names(dimnames(tab)) <- c("Transit_Accessibility")
+    # tab)}
 
-      # tab <- df %>% sort(decreasing=TRUE)
-      # names(dimnames(tab)) <- c("Transit_Accessibility")
-      # tab
-    # })
-    
 }
 
 
@@ -74,13 +83,17 @@ ui2 <- fluidPage(
         sidebarPanel(
             sliderInput("mean_income", "Mean Income per Year (in USD)", min = 0, max = 300000, value = 10),
             sliderInput("below_poverty_perc", "% Below Poverty", min = 0, max = 100, value = 1),
-            # sliderInput("eviction_count", "Number of Evictions", min = 0, max=1500, value =1),
-            sliderInput("store_count", "Store Count", min = 0, max = 250, value = 1)
+            sliderInput("store_count", "Store Count", min = 0, max = 250, value = 1), 
+            selectInput("borough", "Select NYC Borough:",
+                        as.factor(c("Brooklyn" ,
+                          "Queens"  ,
+                          "Manhattan",
+                          "Bronx")))
         ),
         mainPanel(
-            h4("Model Predictions"), 
-            tableOutput("resultTableOrdinal"),
-            tableOutput("resultTableNaive")
+            h4("Ordinal Model Predictions"), 
+            p("Please"), 
+            tableOutput("resultTableOrdinal")
         )
     )
 )

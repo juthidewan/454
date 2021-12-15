@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Yusei+Magic&display=swap');
+
+body {
+  padding:'2rem'; 
+  background-color:rgb(255, 246, 234);
+  color: rgb(14, 14, 14); /* text color */
+  font-family: 'Yusei Magic', sans-serif;
+}
+
+
+#resultTableOrdinal tr td { 
+  width: 100%
+}
+#author{
+  color :rgb(0, 109, 172) ;
+}
+#date{
+  color :rgb(0, 109, 172); 
+}

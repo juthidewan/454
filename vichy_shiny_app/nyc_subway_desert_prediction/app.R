@@ -29,8 +29,13 @@ server2 <- function(input, output) {
                                               mean_income  = input$mean_income,
                                               below_poverty_perc  = input$below_poverty_perc,
                                               store_count = input$store_count,
-                                              borough = input$borough
+                                              borough = as.factor(c(input$borough, 'Manhattan', 'Brooklyn'))
                                           ))
+        # Select only the first column the correspond to input$borough
+        ordinal_pred <- ordinal_pred %>% 
+            as.matrix() %>% 
+            as_tibble() %>% 
+            select(1)
         
         df <- as.data.frame(ordinal_pred) %>%
             mutate(Classification  = case_when(
@@ -40,7 +45,7 @@ server2 <- function(input, output) {
             dplyr::select(Classification)
         
         tab <- table(df) %>% sort(decreasing=TRUE) %>% prop.table()
-        names(dimnames(tab)) <- c("Transit_Accessibility")
+        names(dimnames(tab)) <- c("Transit Accessibility")
         tab
     })
     
@@ -65,6 +70,12 @@ server2 <- function(input, output) {
 
 # Build the user interface
 ui2 <- fluidPage(
+    tags$head(
+        tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")
+    ), 
+    titlePanel("New York City Subway Desert Prediction With Ordinal Model"),
+    p("Project By: Freddy Barragan, Juthi Dewan, Sam Ding, Vichearith Meas", id = 'author'),
+    p('13th December, 2021', id= 'date'),
     sidebarLayout(
         sidebarPanel(
             sliderInput("mean_income", "Mean Income per Year (in USD)", min = 0, max = 300000, value = 10),
@@ -77,7 +88,20 @@ ui2 <- fluidPage(
                           "Bronx")))
         ),
         mainPanel(
-            h4("Model Predictions"), 
+            h2("About"),
+            br(),
+            p("This shinny app is an extension of Neighborhood Deserts: Transportation Access & Housing Disparities in NYC Capstone Project",
+              a("(Link)", href = "https://freddybarragan.netlify.app/project/bayes_cap/"), "for",
+              a("STAT 454: Bayesian Statistics", href = "https://catalog.macalester.edu/preview_course_nopop.php?catoid=23&coid=121763"), " of Macalester College"),
+            br(),
+            p('The Shinny App serve as an interactive tool for readers to interact with our pre-trained', strong('ordinal model'), 'from our capstone project.'),
+            p('This odinal model takes values of four predictors to make prediction about the category of subway coverage in a neighbor in New York City'),
+            br(),
+            h2('Instruction'),
+            br(),
+            p('Please use the user interface in the left panel to change the predictors. The prediction from the ordinal model will be display in the table below.'),
+         
+            h2("Ordinal Model Predictions"), 
             tableOutput("resultTableOrdinal"),
             tableOutput("resultTableNaive")
         )
