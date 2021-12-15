@@ -550,8 +550,9 @@ my_prediction2 <- posterior_predict(
 tidy_ordinal_accuracy(data_test, my_prediction2)
 ```
 
-It seems our model is dramatically accurate when classifying neighborhoods with excellent subway access (72.22%), while almost inaccurate when studying a neighborhood with satisfactory subway access (9.09%). For the remaining categories of transportation access, there was only a .02 difference in accuracy. Note that in both the ordinal and the naive model, we could not accurately predict this "Satisfactory" category. Likely, this must be a byproduct of our interval criteria for each respective level of transportation inaccess— that is, these categories may not be sufficiently different to find differences.
+It seems that our model is dramatically accurate when classifying neighborhoods with excellent subway access (90%) and poor subway access (71.4%), while almost inaccurate when studying a neighborhood with satisfactory subway access (9.09%). For the remaining categories of transportation access, there was only a .02 difference in accuracy. Note that in both the ordinal and the naive model, we could not accurately predict this "Satisfactory" category. 
 
+In addition to accuracy within each group, we also consider the compositions of the actual vs. predictions. Below we visualize the same error metrics for the ordinal model.
 
 ```{r}
 my_prediction2 <- posterior_predict(
@@ -601,9 +602,36 @@ data_test %>%
 ```
 
 
-Here, we visualize the same error metrics for the ordinal model. Once again, observe that for the "Satisfactory" category our predictions are always incorrect.
 
-In the next section, we aimed to see how transportation inaccess affected real-world urban housing issues.
+Here is a graph of detailed breakdown of proportions within each observed category. Once again, observe that for the "Typical" category our predictions are always incorrect. Likely, this must be a byproduct of our interval criteria for each respective level of transportation inaccessibility— that is, these categories may not be sufficiently different to find differences.
+
+
+
+```{r}
+data_train %>% 
+  ggplot(aes(x=perc_covered_by_transit)) + geom_histogram() + 
+  labs(title="Density Plot of Percentage Covered by Transit", y="Count", x="% Covered by Transit") +
+   theme(panel.grid.major.x = element_line("transparent"),
+         # axis.text.y.left = element_blank(),
+          axis.text.x.bottom = element_text(size = 12, face = "bold"),
+          plot.title = element_text(size = 20, hjust=.5, face = "bold", family="DIN Condensed"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed")) + 
+  geom_vline(xintercept = 25) + 
+  geom_vline(xintercept = 75) 
+
+df <- data.frame(c("25" = ecdf(data_train$perc_covered_by_transit)(25),
+             "75" = ecdf(data_train$perc_covered_by_transit)(75)))
+  colnames(df) <- c("Prop")
+
+knitr::kable(df)
+```
+
+We investigated this issue with the density plot and ecdf of the interval cutoffs. We found that the original data demonstrates a bimodal distribution with observations heavily concentrated at 0-1% and 99-100%.
+
+In the next section, we aimed to see how transportation inaccessibility affected real-world urban housing issues.
 
 
 # Transportation and Structural Inequity
