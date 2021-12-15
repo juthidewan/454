@@ -550,7 +550,7 @@ my_prediction2 <- posterior_predict(
 tidy_ordinal_accuracy(data_test, my_prediction2)
 ```
 
-It seems that our model is dramatically accurate when classifying neighborhoods with excellent subway access (90%) and poor subway access (71.4%), while almost inaccurate when studying a neighborhood with satisfactory subway access (9.09%). For the remaining categories of transportation access, there was only a .02 difference in accuracy. Note that in both the ordinal and the naive model, we could not accurately predict this "Satisfactory" category. 
+It seems that our model is dramatically accurate when classifying neighborhoods with excellent subway access (90%) and poor subway access (71.4%), while almost inaccurate when studying a neighborhood with typical subway access (9.09%). For neighborhoods with typical subway access, they are more likely to be categorized into excellent than typical or poor. For the remaining categories of transportation access, there was only a .02 difference in accuracy. Note that in both the ordinal and the naive model, we could not accurately predict this "Typical" category. 
 
 In addition to accuracy within each group, we also consider the compositions of the actual vs. predictions. Below we visualize the same error metrics for the ordinal model.
 
@@ -629,7 +629,7 @@ df <- data.frame(c("25" = ecdf(data_train$perc_covered_by_transit)(25),
 knitr::kable(df)
 ```
 
-We investigated this issue with the density plot and the empirical CDF of the interval cutoffs. We found that the original data demonstrates a bimodal distribution with observations heavily concentrated at 0-1% and 99-100%.
+We investigated this issue with the density plot and the empirical CDF of the interval cutoffs. We found that the original data demonstrates a bimodal distribution with observations heavily concentrated in 0-1% and 99-100%. This is partially due to the over-saturated coverage in Manhattan and the lack of subway access in further, suburban neighborhoods in Queens. 
 
 In the next section, we aimed to see how transportation inaccessibility affected real-world urban housing issues.
 
