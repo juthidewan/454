@@ -629,7 +629,7 @@ df <- data.frame(c("25" = ecdf(data_train$perc_covered_by_transit)(25),
 knitr::kable(df)
 ```
 
-We investigated this issue with the density plot and ecdf of the interval cutoffs. We found that the original data demonstrates a bimodal distribution with observations heavily concentrated at 0-1% and 99-100%.
+We investigated this issue with the density plot and the empirical CDF of the interval cutoffs. We found that the original data demonstrates a bimodal distribution with observations heavily concentrated at 0-1% and 99-100%.
 
 In the next section, we aimed to see how transportation inaccessibility affected real-world urban housing issues.
 
