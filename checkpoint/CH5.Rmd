@@ -263,7 +263,7 @@ In the following two subsections, we describe how we understood and classified t
 
 Naive Bayes Model is one of the most popular models for classifying a response variable with 2 or more categories.
 
-We implemented a Naive Bayes classifier on subway access because it is both computationally efficient and applicable to Bayesian classification settings where outcomes may have 2+ categories. Specifically, we fit transportation access by taking mean income, percentage below the poverty line and the number of grocery stores. Because we are predicting 4 levels of transportation access, we initially fit this model using the `e1071` package to classify subway transit level. 
+We implemented a Naive Bayes classifier on subway access because it is both computationally efficient and applicable to Bayesian classification settings where outcomes may have 2+ categories. Specifically, we fit transportation access by taking mean income, percentage below the poverty line and the number of grocery stores. Because we are predicting 3 levels of transportation access, we initially fit this model using the `e1071` package to classify subway transit level. 
 
 The goal of using Naive Bayes model is to see how this algorithm make prediction about the data. The result from Naive Bayes model can be used to compare with the Ordinal Model, which we will explore in the next section,in showing how various algorithm differ fundamentally and consequentially from one another. 
 
@@ -381,55 +381,56 @@ ncol=1, nrow=3
 )
 ```
 
-Naive Bayes's assumption of normality within categories does not hold, unfortunately. Meaning that although this is a "good" classifier, it is not an appropriate one. Further, naive Bayes is a black box classifier meaning that although our classifications might be accurate, we will never understand where these predictions come from or how subway access is related to these predictors.
+Naive Bayes's assumption of normality within categories does not hold, unfortunately. Meaning that although this is a "good" classifier, it is not an appropriate one. Further, naive Bayes is a black box classifier meaning that although our classifications might be accurate, we will never understand where these predictions come from or how subway access is related to these predictors. Our next section details anothe Bayesian classification model that can serve as an alternative to Naive Bayes.
 
 
 ## Ordinal Model
 
-Having realized the shortcomings of the naive Bayes model, we wanted to see if there are any alternatives. We land on the ordinal regression model. 
-
-An ordinal regression model, or ordered logistic regression model, predicts the outcome of an ordinal variable, which is a variable whose value exists on an arbitrary scale where only the relative ordering between different values is significant. In this case, our subway desert classification is the ordinal variable with categories ranging from the least covered to the most covered (1 ~ 3) by the NYC subway system. 
-
-Here we introduce a latent variable $y^*$, which would be a linear combination of the predictor variables. After going through a variable selection process, we took out variables with a confidence interval consisting model consisting of mean income, percentage below poverty, number of evictions, and number of stores in our compiled data. A mathematical expression of the categorization would be as follows:
+An ordinal regression model, or ordered logistic regression model, predicts the outcome of an ordinal variable, which is a categorical variable whose classes exist on an arbitrary scale where only the relative ordering between different values is significant. In this case, our subway desert category is an ordinal variable with categories ranging from the least covered to the most covered (e.g. `$[1,2,3]$`) by NYC's subway stops. Once again, we defined these categories by splitting the percentage covered using 2 cut-points, `$\zeta_1$` and `$\zeta_2$`, to create 3 ordered categories— Poor, Typical, and Satisfactory. Our `$\zeta$`s are listed below.
 
 $$
+\begin{align*}
+\zeta_1 = 0.25 \\
+\zeta_2 = 0.75 \\
+\end{align*}
+$$
 
-Y_i| \zeta_1, \zeta_2,\zeta_3,\beta_1, \beta_2,\beta_3, \beta_4, \beta_5,\beta_6=
+Next, we introduce a latent variable $y^*$, which would be a linear combination of the $k$ predictor variables. Here, we selected mean neighborhood income (`$X_1$`), percentage below the poverty line in a neighborhood (`$X_2$`), the number of grocery stores and food vendors in a neighborhood (`$X_3$`), and 3 dummy variables for the borough of our neighborhood (`$X_4, X_5, X_6$`) as our predictors.
+
+Then we predict the transportation desert status `$Y$` for the `$i$`th neighborhood with the following model:
+ 
+$$
+\begin{align*}
+Y_i| \zeta_1, \zeta_2,\zeta_3,\beta_1,\dots,\beta_6 &=
 \begin{cases}
-1 &, y^{*} < \zeta_1 \\
-2 &, \zeta_1 \leq y^{*} < \zeta_2 \\
-3 &, y^{*} \geq \zeta_2 \\
+1 & y^{*} < \zeta_1 \\
+2 & \zeta_1 \leq y^{*} < \zeta_2 \\
+3 &  \zeta_2 \leq  y^{*} \\
 \end{cases} 
-
 \\
-y^{*} = \beta_1x_1 + \beta_2x_2 + \beta_3x_3 + \beta_4x_4 + \beta_5x_5 + \beta_6x_6 +  \epsilon \\
-
+\\
+y_i^{*} & = \sum_{k=1}^6 \beta_kX_i \\
+\end{align*} \\
 $$
 
-- $\zeta_i$ : is a vector of cut-points for categories. 
-- $y^{*}$ : a linear combination of 3 predictor variables consisting of `mean income`, `below poverty percentage`, `borough`, and `store_count`.
-- $\beta_i$ : is the coefficient for the $ith$ predictor variable. 
+$\text{Where}$
+
+$$\begin{align*}
+\zeta_1 = 0.25 \\
+\zeta_2 = 0.75 \\
+\end{align*}$$
 
 $$
-\zeta_1 \sim N(m_{\zeta 1}, s_{\zeta 1}^{2}) \\
-\zeta_2 \sim N(m_{\zeta 2}, s_{\zeta 2}^{2}) \\
-\zeta_3 \sim N(m_{\zeta 3}, s_{\zeta 3}^{2}) \\
-\beta_1 \sim N(m_{\beta 1}, s_{\beta 1}^{2}) \\
-\beta_2 \sim N(m_{\beta 2}, s_{\beta 2}^{2}) \\
-\beta_3 \sim N(m_{\beta 3}, s_{\beta 3}^{2}) \\
-\beta_4 \sim N(m_{\beta 4}, s_{\beta 4}^{2}) \\
-\beta_5 \sim N(m_{\beta 5}, s_{\beta 5}^{2}) \\
-\beta_6 \sim N(m_{\beta 6}, s_{\beta 6}^{2}) \\
+\beta_k \sim N(m_{k}, s_{k}^{2}) \\
 $$
+It is important to note that there is no intercept in $y_i^*$. This is an omission by the construction of `stan_polr`'s model and the multi-class outcomes for this ordinal model. 
 
-Each $\zeta_i$ is a vector of cut-points for categories, and each $\beta_i$ is the coefficient for the $i^{th}$ predictor variable. 
+Since we do not have prior information about the relationship between observed transportation access and these specific priors, we will be using the default prior in `stan_polr`. Specifically, we establish a prior for the location of the proportion of the variance in outcome that is attributable to the predictors. This proportion is more commonly as the $R^2$ metric used in frequentist linear regressions and could be located at any value between (0,1). Since we are using a uniform prior on the location of $R^2), we say the ratio of our $R^2$'s proportion is around 0.5 or that a perfect explanation of variance and non-explanation of variance in our outcome categories is equally plausible. For a slightly more technical overview, visit the $R^2$ section in `rstanarm`'s documentation [here](https://rdrr.io/cran/rstanarm/man/priors.html). 
 
-Since we do not have prior information about the data, we will be using the default prior R2 given by the `stan_polr` function, which is null, or a uniform prior. We would also use a default prior count dirichlet(1), which is a uniform prior.
+It is also worth noting that we could specify uniform Dirichlet count priors (e.g. $\text{Dirichlet}(1,1,1)$ on the categoies of transportation access in `stan_polr`. 
 
-Note:
-- There is no intercept in this model because the data cannot distinguish an intercept from the cut points. 
+One technical limitationn of our ordinal model is attributable to the paucity on cross-validated error metrics for the Bayesian ordinal regression model in `stan_polr`. To test the model's fitness on new data, we used a manual train-test split. Our training data would include 70% of the original observations, while our test data would include the remaining 30%.
 
-One challenge we face when creating our ordinal model is that the Bayesian ordinal regression does not do cross-validated checks like other Bayesian regression or classification. To test the model's fitness into outside data and prevent overfitting, we used a train-test split. Our train data would include 70% of the original observations and our test data would include the remaining 30%.
 
 ```{r}
 library(rsample)
@@ -446,7 +447,8 @@ data_test <- testing(data_split)
 ordinal_model <- stan_polr(transportation_desert_3num ~ mean_income + 
                              below_poverty_perc + store_count + borough, 
                     data =data_train, prior_counts = dirichlet(1),
-                    prior=R2(0.5), iter=500, seed = 86437, refresh=0, prior_PD=FALSE)
+                    prior=R2(0.5),
+                    chains = 4, iter = 1000*2, seed = 84735, refresh = 0)
 ```
 
 
@@ -465,9 +467,6 @@ tidy(ordinal_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8) %>%
   kable(align = "c", caption = "Ordinal Model - Summary") %>% 
   kable_styling() 
 ```
-```{r}
-prior_summary(ordinal_model)
-```
 
 Here is an interpretation of the coefficients in the tidy table:
 
@@ -482,7 +481,6 @@ Here is an interpretation of the coefficients in the tidy table:
 `boroughManhattan`: When controlling all other factors, if a neighborhood is in Manhattan, the model estimates that the latent variable $y^*$ increases by 2.5965602 compared to that neighborhood in Bronx. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (1.2840073, 4.3013850), indicating that we are not certain with the relationship between between a neighborhood being in Manhattan and $y^*$, but its magnitude may vary.
 
 `boroughQueens`: When controlling all other factors, if a neighborhood is in Queens, the model estimates that the latent variable $y^*$ increases by -0.4148264 compared to that neighborhood in Bronx. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (-1.1315662, 0.3349786), indicating that we are not certain with the relationship between between a neighborhood being in Queens and $y^*$.
-
 
 
 Then, extending a function written by [Connie Zhang](https://connie-zhang.github.io/pet-adoption/modelling.html) into a tidy format, we compute the accuracy of the ordinal model when predicting transportation desert categories below.
@@ -550,15 +548,11 @@ my_prediction2 <- posterior_predict(
 tidy_ordinal_accuracy(data_test, my_prediction2)
 ```
 
-It seems that our model is dramatically accurate when classifying neighborhoods with excellent subway access (90%) and poor subway access (71.4%), while almost inaccurate when studying a neighborhood with typical subway access (9.09%). For neighborhoods with typical subway access, they are more likely to be categorized into excellent than typical or poor. For the remaining categories of transportation access, there was only a .02 difference in accuracy. Note that in both the ordinal and the naive model, we could not accurately predict this "Typical" category. 
+It seems that our model is incredibly accurate when classifying neighborhoods as having excellent and poor subway access (90%; 71.4%), while almost uniformly incorrect when classifying a neighborhood as having typical subway access (9.09%). Our model is more likely to categorize a neighborhood with typical subway access as having excellent or poor access. Note that in both the ordinal and the naive model, we could not accurately predict this "Typical" category. 
 
 In addition to accuracy within each group, we also consider the compositions of the actual vs. predictions. Below we visualize the same error metrics for the ordinal model.
 
 ```{r}
-my_prediction2 <- posterior_predict(
-  ordinal_model, 
-  newdata = data_test)
-
 mode <- function(x) {
   t <- table(x)
   names(t)[which.max(t)]
@@ -601,35 +595,31 @@ data_test %>%
   
 ```
 
-
-
 Here is a graph of detailed breakdown of proportions within each observed category. Once again, observe that for the "Typical" category our predictions are always incorrect. Likely, this must be a byproduct of our interval criteria for each respective level of transportation inaccessibility— that is, these categories may not be sufficiently different to find differences.
 
 
+We investigated this issue with the density plot and the empirical CDF of the interval cutoffs.
 
 ```{r}
-data_train %>% 
-  ggplot(aes(x=perc_covered_by_transit)) + geom_histogram() + 
-  labs(title="Density Plot of Percentage Covered by Transit", y="Count", x="% Covered by Transit") +
-   theme(panel.grid.major.x = element_line("transparent"),
+nyc_naive %>% 
+  ggplot(aes(x=perc_covered_by_transit, fill=transportation_desert_3cat)) + 
+  geom_histogram(bins = 15) + 
+  labs(title="Subway Accesibilty Percent Distribution", y="Count", 
+       x="% of Neighborhood with Walking Distance of a Subway Stop")+
+  geom_vline(xintercept = 25) + 
+  geom_vline(xintercept = 75) +
+    theme(panel.grid.major.x = element_line("transparent"),
          # axis.text.y.left = element_blank(),
           axis.text.x.bottom = element_text(size = 12, face = "bold"),
           plot.title = element_text(size = 20, hjust=.5, face = "bold", family="DIN Condensed"),
         legend.key.width = unit(.5, "in"),
         legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
-        legend.position = "bottom" ,
-        legend.text = element_text(size = 15, face="bold", family="DIN Condensed")) + 
-  geom_vline(xintercept = 25) + 
-  geom_vline(xintercept = 75) 
-
-df <- data.frame(c("25" = ecdf(data_train$perc_covered_by_transit)(25),
-             "75" = ecdf(data_train$perc_covered_by_transit)(75)))
-  colnames(df) <- c("Prop")
-
-knitr::kable(df)
+        legend.position = "top" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+   scale_fill_manual(values=c("#996A37", "#EBDDC7", "#426350"),
+                       guide = guide_legend(title = ""), na.value="#D6D6D6") 
 ```
-
-We investigated this issue with the density plot and the empirical CDF of the interval cutoffs. We found that the original data demonstrates a bimodal distribution with observations heavily concentrated in 0-1% and 99-100%. This is partially due to the over-saturated coverage in Manhattan and the lack of subway access in further, suburban neighborhoods in Queens. 
+We found that the original data demonstrates a bimodal distribution with observations heavily concentrated in 0-25% and 75-100%. This is partially due to the over-saturated coverage in Manhattan and the lack of subway access in the suburban neighborhoods of Queens.
 
 In the next section, we aimed to see how transportation inaccessibility affected real-world urban housing issues.
 
@@ -812,7 +802,7 @@ black_eviction <- nyc_compiled %>%
           strip.background.x = element_rect(fill="Black", color="Black"),
           strip.text.x = element_text(family="DIN Condensed", size = 20,  color = "White", face = "bold")) + 
    scale_color_manual(values=c("#996A37","#E9DBC2","#395645"))+
-  facet_wrap(.~transportation_desert_3cat, scales = "free") 
+  facet_wrap(.~transportation_desert_3cat, scales = "free", ncol=2, nrow=2) 
 
 asian_eviction <- nyc_compiled %>%
   filter(nta_type == 0) %>%
@@ -828,7 +818,7 @@ asian_eviction <- nyc_compiled %>%
           strip.background.x = element_rect(fill="Black", color="Black"),
           strip.text.x = element_text(family="DIN Condensed", size = 20,  color = "White", face = "bold")) + 
    scale_color_manual(values=c("#996A37","#E9DBC2","#395645"))+
-  facet_wrap(.~transportation_desert_3cat, scales = "free") 
+  facet_wrap(.~transportation_desert_3cat, scales = "free", ncol=2, nrow=2) 
 
 latinx_eviction <- nyc_compiled %>%
   filter(nta_type == 0) %>%
@@ -844,7 +834,7 @@ latinx_eviction <- nyc_compiled %>%
           strip.background.x = element_rect(fill="Black", color="Black"),
           strip.text.x = element_text(family="DIN Condensed", size = 20,  color = "White", face = "bold")) + 
    scale_color_manual(values=c("#996A37","#E9DBC2","#395645"))+
-  facet_wrap(.~transportation_desert_3cat, scales = "free") 
+  facet_wrap(.~transportation_desert_3cat, scales = "free", ncol=2, nrow=2) 
 
 white_eviction <- nyc_compiled %>%
   filter(nta_type == 0) %>%
@@ -860,7 +850,7 @@ white_eviction <- nyc_compiled %>%
           strip.background.x = element_rect(fill="Black", color="Black"),
           strip.text.x = element_text(family="DIN Condensed", size = 20,  color = "White", face = "bold")) + 
    scale_color_manual(values=c("#996A37","#E9DBC2","#395645"))+
-  facet_wrap(.~transportation_desert_3cat, scales = "free") 
+  facet_wrap(.~transportation_desert_3cat, scales = "free", ncol=2, nrow=2) 
 ```
 
 ```{r, fig.height=8*2*1.5, fig.width=8*2*1.5}
@@ -887,7 +877,7 @@ black_rent <- nyc_compiled %>%
           strip.background.x = element_rect(fill="Black", color="Black"),
           strip.text.x = element_text(family="DIN Condensed", size = 20,  color = "White", face = "bold")) + 
    scale_color_manual(values=c("#996A37","#E9DBC2","#395645"))+
-  facet_wrap(.~transportation_desert_3cat, scales = "free") 
+  facet_wrap(.~transportation_desert_3cat, scales = "free", ncol=2, nrow=2) 
 
 asian_rent <- nyc_compiled %>%
   filter(nta_type == 0) %>%
@@ -903,7 +893,7 @@ asian_rent <- nyc_compiled %>%
           strip.background.x = element_rect(fill="Black", color="Black"),
           strip.text.x = element_text(family="DIN Condensed", size = 20,  color = "White", face = "bold")) + 
    scale_color_manual(values=c("#996A37","#E9DBC2","#395645"))+
-  facet_wrap(.~transportation_desert_3cat, scales = "free") 
+  facet_wrap(.~transportation_desert_3cat, scales = "free", ncol=2, nrow=2) 
 
 latinx_rent <- nyc_compiled %>%
   filter(nta_type == 0) %>%
@@ -919,7 +909,7 @@ latinx_rent <- nyc_compiled %>%
           strip.background.x = element_rect(fill="Black", color="Black"),
           strip.text.x = element_text(family="DIN Condensed", size = 20,  color = "White", face = "bold")) + 
    scale_color_manual(values=c("#996A37","#E9DBC2","#395645"))+
-  facet_wrap(.~transportation_desert_3cat, scales = "free") 
+  facet_wrap(.~transportation_desert_3cat, scales = "free", ncol=2, nrow=2) 
 
 white_rent <- nyc_compiled %>%
   filter(nta_type == 0) %>%
@@ -935,7 +925,7 @@ white_rent <- nyc_compiled %>%
           strip.background.x = element_rect(fill="Black", color="Black"),
           strip.text.x = element_text(family="DIN Condensed", size = 20,  color = "White", face = "bold")) + 
    scale_color_manual(values=c("#996A37","#E9DBC2","#395645"))+
-  facet_wrap(.~transportation_desert_3cat, scales = "free") 
+  facet_wrap(.~transportation_desert_3cat, scales = "free", ncol=2, nrow=2) 
 ```
 
 ```{r, fig.height=8*2, fig.width=8*2}
