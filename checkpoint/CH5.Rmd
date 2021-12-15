@@ -429,6 +429,8 @@ Since we do not have prior information about the data, we will be using the defa
 Note:
 - There is no intercept in this model because the data cannot distinguish an intercept from the cut points. 
 
+One challenge we face when creating our ordinal model is that the Bayesian ordinal regression does not do cross-validated checks like other Bayesian regression or classification. To test the model's fitness into outside data and prevent overfitting, we used a train-test split. Our train data would include 70% of the original observations and our test data would include the remaining 30%.
+
 ```{r}
 library(rsample)
 set.seed(454)
@@ -438,6 +440,7 @@ data_split <- initial_split(nyc_naive, prop = .7)
 data_train <- training(data_split)
 data_test <- testing(data_split) 
 ```
+
 
 ```{r}
 ordinal_model <- stan_polr(transportation_desert_3num ~ mean_income + 
@@ -482,7 +485,7 @@ Here is an interpretation of the coefficients in the tidy table:
 
 
 
-Then extending a function written by [Connie Zhang](https://connie-zhang.github.io/pet-adoption/modelling.html) into a tidy format, we compute the accuracy of the ordinal model when predicting transportation desert categories below.
+Then, extending a function written by [Connie Zhang](https://connie-zhang.github.io/pet-adoption/modelling.html) into a tidy format, we compute the accuracy of the ordinal model when predicting transportation desert categories below.
 
 ```{r}
 tidy_ordinal_accuracy <- function(testing_data, predictions){
