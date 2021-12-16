@@ -28,13 +28,13 @@ knitr::opts_chunk$set(warning=FALSE, message=FALSE,
 
 In collaboration with [Juthi Dewan](https://juthidewan-portfolio.netlify.app), [Sam Ding](https://sdingx.github.io/portfolio/), and Vichy Meas, we designed this project for our Bayesian Statistics course taught by [Dr. Alicia Johnson](https://ajohns24.github.io/portfolio/). We would like to thank Alicia for guiding us through Bayes and the capstone experience!
 
-A reproducible version of this blog post with all code can be found [here](https://freddybarragan.netlify.app/media/bayes_final.html).
+A reproducible version of this blog post with all code can be found [here](https://freddybarragan.netlify.app/media/bayes/bayes_final.html).
 
 We were initially interested in characterizing New York City's internal racial dynamics using demography, geographic mobility, community health, and economic outcomes. As this project developed, we found ourselves thinking about the relationships between transportation (in)access and housing inequity. There are two main sections in our project: **Subway Accessibility** and **Transportation and Structural Inequity**. 
 
 In **Subway Accessibility**, we explore transportation deserts, and the significant determinants of subway access in New York City are using two Bayesian classification models. If you have questions or thoughts about this section in particular, please feel free to reach out to [Sam](https://sdingx.github.io/portfolio/) or Vichy by email!
 
-While in **Transportation and Structural Inequity**, we extend our discussion of transportation access to study its relationship to rental prices and evictions using both simple and hierarchical Bayesian multivariate regression. In the [extended document](https://freddybarragan.netlify.app/media/bayes_final.html), we also fit non-hierarchical spatial models to control for the underlying spatial relationships between neighborhoods. However, we omit major discussion of these models in this blog post as Bayesian spatial regression was beyond the scope of this course. If you have questions about these models, please reach out to either [Juthi](https://juthidewan-portfolio.netlify.app) or me by email!
+While in **Transportation and Structural Inequity**, we extend our discussion of transportation access to study its relationship to rental prices and evictions using both simple and hierarchical Bayesian multivariate regression. In the [extended document](https://freddybarragan.netlify.app/media/bayes/bayes_final.html), we also fit non-hierarchical spatial models to control for the underlying spatial relationships between neighborhoods. However, we omit major discussion of these models in this blog post as Bayesian spatial regression was beyond the scope of this course. If you have questions about these models, please reach out to either [Juthi](https://juthidewan-portfolio.netlify.app) or me by email!
 
 First, however, let us do a data introduction:
 
@@ -189,7 +189,7 @@ The process involved grouping geotagged locations by the defined neighborhood bo
 
 # Data Summaries 
 
-We present a [numeric summary](https://freddybarragan.netlify.app/media/bayes_final.html#Data_Summaries) on our data with 224 observations of 38 variables. However, note that we use percent equivalents for most demographic count variables.
+We present a [numeric summary](https://freddybarragan.netlify.app/media/bayes/bayes_final.html#Data_Summaries) on our data with 224 observations of 38 variables. However, note that we use percent equivalents for most demographic count variables.
 
 ```{r eval = TRUE}
 table_print <- table1(~ 
@@ -476,7 +476,7 @@ $$
 
 It is important to note that there is no intercept in $y_i^*$, which is an omission by the construction of `stan_polr`'s model and the multi-class outcomes for this ordinal model. 
 
-Since we do not have prior information about the relationship between observed transportation access and these specific predictors, we will be using the default prior in `stan_polr`. Specifically, we establish a prior for the location of the proportion of the outcome variance that is attributable to the predictors. This proportion is more commonly known as the $R^2$ metric used in frequentist linear regressions and could be located at any value between (0,1). It is also worth noting that we could specify uniform Dirichlet count priors (e.g., $\text{Dirichlet}(1,1,1)$ on the categories of transportation access in `stan_polr`. 
+Since we do not have prior information about the relationship between observed transportation access and these specific predictors, we will be using the default prior in `stan_polr`. Specifically, we establish a prior for the location of the proportion of the outcome variance that is attributable to the predictors. This proportion is more commonly known as the $R^2$ metric used in frequentist linear regressions and could be located at any value between (0,1). It is also worth noting that we could specify uniform Dirichlet count priors (e.g., $\text{Dirichlet}(1,1,1)$) on the categories of transportation access in `stan_polr`. 
 
 Since we are using a uniform prior on the location of $R^2$, we say the ratio of our $ R^2$'s proportion is around 0.5 or that a perfect explanation of variance and non-explanation of variance in our outcome categories is equally plausible. So, we expect that 50% of the variability in transportation access cannot be explained by the mean neighborhood income, percentage below the poverty line in a neighborhood, the number of grocery stores and food vendors in a neighborhood, and the borough. Visit the $R^2$ section in `rstanarm` 's documentation [here](https://rdrr.io/cran/rstanarm/man/priors.html) for a more technical overview. 
 
@@ -517,22 +517,20 @@ Here is an interpretation of the coefficients in the tidy table:
 
 
 
-**Mean Income**: When controlling all other factors, for each additional dollar a given neighborhood's mean income has, the model estimates that the latent variable $y^*$ increases by 0.0000197. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (0.0000010, 0.0000383), indicating that there is almost certainly a positive relationship between mean income and $y^*$, but its magnitude may vary.
+- **Mean Income**: When controlling all other factors, for each additional dollar a given neighborhood's mean income has, the model estimates that the latent variable $y^*$ increases by 0.0000197. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (0.0000010, 0.0000383), indicating that there is almost certainly a positive relationship between mean income and $y^*$, but its magnitude may vary.
 
 **Percent Living Below the Poverty Line**: When controlling all other factors, for each additional % people below poverty a given neighborhood has, the model estimates that the latent variable $y^*$ increases by 0.0977415. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (0.0422522, 0.1576466), indicating that there is almost certainly a positive relationship between below poverty percentage and $y^*$, but its magnitude may vary.
 
-Grocery Store Count: When controlling all other factors, for each additional food and grocery store a given neighborhood has, the model estimates that the latent variable $y^*$ increases by 0.0224638. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (0.0138214, 0.0316698), indicating that there is almost certainly a positive relationship between the number of stores and $y^*$, but its magnitude may vary.
+**Grocery Store Count**: When controlling all other factors, for each additional food and grocery store a given neighborhood has, the model estimates that the latent variable $y^*$ increases by 0.0224638. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (0.0138214, 0.0316698), indicating that there is almost certainly a positive relationship between the number of stores and $y^*$, but its magnitude may vary.
 
-`Brooklyn`: When controlling all other factors, if a neighborhood is in Brooklyn, the model estimates that the latent variable $y^*$ increases by 0.1084268 compared to that neighborhood in the Bronx. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (-0.6968746, 0.8669477), indicating the relationship between a neighborhood being in Brooklyn and $y^*$ could be insignificant.
+- **Brooklyn**: When controlling all other factors, if a neighborhood is in Brooklyn, the model estimates that the latent variable $y^*$ increases by 0.1084268 compared to that neighborhood in the Bronx. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (-0.6968746, 0.8669477), indicating the relationship between a neighborhood being in Brooklyn and $y^*$ could be insignificant.
 
-`Manhattan`: When controlling all other factors, if a neighborhood is in Manhattan, the model estimates that the latent variable $y^*$ increases by 2.5965602 compared to that neighborhood in the Bronx. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (1.2840073, 4.3013850), indicating that we are confident that the relationship between a neighborhood being in Manhattan and $y^*$ exists, but its magnitude may vary.
+- **Manhattan**: When controlling all other factors, if a neighborhood is in Manhattan, the model estimates that the latent variable $y^*$ increases by 2.5965602 compared to that neighborhood in the Bronx. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (1.2840073, 4.3013850), indicating that we are confident that the relationship between a neighborhood being in Manhattan and $y^*$ exists, but its magnitude may vary.
 
-`Queens`: When controlling all other factors, if a neighborhood is in Queens, the model estimates that the latent variable $y^*$ increases by -0.4148264 compared to that neighborhood in the Bronx. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (-1.1315662, 0.3349786), indicating that we are not confident with the relationship between a neighborhood being in Queens and $y^*$.
+- **Queens**: When controlling all other factors, if a neighborhood is in Queens, the model estimates that the latent variable $y^*$ increases by -0.4148264 compared to that neighborhood in the Bronx. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (-1.1315662, 0.3349786), indicating that we are not confident with the relationship between a neighborhood being in Queens and $y^*$.
 
 
-Then, editing a function written by [Connie Zhang](https://connie-zhang.github.io/pet-adoption/modelling.html) into a tidy format, we compute the accuracy of the ordinal model below. Specifically, we take the most common category predicted across all of our model's simulations, then use that modal category as our final prediction.
-
-Then, extending a function written by [Connie Zhang](https://connie-zhang.github.io/pet-adoption/modelling.html) into a tidy format, we compute the accuracy of the ordinal model when predicting transportation desert categories below. Specifically, we take the most common category predicted across all of our model's simulations, then use that modal category as our final prediction.
+Then, adapting a function written by [Connie Zhang](https://connie-zhang.github.io/pet-adoption/modelling.html) into a tidy format, we compute the accuracy of the ordinal model below. Specifically, we take the most common category predicted across all of our model's simulations, then use that modal category as our final prediction. 
 
 ```{r}
 tidy_ordinal_accuracy <- function(testing_data, predictions){
@@ -877,7 +875,7 @@ white_eviction <- nyc_compiled %>%
   geom_smooth(aes(group=transportation_desert_3cat),span = 1, size=3, se=F)+
   labs(title="Eviction Counts by White Density \nper Transportation Category", y="", x="White (%)")+
   theme_linedraw()+
-  theme(legend.position = "none",
+ theme(legend.position = "none",
           plot.title = element_text(family="DIN Condensed", size = 30 ,hjust=.5, face = "bold"),
           strip.background.x = element_rect(fill="Black", color="Black"),
           strip.text.x = element_text(family="DIN Condensed", size = 20,  color = "White", face = "bold")) + 
@@ -960,7 +958,7 @@ white_rent <- nyc_compiled %>%
   facet_wrap(.~transportation_desert_3cat, scales = "free", ncol=2, nrow=2) 
 ```
 
-```{r, fig.height=8*2, fig.width=8*2}
+```{r, fig.height=8*2*1.5, fig.width=8*2*1.5}
 ggarrange(black_rent, latinx_rent, asian_rent, white_rent, ncol=2, nrow=2)
 ```
 
@@ -1807,7 +1805,7 @@ It seems that the hierarchical model of eviction counts has the lowest WAIC, but
 
 ## Results
 
-Our previous section consistently demonstrated that all 3 of our hierarchical models performed better than our non-hierarchical models with respect to absolute error metrics, residual distributions, expected-log predictive densities, and WAICs. In this section, we detail our findings using the hierarchical models. In this section, we emphasize the broader conclusions of our models and only report the nature of the associations between our outcomes and predictors (e.g., positive or negative). For individualized interpretations of each predictor for each model, please see the ["Full Interpretations" section in the Appendix](https://freddybarragan.netlify.app/media/bayes_final.html#Appendix)!
+Our previous section consistently demonstrated that all 3 of our hierarchical models performed better than our non-hierarchical models with respect to absolute error metrics, residual distributions, expected-log predictive densities, and WAICs. In this section, we detail our findings using the hierarchical models. In this section, we emphasize the broader conclusions of our models and only report the nature of the associations between our outcomes and predictors (e.g., positive or negative). For individualized interpretations of each predictor for each model, please see the ["Full Interpretations" section in the Appendix](https://freddybarragan.netlify.app/media/bayes/bayes_final.html#Appendix)!
 
 
 ### Model 4: Immigrant/Non-Citizen Count
