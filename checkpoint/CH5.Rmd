@@ -48,23 +48,24 @@ library(here)
 library(rstan)
 library(rstanarm)
 library(bayesrules)
-library(tidyverse)
-library(rstanarm)
-library(broom.mixed)
 library(tidybayes)
 library(bayesplot)
-library(bayesrules)
-library(tidyverse)
-library(rstanarm)
 library(broom.mixed)
-library(tidybayes)
 library(forcats)
-library(bayesplot)
 library(sf)
 library(nycgeo)
 library(tidycensus)
 library(extrafont)
 library(extrafontdb)
+library(magrittr)
+library(e1071)
+library(table1)
+library(kableExtra)
+library(egg)
+library(rsample)
+library(spdep)
+library(CARBayes)
+
 # themes
 theme_set(theme_minimal())
 brown_green <- c("#E9DBC2","#7D9B8A","#4D6F5C","#D29B5B","#744410","#1C432D")
@@ -120,7 +121,7 @@ nyc_compiled <- nyc_clean %>%
    mutate(black_perc = black_count / total_pop) %>%
    mutate(latinx_perc = latinx_count / total_pop) %>%
    mutate(native_perc = native_count / total_pop) %>%
-   mutate(non-citizen_perc = non-citizen_count / total_pop) %>%
+   mutate(noncitizen_perc = noncitizen_count / total_pop) %>%
    mutate(evictions_perc = eviction_count / total_pop) %>%
    mutate(uninsured_perc = uninsured_count / total_pop) %>%
   mutate(unemployment_perc = unemployment_count / total_pop) %>%
@@ -149,7 +150,7 @@ All data used in this project are from two major sources: the Tidycensus package
 - `native_count`: Number of Native People by Census Tract
 - `asian_count`: Number of Asian People by Census Tract
 - `naturalized_citizen_count`: Number of Naturalized Citizens by Census Tract
-- `non-citizen_count`: Number of Foreign Born People by Census Tract
+- `noncitizen_count`: Number of Foreign Born People by Census Tract
 - `uninsured_count`: Number of Uninsured Citizens of any Age by Census Tract
  - `gini_neighborhood` : Income inequality measured by the Gini Index per Census Tract
 
@@ -165,7 +166,7 @@ Then, for count based demographic predictors, we divide by the total population 
 - `black_perc`: Percentage of Black People 
 - `latinx_perc`: Percentage of Latinx People 
 - `native_perc`: Percentage of Native People 
-- `non-citizen_perc`: Percentage of Foreign Born People  
+- `noncitizen_perc`: Percentage of Foreign Born People  
 - `uninsured_perc`: Percentage of Uninsured Citizens of any Age  
 - `unemployment_perc`: Percentage of People on Unemployment 
 - `below_poverty_line_perc`: Percentage of people living below the 100% poverty line.
@@ -189,21 +190,18 @@ The process involved grouping geotagged locations by the defined neighborhood bo
 We present a [numeric summary](https://freddybarragan.netlify.app/media/ch4.html#Data_Summaries) on our data with 224 observations of 38 variables. However, note that we use percent equivalents for most demographic count variables.
 
 ```{r eval = TRUE}
-#summary(modeling_data)
-library(table1)
 table_print <- table1(~ 
                         total_pop + mean_income + mean_rent +
                         gini_neighborhood + 
                         below_poverty_line_perc + 
                         eviction_count + 
                         transportation_desert_3cat + 
-                        non-citizen_perc + white_perc + black_perc +
+                        noncitizen_perc + white_perc + black_perc +
                         latinx_perc + asian_perc
                         | borough, data = nyc_compiled %>% as_tibble())  %>% as_tibble() 
 
 colnames(table_print) <- c("Variable", "Bronx (N=44)", "Brooklyn (N=64)","Manhattan (N=39)", "Queens (N=77)", "Overall (N=224)")
 
-library(kableExtra)
 table_print%>%
   filter(Variable!="") %>% kable() %>% kable_styling() %>% scroll_box(height ="400px", width="100%")
 ```
@@ -238,8 +236,77 @@ knitr::include_graphics(here("gis_buffer.png"))
 
 In the graph, buffer zones are in light pink with overlapping boundaries dissolved between stations, while the dark pink dots indicate the exact geographic locations of the stations. Each neighborhood, then, had a percentage score that defined it's subway accessibility score. 
 
-Upon observation, we categorized the areas served by the subway network into four ordinal categories: Poor, Typical, and Excellent. These categories are defined at 0-25\%, 25-75\%, and 75-100\% of area covered by transit, respectively. We defined these cutoffs using the distribution of subway coverage percentages and our own judgment on what constitutes a desert. As such, these cutoffs are specific to New York City and may not be perfectly reproducible. The following plot details the spatial locations of these transportation categories.
+Upon observation, we categorized the areas served by the subway network into four ordinal categories: Poor, Typical, and Excellent. These categories are defined at 0-25\%, 25-75\%, and 75-100\% of area covered by transit, respectively. We defined these cutoffs using the distribution of subway coverage percentages, plotted below. 
 
+
+```{r}
+nyc_naive <- read_csv(here("clean_data", "nyc_names_vichy_complied2.csv"))%>%
+  mutate(transportation_desert_3cat = factor(transportation_desert_3cat, levels=c("Poor", "Typical", "Excellent"))) %>%
+  mutate(transportation_desert_3num = factor(as.numeric(transportation_desert_3cat))) %>%
+   mutate(asian_perc = (asian_count / total_pop) * 100) %>%
+   mutate(white_perc = (white_count / total_pop)* 100) %>%
+   mutate(black_perc = (black_count / total_pop)* 100) %>%
+   mutate(latinx_perc = (latinx_count / total_pop)* 100) %>%
+   mutate(native_perc = (native_count / total_pop)* 100) %>%
+   mutate(below_poverty_perc = (below_poverty_line_count / total_pop) * 100) %>%
+   mutate(noncitizen_perc = (noncitizen_count / total_pop)* 100) %>%
+   mutate(evictions_perc = (eviction_count / total_pop)* 100) %>%
+   mutate(uninsured_perc = (uninsured_count / total_pop)* 100) %>%
+  mutate(unemployment_perc = (unemployment_count / total_pop)* 100) %>%
+  filter(nta_type == 0) %>%
+  mutate(nta_type = as.factor(nta_type)) %>%
+  dplyr::select(-borough.y) %>%
+  dplyr::rename(borough = borough.x)
+```
+
+
+```{r}
+nyc_naive %>% 
+  ggplot(aes(x=perc_covered_by_transit, fill=transportation_desert_3cat)) + 
+  geom_histogram(bins = 15) + 
+  labs(title="Subway Accesibilty Percent Distribution", y="Count", 
+       x="% of Neighborhood with Walking Distance of a Subway Stop")+
+  geom_vline(xintercept = 25) + 
+  geom_vline(xintercept = 75) +
+    theme(panel.grid.major.x = element_line("transparent"),
+         # axis.text.y.left = element_blank(),
+          axis.text.x.bottom = element_text(size = 12, face = "bold"),
+          plot.title = element_text(size = 20, hjust=.5, face = "bold", family="DIN Condensed"),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
+        legend.position = "top" ,
+        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
+   scale_fill_manual(values=c("#996A37", "#EBDDC7", "#426350"),
+                       guide = guide_legend(title = ""), na.value="#D6D6D6") 
+
+df <- as.tibble(rbind(c("Poor", ecdf(nyc_naive$perc_covered_by_transit)(25)), 
+      c("Typical", ecdf(nyc_naive$perc_covered_by_transit)(75) - ecdf(nyc_naive$perc_covered_by_transit)(25)),
+      c("Excellent", 1 - ecdf(nyc_naive$perc_covered_by_transit)(75)))) 
+
+  colnames(df) <- c("Subway Desert Category", "Prop")
+  
+  
+  
+df %>%
+  kable(align = "c", caption = "Ordinal Model - Transport Desert Proportions") %>% 
+  kable_styling() 
+```
+
+We found that the original data demonstrates a bimodal distribution with observations heavily concentrated in 0-25% and 75-100%. This is partially due to the over-saturated coverage in Manhattan and the lack of subway access in the suburban neighborhoods of Queens. 
+
+```{r}
+as_tibble(rbind(
+  c("Poor", ecdf(nyc_naive$perc_covered_by_transit)(25)), 
+  c("Typical", ecdf(nyc_naive$perc_covered_by_transit)(75) - ecdf(nyc_naive$perc_covered_by_transit)(25)),
+  c("Excellent", 1 - ecdf(nyc_naive$perc_covered_by_transit)(75)))) %>%
+  set_colnames(c("Subway Desert Category", "Prop")) %>%
+  kable(align = "c", caption = "Ordinal Model - Transport Desert Proportions") %>% 
+  kable_styling() 
+```
+
+Using these cut-points, there was an unequal distribution of observations within different access levels where the Poor and Typical categories have less observations combined than the Excellent category.
+
+The following plot details the spatial locations of these transportation categories.
 
 ```{r, fig.height=8*1.2, fig.width=8*1.2}
 nyc_compiled %>%
@@ -261,6 +328,8 @@ nyc_compiled %>%
   guides(fill = guide_legend(title = "Acessibility", title.position="top", title.hjust = 0.5))
 ```
 
+We will discuss this plot further in the "Transportation and Inequity" section. However, observe that transportation access is best in Manhattan (top-left) and Brooklyn (bottom-left), while the worst in Queens (right) and the Bronx (center-top).
+
 In the following two subsections, we describe how we understood and classified transportation deserts using two models.
 
 ## Naive Bayes Model
@@ -273,26 +342,6 @@ The goal of using Naive Bayes model is to see how this algorithm make prediction
 
 
 ```{r}
-library(e1071)
-
-nyc_naive <- read_csv(here("clean_data", "nyc_names_vichy_complied2.csv"))%>%
-  mutate(transportation_desert_3cat = factor(transportation_desert_3cat, levels=c("Poor", "Typical", "Excellent"))) %>%
-  mutate(transportation_desert_3num = factor(as.numeric(transportation_desert_3cat))) %>%
-   mutate(asian_perc = (asian_count / total_pop) * 100) %>%
-   mutate(white_perc = (white_count / total_pop)* 100) %>%
-   mutate(black_perc = (black_count / total_pop)* 100) %>%
-   mutate(latinx_perc = (latinx_count / total_pop)* 100) %>%
-   mutate(native_perc = (native_count / total_pop)* 100) %>%
-   mutate(below_poverty_perc = (below_poverty_line_count / total_pop) * 100) %>%
-   mutate(non-citizen_perc = (non-citizen_count / total_pop)* 100) %>%
-   mutate(evictions_perc = (eviction_count / total_pop)* 100) %>%
-   mutate(uninsured_perc = (uninsured_count / total_pop)* 100) %>%
-  mutate(unemployment_perc = (unemployment_count / total_pop)* 100) %>%
-  filter(nta_type == 0) %>%
-  mutate(nta_type = as.factor(nta_type)) %>%
-  dplyr::select(-borough.y) %>%
-  dplyr::rename(borough = borough.x)
-
 set.seed(454)
 naive_model <- naiveBayes(transportation_desert_3cat ~ 
                               mean_income + borough +
@@ -377,7 +426,6 @@ plot_distribution <- function(data, category,  title){
 
   )
 }
-library(egg)
 ggarrange(
   plot_distribution(nyc_naive, mean_income,  'Mean Income'),
   plot_distribution(nyc_naive, store_count, 'Store Count'),
@@ -428,6 +476,7 @@ $$\begin{align*}
 $$
 \beta_k \sim N(m_{k}, s_{k}^{2}) \\
 $$
+
 It is important to note that there is no intercept in $y_i^*$. This is an omission by the construction of `stan_polr`'s model and the multi-class outcomes for this ordinal model. 
 
 Since we do not have prior information about the relationship between observed transportation access and these specific predictors, we will be using the default prior in `stan_polr`. Specifically, we establish a prior for the location of the proportion of the variance in outcome that is attributable to the predictors. This proportion is more commonly known as the $R^2$ metric used in frequentist linear regressions and could be located at any value between (0,1). It is also worth noting that we could specify uniform Dirichlet count priors (e.g. $\text{Dirichlet}(1,1,1)$ on the categories of transportation access in `stan_polr`. 
@@ -438,7 +487,6 @@ One technical limitation is attributable to the paucity of cross-validated error
 
 
 ```{r}
-library(rsample)
 set.seed(454)
 
 
@@ -455,12 +503,6 @@ ordinal_model <- stan_polr(transportation_desert_3num ~ mean_income +
                     prior=R2(0.5),
                     chains = 4, iter = 1000*2, seed = 84735, refresh = 0)
 ```
-
-
-```{r Save Ordinal Model for Shiny App}
-# saveRDS(ordinal_model, 'shiny_app_ordinal_model.rds')
-```
-
 
 ```{r}
 tidy(ordinal_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8) %>%
@@ -600,45 +642,7 @@ data_test %>%
   
 ```
 
-Here is a graph of detailed breakdown of proportions within each observed category. Once again, observe that for the "Typical" category our predictions are always incorrect. Likely, this must be a byproduct of our interval criteria for each respective level of transportation inaccessibility— that is, these categories may not be sufficiently different to find differences.
-
-
-We investigated this issue with the density plot and the empirical CDF of the interval cutoffs.
-
-```{r}
-nyc_naive %>% 
-  ggplot(aes(x=perc_covered_by_transit, fill=transportation_desert_3cat)) + 
-  geom_histogram(bins = 15) + 
-  labs(title="Subway Accesibilty Percent Distribution", y="Count", 
-       x="% of Neighborhood with Walking Distance of a Subway Stop")+
-  geom_vline(xintercept = 25) + 
-  geom_vline(xintercept = 75) +
-    theme(panel.grid.major.x = element_line("transparent"),
-         # axis.text.y.left = element_blank(),
-          axis.text.x.bottom = element_text(size = 12, face = "bold"),
-          plot.title = element_text(size = 20, hjust=.5, face = "bold", family="DIN Condensed"),
-        legend.key.width = unit(.5, "in"),
-        legend.title = element_text(size = 20, face="bold", family="DIN Condensed"), 
-        legend.position = "top" ,
-        legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
-   scale_fill_manual(values=c("#996A37", "#EBDDC7", "#426350"),
-                       guide = guide_legend(title = ""), na.value="#D6D6D6") 
-
-df <- as.tibble(rbind(c("Poor", ecdf(nyc_naive$perc_covered_by_transit)(25)), 
-      c("Typical", ecdf(nyc_naive$perc_covered_by_transit)(75) - ecdf(nyc_naive$perc_covered_by_transit)(25)),
-      c("Excellent", 1 - ecdf(nyc_naive$perc_covered_by_transit)(75)))) 
-
-  colnames(df) <- c("Subway Desert Category", "Prop")
-  
-  
-  
-df %>%
-  kable(align = "c", caption = "Ordinal Model - Transport Desert Proportions") %>% 
-  kable_styling() 
-```
-We found that the original data demonstrates a bimodal distribution with observations heavily concentrated in 0-25% and 75-100%. This is partially due to the over-saturated coverage in Manhattan and the lack of subway access in the suburban neighborhoods of Queens.
-
-Further investigation into the proportions of each categories, we find that there is an unequal distribution of observations within different categories. The categories Poor and Typical combined have less observations than the category Excellent. We think the unequal distribution is the probable cause of the inaccuracy of the Typical category.
+Here is a graph of detailed breakdown of proportions within each observed category. Once again, observe that for the "Typical" category our predictions are always incorrect. Likely, this must be a byproduct of our interval criteria for each respective level of transportation inaccessibility— that is, these categories may not be sufficiently different to find differences. Additionally, the unequal distribution between the categories may be another potential determinant behind the inaccuracy of the Typical category classifications.
 
 In further refinements of the experiment, we would like to tweak the cutoffs so that it strikes a balance between the equal distribution and the model accuracy (i.e. we want to make sure all three categories can be predicted with a similar accuracy).
 
@@ -706,7 +710,7 @@ evict <- nyc_compiled %>%
 noncit <- nyc_compiled %>%
   filter(nta_type == 0) %>%
   ggplot() +
-  geom_sf(aes(fill = non-citizen_perc), color = "#8f98aa") +
+  geom_sf(aes(fill = noncitizen_perc), color = "#8f98aa") +
   scale_fill_gradient(low = "#FCF5EE", high = "#5E76AD")  + 
   theme_minimal() +
   ggtitle("Immigrant Density \nby Neighborhood")+ 
@@ -1051,7 +1055,7 @@ We fit our model below using `stan_glm`.
 
 ```{r}
 noncit_model <- stan_glm(
-  non-citizen_count ~
+  noncitizen_count ~
     transportation_desert_3cat + 
     borough + total_pop + gini_neighborhood +mean_income + mean_rent + unemployment_perc + 
     black_perc + latinx_perc + asian_perc,
@@ -1212,7 +1216,7 @@ We list our hierarchical models and their predictors below:
   + Grouping: `borough`
 
 - Average Rental Price Hierarchical Model (5)
-  + Predictors: `transportation_desert_3cat`, `gini_neighborhood`, `mean_income`, `black_perc`, `latinx_perc`, `asian_perc`, `bus_count`,`school_count`,`store_count`, `non-citizen_perc`
+  + Predictors: `transportation_desert_3cat`, `gini_neighborhood`, `mean_income`, `black_perc`, `latinx_perc`, `asian_perc`, `bus_count`,`school_count`,`store_count`, `noncitizen_perc`
   + Grouping: `borough`
 
 - Eviction CountHierarchical Model (6)
@@ -1259,7 +1263,7 @@ We fit our model using `stan_glmer` below.
 
 ```{r}
 hi_noncit_model <- stan_glmer(
-  non-citizen_count ~
+  noncitizen_count ~
     transportation_desert_3cat + 
     total_pop + gini_neighborhood + 
     mean_income + mean_rent +
@@ -1446,10 +1450,10 @@ modeling_data %>%
   mutate(hi_residuals = hi_noncit_model$residuals) %>%
   ggplot() +
   geom_hline(yintercept=0)+
-  geom_point(aes(x=non-citizen_count, y=residuals), color="Black", alpha=.5)+
-  geom_smooth(aes(x=non-citizen_count, y=residuals), color="Black", alpha=.5, se=F, size=2)+
-  geom_point(aes(x=non-citizen_count, y=hi_residuals) ,color="#5E76AD", alpha=.5)+
-  geom_smooth(aes(x=non-citizen_count, y=hi_residuals), color="#5E76AD", alpha=.5, se=F, size=2)+ 
+  geom_point(aes(x=noncitizen_count, y=residuals), color="Black", alpha=.5)+
+  geom_smooth(aes(x=noncitizen_count, y=residuals), color="Black", alpha=.5, se=F, size=2)+
+  geom_point(aes(x=noncitizen_count, y=hi_residuals) ,color="#5E76AD", alpha=.5)+
+  geom_smooth(aes(x=noncitizen_count, y=hi_residuals), color="#5E76AD", alpha=.5, se=F, size=2)+ 
   xlab("Non-Citizen Count") +
   ylab("Residual Error")+
   theme_linedraw()+
@@ -1862,7 +1866,6 @@ Although a lot of work went into designing models with causal blocking and confo
 Importantly, we found that there was statistically significant spatial clustering of non-citizen counts, eviction counts, and mean rental prices using Moran's I from the `spdep` package which indicates our results may also be biased by the spatial relationships between neighborhoods. 
 
 ```{r}
-library(spdep)
 modeling_data <- modeling_data %>%
   st_as_sf()
 
@@ -1871,7 +1874,7 @@ col_nb <- poly2nb(col_sp) # queen neighborhood
 col_listw <- nb2listw(col_nb, style = "B") # listw version of the neighborhood
 W <- nb2mat(col_nb, style = "B") # binary structure
 
-noncit_moran <- tidy(moran.mc(col_sp$non-citizen_count, listw = col_listw, nsim = 999, alternative = "greater")) %>%
+noncit_moran <- tidy(moran.mc(col_sp$noncitizen_count, listw = col_listw, nsim = 999, alternative = "greater")) %>%
   mutate(Term = "Non-Citizen", .before=1)   
 
 evict_moran <- tidy(moran.mc(col_sp$eviction_count, listw = col_listw, nsim = 999, alternative = "greater")) %>%
@@ -1933,8 +1936,6 @@ We interpret the significant predictors for each hierarchical model in the follo
 We fit a Besag model using a Poisson likelihood to study non-citizen counts across New York. 
 
 ```{r}
-library(CARBayes)
-
 equation <- noncitizen_count ~ offset(log(total_pop)) + 
     transportation_desert_3cat + 
     borough  + gini_neighborhood +mean_income + mean_rent + unemployment_perc + 
@@ -2008,8 +2009,6 @@ round(carbayes_noncit$summary.results[, 1:7], 4) %>%
 Knowing that there is spatial clustering mean rental prices , we fit a normal model with weakly informative priors for the $\beta_k$, our scaled prior intercept $N(1600, 20^2)$, and Besag prior for a random spatial effect via the `CARBayes` package's S.CARleroux function. If there was a non-constant spatial effect on rental prices in a neighborhood, we would edit the `rho` parameter below to approximate this new spatial effect prior called a Leroux.
 
 ```{r}
-library(CARBayes)
-
 equation <- mean_rent ~ total_pop  + 
   transportation_desert_3cat + borough + gini_neighborhood +
     mean_income + black_perc + latinx_perc + asian_perc+
@@ -2069,8 +2068,6 @@ Our Besag model residuals look very evenly distributed!
 We fit a Besag model using a Poisson likelihood to study eviction counts across New York. 
 
 ```{r}
-library(CARBayes)
-
 equation <- eviction_count ~ offset(log(total_pop)) + 
   transportation_desert_3cat + borough +
     below_poverty_line_perc + gini_neighborhood + mean_income + mean_rent+ 
