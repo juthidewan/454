@@ -623,8 +623,22 @@ nyc_naive %>%
         legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
    scale_fill_manual(values=c("#996A37", "#EBDDC7", "#426350"),
                        guide = guide_legend(title = ""), na.value="#D6D6D6") 
+
+df <- as.tibble(rbind(c("Poor", ecdf(nyc_naive$perc_covered_by_transit)(25)), 
+      c("Typical", ecdf(nyc_naive$perc_covered_by_transit)(75) - ecdf(nyc_naive$perc_covered_by_transit)(25)),
+      c("Excellent", 1 - ecdf(nyc_naive$perc_covered_by_transit)(75)))) 
+
+  colnames(df) <- c("Subway Desert Category", "Prop")
+  
+  
+  
+df %>%
+  kable(align = "c", caption = "Ordinal Model - Transport Desert Proportions") %>% 
+  kable_styling() 
 ```
 We found that the original data demonstrates a bimodal distribution with observations heavily concentrated in 0-25% and 75-100%. This is partially due to the over-saturated coverage in Manhattan and the lack of subway access in the suburban neighborhoods of Queens.
+
+Further investigation into the proportions of each categories, we find that there is an unequal distribution of observations within different categories. The desert categories Poor and Typical combined have less observations than the category Excellent.
 
 If you'd like to check out what happens as we vary our predictors in this ordinal model, we created a shiny app that would allow a user to manually vary the predictors. Click this [link](https://vichym.shinyapps.io/nyc_subway_desert_prediction/) to check it out!
 
