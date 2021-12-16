@@ -1,6 +1,6 @@
 ---
 title: "Neighborhood Deserts: Transportation Access & Housing Disparities in NYC"
-author: Freddy Barragan, Juthi Dewan, Sam Ding, Vichy Meas
+author: Freddy Barragan, Juthi Dewan, Sam Ding, Vichearith Meas
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
   html_document:
