@@ -120,7 +120,7 @@ nyc_compiled <- nyc_clean %>%
    mutate(black_perc = black_count / total_pop) %>%
    mutate(latinx_perc = latinx_count / total_pop) %>%
    mutate(native_perc = native_count / total_pop) %>%
-   mutate(noncitizen_perc = noncitizen_count / total_pop) %>%
+   mutate(non-citizen_perc = non-citizen_count / total_pop) %>%
    mutate(evictions_perc = eviction_count / total_pop) %>%
    mutate(uninsured_perc = uninsured_count / total_pop) %>%
   mutate(unemployment_perc = unemployment_count / total_pop) %>%
@@ -149,7 +149,7 @@ All data used in this project are from two major sources: the Tidycensus package
 - `native_count`: Number of Native People by Census Tract
 - `asian_count`: Number of Asian People by Census Tract
 - `naturalized_citizen_count`: Number of Naturalized Citizens by Census Tract
-- `noncitizen_count`: Number of Foreign Born People by Census Tract
+- `non-citizen_count`: Number of Foreign Born People by Census Tract
 - `uninsured_count`: Number of Uninsured Citizens of any Age by Census Tract
  - `gini_neighborhood` : Income inequality measured by the Gini Index per Census Tract
 
@@ -165,7 +165,7 @@ Then, for count based demographic predictors, we divide by the total population 
 - `black_perc`: Percentage of Black People 
 - `latinx_perc`: Percentage of Latinx People 
 - `native_perc`: Percentage of Native People 
-- `noncitizen_perc`: Percentage of Foreign Born People  
+- `non-citizen_perc`: Percentage of Foreign Born People  
 - `uninsured_perc`: Percentage of Uninsured Citizens of any Age  
 - `unemployment_perc`: Percentage of People on Unemployment 
 - `below_poverty_line_perc`: Percentage of people living below the 100% poverty line.
@@ -197,7 +197,7 @@ table_print <- table1(~
                         below_poverty_line_perc + 
                         eviction_count + 
                         transportation_desert_3cat + 
-                        noncitizen_perc + white_perc + black_perc +
+                        non-citizen_perc + white_perc + black_perc +
                         latinx_perc + asian_perc
                         | borough, data = nyc_compiled %>% as_tibble())  %>% as_tibble() 
 
@@ -284,7 +284,7 @@ nyc_naive <- read_csv(here("clean_data", "nyc_names_vichy_complied2.csv"))%>%
    mutate(latinx_perc = (latinx_count / total_pop)* 100) %>%
    mutate(native_perc = (native_count / total_pop)* 100) %>%
    mutate(below_poverty_perc = (below_poverty_line_count / total_pop) * 100) %>%
-   mutate(noncitizen_perc = (noncitizen_count / total_pop)* 100) %>%
+   mutate(non-citizen_perc = (non-citizen_count / total_pop)* 100) %>%
    mutate(evictions_perc = (eviction_count / total_pop)* 100) %>%
    mutate(uninsured_perc = (uninsured_count / total_pop)* 100) %>%
   mutate(unemployment_perc = (unemployment_count / total_pop)* 100) %>%
@@ -690,7 +690,7 @@ evict <- nyc_compiled %>%
 noncit <- nyc_compiled %>%
   filter(nta_type == 0) %>%
   ggplot() +
-  geom_sf(aes(fill = noncitizen_perc), color = "#8f98aa") +
+  geom_sf(aes(fill = non-citizen_perc), color = "#8f98aa") +
   scale_fill_gradient(low = "#FCF5EE", high = "#5E76AD")  + 
   theme_minimal() +
   ggtitle("Immigrant Density \nby Neighborhood")+ 
@@ -1035,7 +1035,7 @@ We fit our model below using `stan_glm`.
 
 ```{r}
 noncit_model <- stan_glm(
-  noncitizen_count ~
+  non-citizen_count ~
     transportation_desert_3cat + 
     borough + total_pop + gini_neighborhood +mean_income + mean_rent + unemployment_perc + 
     black_perc + latinx_perc + asian_perc,
@@ -1196,7 +1196,7 @@ We list our hierarchical models and their predictors below:
   + Grouping: `borough`
 
 - Average Rental Price Hierarchical Model (5)
-  + Predictors: `transportation_desert_3cat`, `gini_neighborhood`, `mean_income`, `black_perc`, `latinx_perc`, `asian_perc`, `bus_count`,`school_count`,`store_count`, `noncitizen_perc`
+  + Predictors: `transportation_desert_3cat`, `gini_neighborhood`, `mean_income`, `black_perc`, `latinx_perc`, `asian_perc`, `bus_count`,`school_count`,`store_count`, `non-citizen_perc`
   + Grouping: `borough`
 
 - Eviction CountHierarchical Model (6)
@@ -1243,7 +1243,7 @@ We fit our model using `stan_glmer` below.
 
 ```{r}
 hi_noncit_model <- stan_glmer(
-  noncitizen_count ~
+  non-citizen_count ~
     transportation_desert_3cat + 
     total_pop + gini_neighborhood + 
     mean_income + mean_rent +
@@ -1430,10 +1430,10 @@ modeling_data %>%
   mutate(hi_residuals = hi_noncit_model$residuals) %>%
   ggplot() +
   geom_hline(yintercept=0)+
-  geom_point(aes(x=noncitizen_count, y=residuals), color="Black", alpha=.5)+
-  geom_smooth(aes(x=noncitizen_count, y=residuals), color="Black", alpha=.5, se=F, size=2)+
-  geom_point(aes(x=noncitizen_count, y=hi_residuals) ,color="#5E76AD", alpha=.5)+
-  geom_smooth(aes(x=noncitizen_count, y=hi_residuals), color="#5E76AD", alpha=.5, se=F, size=2)+ 
+  geom_point(aes(x=non-citizen_count, y=residuals), color="Black", alpha=.5)+
+  geom_smooth(aes(x=non-citizen_count, y=residuals), color="Black", alpha=.5, se=F, size=2)+
+  geom_point(aes(x=non-citizen_count, y=hi_residuals) ,color="#5E76AD", alpha=.5)+
+  geom_smooth(aes(x=non-citizen_count, y=hi_residuals), color="#5E76AD", alpha=.5, se=F, size=2)+ 
   xlab("Non-Citizen Count") +
   ylab("Residual Error")+
   theme_linedraw()+
@@ -1445,7 +1445,7 @@ modeling_data %>%
    scale_color_manual(values=c("#996A37","#E9DBC2","#395645"))
 ```
 
-Our residuals don't look perfect, given the slight heteroskedasticity as noncitizen count increased, but it seems that the distributions were almost perfectly comparable between the two models!
+Our residuals don't look perfect, given the slight heteroskedasticity as non-citizen count increased, but it seems that the distributions were almost perfectly comparable between the two models!
 
 
 ```{r, fig.height=10*1, fig.width=10*1}
@@ -1768,12 +1768,14 @@ rbind(waic_tab1, waic_tab2) %>%
 It seems that hierarchical model of rental prices has the lowest WAIC, but only by .03 units. But given the hierarchical model's residual patterning, ELPD metric, in-sample residual patterns, and WAIC we select the hierarchical model of eviction counts.
 
 
-# Results
+# Results & Discussion
+
+## Results
 
 Our previous section consistently demonstrated that all 3 of our hierarchical models performed better than our non-hierarchical models, with respect to absolute error metrics, residual distributions, expected-log predictive densities, and WAICs. In this section, we detail our findings using the hierarchical models. In this section, we emphasize the larger conclusions of our models and only report the nature of the associations between our outcomes and predictors (e.g. positive or negative). For individualized interpretations of each predictor for each model, please see the "Full Interpretations" section in the Appendix!
 
 
-## Model 4: Immigrant/Non-Citizen Count
+### Model 4: Immigrant/Non-Citizen Count
 
 After removing predictors whose 80% credible intervals included the possibility of non-effect when controlling for other covariates, there were 7 important predictors of an arbitrary neighborhood's non-citizen counts. We found that when considering the random-effects of borough and controlling for relevant covariates, non-citizen counts were positively associated with better subway access (Typical and Excellent), total population counts, mean rental prices, and the percentages of Black, Latinx, \& Asian people. While, mean neighborhood income was negatively associated with non-citizen counts. The following table lists the specific $\beta$ values (labeled as "estimate") for each predictor, ordered by their association.
 
@@ -1790,7 +1792,7 @@ tidy(hi_noncit_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>%
 
 Ultimately, this model demonstrates that immigrant hot-spots in New York City tend to form in economically disadvantaged neighborhoods with better subway access and larger nonwhite populations.
 
-## Model 5: Mean Neighborhood Rental Prices
+### Model 5: Mean Neighborhood Rental Prices
 
 We observed that when considering the random-effects of borough and controlling for relevant covariates, mean rental prices were associated with 5 predictors. Specifically, we observed meaningful increases in mean rental prices when comparing neighborhoods with excellent subway access to neighborhoods with poor subway access. We also saw that neighborhood rental prices were positively associated with mean neighborhood income and the proportion of Asian residents in a neighborhood. Additionally, we found that mean rental prices were negatively associated with the proportion of a neighborhoods' Black community and the number of schools in a neighborhood. The following table details the specific $\beta$ values (labeled as estimate) for each predictor, ordered by their association.
 
@@ -1802,54 +1804,46 @@ tidy(hi_rent_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>%
   kable_styling()
 ```
 
-Our results indicate that economically privileged neighborhoods with the best subway access tend to have the highest mean rental prices and lower proportions of Black residents. This is intuitively true given that housing prices are typically determined in response to the economic composition of renters. That is, there exists a cyclical relationship between rental prices and economic wealth where wealthy renters will select neighborhoods and rental prices in wealthy neighborhoods will increase and then more wealthy renters will move into these neighborhoods that are peceivedly wealthy. And given NYC's longstanding [history of redlining](https://storymaps.arcgis.com/stories/4f06e78ca6964a04b968d9b5781499ae) and the dramatic inequities between Black and White people in the United States, it is of course true that these high rental prices areas will have lower proportions of Black residents.
+Our results indicate that economically privileged neighborhoods with the best subway access tend to have the highest mean rental prices and lower proportions of Black residents. This is intuitively true given that housing prices are typically determined in response to the economic composition of renters. That is, there exists a cyclical relationship between rental prices and economic wealth where wealthy renters will select neighborhoods and rental prices in wealthy neighborhoods will increase and then more wealthy renters will move into these neighborhoods that are considered “wealthy”. And given NYC’s longstanding [history of redlining](https://storymaps.arcgis.com/stories/4f06e78ca6964a04b968d9b5781499ae) and the dramatic inequities between Black and White people in the United States, it is of course true that these high rental prices areas will have lower proportions of Black residents.
 
-We were surprised to find that the proportion of Asian residents in a neighborhood was positively associated with mean rental prices. This relationship indicates that Asian residents in NYC may opt to live neighborhoods with higher rental prices and/or that Asian residents may be relegated to areas with very high rental prices. Both possibilities can be true given the vast diversity of Asian residents' economic privilege and the dramatic differences between Asian ethnic communities in NYC. However, it is worth noting that [prior work](https://www.aafederation.org/wp-content/uploads/2019/08/WorkingButPoor.pdf) has shown that Asian-American poverty rates in NYC are some of the highest in the country. Then it is likely possible that our specific estimate has been biased by both the omission of specific Asian-ethnic data and the aggregated nature of our economic data.
+We were surprised to find that the proportion of Asian residents in a neighborhood was positively associated with mean rental prices. This relationship indicates that Asian residents in NYC may opt to live in neighborhoods with higher rental prices and/or that Asian residents may be relegated to areas with very high rental prices. Both possibilities can be true given the vast diversity of Asian residents’ economic privilege and the dramatic differences between Asian ethnic communities in NYC. [For example, Chinese-Americans in NYC are the second largest ethnic group and have established multiple rooting neighborhoods— "Chinatowns"— throughout NYC since the 1880; the first of the nine was the Manhattan Chinatown](https://bt.barnard.edu/nycgildedages/neighborhoods/chinatown/). After a century, these neighborhoods have established internal business networks and accumulated sufficient economic wealth that the experience of Chinese-American neighborhoods in NYC may not be comparable to other Asian ethnic enclaves that have been newly formed. In contrast, [prior work](https://www.aafederation.org/wp-content/uploads/2019/08/WorkingButPoor.pdf) has shown that Asian-American poverty rates in NYC are some of the highest in the country. Together it is then likely that our specific posterior of the relationship between rental prices and Asian resident density has been biased by both the omission of specific Asian-ethnic data and the aggregated nature of our economic data.
 
-Lastly, we found that mean rental prices were negatively associated with the number of schools in NYC which is likely a byproduct of how excessively urban, well-connected, areas in NYC do not typically have families and older residents with children living in them.
+Lastly, we found that mean rental prices were negatively associated with the number of schools in NYC which is likely a byproduct of how excessively urban, well-connected, areas in NYC do not typically have families with children living in them.
 
 
-## Model 6: Eviction Count
+### Model 6: Eviction Count
 
-We found that when considering the random-effects of borough and controlling for relevant covariates, eviction counts were associated with 8 predictors.
+We determined that many of racial inequities associated with rental prices were replicated in the number of eviction counts by neighborhood. 
 
-We determined that many of racial inequities associated with rental prices were replicated in the number of eviction counts by neighborhood. Specifically, we found that even when considering the random-effects of borough and controlling for our covariates, eviction counts were positively associated with better subway access (Typical and Excellent), total population counts, mean rental prices, and the percentages of Black, Latinx, \& Asian people. 
-
-Specifically, we observed meaningful increases in mean rental prices when comparing neighborhoods with excellent subway access to neighborhoods with poor subway access. We also saw that neighborhood rental prices were positively associated with mean neighborhood income and the proportion of Asian residents in a neighborhood. However, we found that mean rental prices were negatively associated with the proportion of a neighborhoods' Black community and the number of schools in a neighborhood. The following table details the specific $\beta$ values (labeled as estimate) for each predictor, ordered by their association.
+Specifically, we found that even when considering the random-effects of borough and controlling for our covariates, neighborhood eviction counts were positively associated with income inequality, better subway access (Typical and Excellent), the percentages of Black \& Latinx residents, mean rental prices, and total neighborhood population count. In contrast, our models suggest that eviction counts were negatively associated with mean income and the percent of Asian residents.
 
 ```{r}
-tidy(hi_eviction_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
+draft_tidy <- tidy(hi_eviction_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
   mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
          conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
          conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
   filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
-  arrange(desc(estimate)) %>%
+  arrange(desc(estimate)) 
+
+rbind(draft_tidy[5,],draft_tidy[1:4,], draft_tidy[6:10,]) %>%
   kable(align = "c", caption = "Eviction Model - Summary") %>% 
   kable_styling()
 ```
 
+We've confirmed that even after adjusting for the putative factors of economic instability and evictions (e.g. income, rental prices, and population size), neighborhoods with a substantial proportion of Black and Latinx residents in NYC are experiencing higher counts of eviction, despite tending to live in cheaper neighborhoods. Specifically, 10% increases in the percent of Black and Latinx residents are associated with approximately 17% and 8% increases from the typical eviction count across NYC. Once again, given the enforced-precarity and exploitation of Black and Latinx communities in the United States, it is no surprise that eviction counts are associated with a neighborhood's racial composition.
 
-After removing predictors whose 80% credible intervals included the possibility of non-effect when controlling for other covariates, we found that there were 10 remaining predictors of an arbitrary neighborhood's eviction counts. 
+We were also surprised to find that the proportion of Asian residents in a neighborhood was also negatively associated with eviction counts. This trend may be another byproduct of the economic stability and developed housing markets that exist in particular Asian ethnic communities. Our results also affirm that within-neighborhood income inequalities can be critical factors in defining eviction counts, suggesting that racist housing policies alone do not sufficiently explain the housing inequities observed in NYC.
 
-Next, we interpret each predictor:
+Interestingly, when accounting for the above economic and demographic predictors, we were surprised to see that eviction counts were lower in neighborhoods with poor subway access, when compared to neighborhoods with typical and excellent access. We felt that this could be a consequence of gentrification or the austere renting policies set by landlords in neighborhoods with a lot of competition. However, [one analysis](https://www.nlihc.org/sites/default/files/HPD_Transit_Displacement_Eviction.pdf) that aimed to explore transit-induced displacement hypothesis using eviction rates suggested that there did not exist a statistically significant relationship between eviction rates and newly-constructed transit neighborhoods. However, our results suggest that there *is* a connection between increased subway access and eviction counts. It is plausible that this difference may be attributable to the historical preconditions of [redlining in NYC](https://storymaps.arcgis.com/stories/4f06e78ca6964a04b968d9b5781499ae); the fact that many of NYC's neighborhoods have historically been connected to the subway system, so they are not "newly transit accesible" like those studied in Delmelle et al.'s analysis; or that our current model specifications may be inappropriate for our data. Crucially, it is entirely 
 
-- **Limited Subway Access**: When controlling for all other predictors, a neighborhood with limited access to the subway is expected to have approximately 39.81% more eviction counts than a neighborhood with poor subway access. However, there is an 80% chance that the relationship may be any value between (21.10%, 61.52%), indicating that there is almost certainly an increase in white population counts between these two neighborhoods, but its explicit magnitude may vary.
-- **Satisfactory Subway Access**: When controlling for all other predictors, a neighborhood with satisfactory access to the subway is expected to have approximately 41.25% more eviction counts than a neighborhood with poor subway access. However, there is an 80% chance that the relationship may be any value between (21.89%, 64.39%), indicating that there is almost certainly an increase in white population counts between these two neighborhoods, but its explicit magnitude may vary.
-- **Excellent Subway Access**: When controlling for all other predictors, a neighborhood with excellent access to the subway is expected to have approximately 40.58% more eviction counts than a neighborhood with poor subway access. However, there is an 80% chance that the relationship may be any value between (20.67%, 63.63%), indicating that there is almost certainly an increase in white population counts between these two neighborhoods, but its explicit magnitude may vary.
-- **Gini Index**: When controlling for all other predictors, 1 increases in income inequality are associated with approximately 658.52% increases in the number of evictions. However, there is a 80% chance that the relationship may be any value between (73.738%, 3243.93%), indicating that there is almost certainly a strong, positive, relationship between these two variables, but its magnitude may vary.
-- **Mean Income**: When controlling for all other predictors, 100 dollar increases in mean neighborhood income are associated with approximately 0.1182% decreases in the number of evictions. However, there is a 80% chance that the relationship may be any value between (-0.0799%, -0.1553%), indicating that there is almost certainly a weak, negative, relationship between these two variables, but its magnitude may vary slightly.
-- **Mean Rent**: When controlling for all other predictors, 100 dollar increases in mean neighborhood rental prices are associated with approximately 4.55% increases in the number of evictions. However, there is a 80% chance that the relationship may be any value between (1.94%, 7.13%), indicating that there is almost certainly a positive relationship between these two variables, but its magnitude may vary slightly.
-- **Black Percent**: When controlling for all other predictors, 10% increases in the proportion of Black residents in a neighborhood are associated with approximately 17.77% increases in the number of evictions. Further, there is a 80% chance that the relationship may be any value between (15.03%, 20.67%), indicating that there is almost certainly a strong, positive, relationship between these two variables, but its magnitude may vary slightly. 
-- **Latinx Percent**: When controlling for all other predictors, 10% increases in the proportion of Latinx residents in a neighborhood are associated with approximately 6.60% increases in the number of evictions. Further, there is a 80% chance that the relationship may be any value between (2.73%, 10.69%), indicating that there is almost certainly a weak, positive, relationship between these two variables, but its magnitude may vary.
-- **Asian Percent**: When controlling for all other predictors, 10% increases in the proportion of Asian residents in a neighborhood are associated with approximately 4.21% decreases in the number of evictions. Further, there is a 80% chance that the relationship may be any value between (-.2344%, -7.88%), indicating that there is almost certainly a weak, negative, relationship between these two variables, but its magnitude may vary slightly.
 
----
+## Discussion
 
-# Discussion & Extensions
+Across our models, it becomes clear that many of the structural housing and demographic issues present in NYC need to be more rigorously addressed by both policy-makers and its citizens, regardless of these particular models' performance. Health begins at home. And if NYC's Black and Latinx residents are being crushed under the fist of inequity and consequently experiencing increased risks of eviction or tenuous rental prices, then it becomes a health imperative to critically and revolutionarily address NYC's housing system. 
 
-We've confirmed that even after adjusting for income, rental prices, income inequality, and borough differences, neighborhoods in NYC with a substantial proportion of Black and Latinx residents are experiencing dramatic increased risks of eviction. Interestingly, when accounting for economic and demographic predictors, the relationships with transportation we expected to see were reversed. That is, increased transportation access was associated with more evictions. This could be related to the increased population sizes in areas with the best access to transportation (e.g. Manhattan) or it could be because the disparities that transportation inaccess reflects (e.g. racial and class-based tensions) have been accounted for.
+Although a lot of work went into designing models with causal blocking and confounding in mind, our models remain imperfect. Some major limitations involved the encoding of transportation deserts and the presence of unmeasured confounders. Because we may not have not accounted for all structural predictors in housing equity such as a neighborhood’s rent control policies nor have we adjusted for the reasons behind eviction, we cannot be entirely confident about our models' conclusions.
 
-Importantly, we found that there was statistically significant spatial clustering of both eviction counts and mean rental prices using Moran's I from the `spdep` package. 
+Importantly, we found that there was statistically significant spatial clustering of non-citizen counts, eviction counts, and mean rental prices using Moran's I from the `spdep` package which indicates our results may also be biased by the spatial relationships between neighborhoods. 
 
 ```{r}
 library(spdep)
@@ -1861,26 +1855,137 @@ col_nb <- poly2nb(col_sp) # queen neighborhood
 col_listw <- nb2listw(col_nb, style = "B") # listw version of the neighborhood
 W <- nb2mat(col_nb, style = "B") # binary structure
 
+noncit_moran <- tidy(moran.mc(col_sp$non-citizen_count, listw = col_listw, nsim = 999, alternative = "greater")) %>%
+  mutate(Term = "Non-Citizen", .before=1)   
+
 evict_moran <- tidy(moran.mc(col_sp$eviction_count, listw = col_listw, nsim = 999, alternative = "greater")) %>%
   mutate(Term = "Eviction", .before=1)   
 
 rent_moran <- tidy(moran.mc(col_sp$mean_rent, listw = col_listw, nsim = 999, alternative = "greater")) %>%
   mutate(Term = "Mean Rent", .before=1)   
   
-rbind(rent_moran, evict_moran) %>%
+rbind(noncit_moran, rent_moran, evict_moran) %>%
   kable() %>%
   kable_styling()
   
 ```
 
-Our results are then likely biased by the spatial relationships between neighborhoods. As such, we could extend this work to the spatial domain using methods from the `CARBayes` or `INLA` packages. Following work by [Katie Jolly and Raven McKnight](https://www.ravenmcknight.com/post/carbayes-tutorial/), we have outlined a spatial workflow for both the eviction and rental price models using `CARBayes` in the [appendix](file:///Users/freddy/Documents/GitHub/454/checkpoint/CH5.html#Appendix). However, because spatial models were beyond the scope of this project and class, we'd like to emphasize that in a more detailed analysis the models we outline in the appendix would likely be adjusted in `STAN` or `CARBayes` to use different likelihoods, spatial effect priors (e.g. BYM, Intrinsic CAR, etc), and different priors for the predictors' coefficients. Further, in a more detailed analysis, we would explicitly describe the mathematical construction of the models.
+As such, we could extend this work to the spatial domain using methods from the `CARBayes` or `INLA` packages. Following work by [Katie Jolly and Raven McKnight](https://www.ravenmcknight.com/post/carbayes-tutorial/), we have outlined a spatial workflow for both the eviction and rental price models using `CARBayes` in the [appendix](file:///Users/freddy/Documents/GitHub/454/checkpoint/CH5.html#Appendix). However, because spatial models were beyond the scope of this project and class, we'd like to emphasize that in a more detailed analysis the models we outline in the appendix would likely be adjusted in `STAN` or `CARBayes` to use different likelihoods, spatial effect priors (e.g. BYM, Intrinsic CAR, etc), and different priors for the predictors' coefficients. Further, in a more detailed analysis, we would explicitly describe the mathematical construction of the models.
 
-Although a lot of work went into designing models with causal blocking and confounding in mind, our models remain imperfect. Some major limitations involved the encoding of transportation deserts and the presence of unmeasured confounders.Because we may not have not accounted for all structural predictors in housing equity such as a neighborhood’s rent control policies nor have we adjusted for the reasons behind eviction, we cannot be entirely confident about our models' conclusions.
 
-Across our models, it becomes clear that many of the structural housing and demographic issues present in NYC need to be more rigorously addressed by both policy-makers and its citizens, regardless of these particular models' performance. Health begins at home. And if NYC's Black and Latinx residents are being crushed under the fist of inequity and consequently experiencing increased risks of eviction or tenuous rental prices, then it becomes a health imperative to critically and revolutionarily address NYC's housing system. 
+
 
 
 # Appendix
+
+## Full Interpretations 
+
+We interpret the significant predictors for each hierarchical model in the following section.
+
+### Model 4: Immigrant/Non-Citizen Count
+
+- **Typical Subway Access**: When controlling for all other predictors, a neighborhood with typical transit access is expected to have approximately 27.47% more non-citizens than a neighborhood with poor transit access. There’s an 80% probability that this increase could lie anywhere between (13.91%, 42.53%) non citizen residents, indicating that neighborhoods with typical transit access almost certainly have more non citizen residents than neighborhoods with poor access.
+- **Excellent Subway Access**: When controlling for all other predictors, a neighborhood with excellent transit access is expected to have approximately 30.70% more non-citizens than a neighborhood with poor transit access. There’s an 80% probability that this increase could lie anywhere between (16.31%, 46.37%) non citizen residents, indicating that neighborhoods with excellent transit access almost certainly have more non citizen residents than neighborhoods with poor access.
+- **Mean Income**: When controlling for all other predictors, a 100 dollar increase in mean neighborhood income is associated with approximately a 0.0780% decrease in non citizen count. However, there is a 80% chance that the decrease in non citizen count may be any value between (0.1090, 0.0481), indicating that there is almost certainly a negative relationship between mean income and non citizen count, but its magnitude may vary.
+- **Mean Rent**: When controlling for all other predictors, a 100 dollar increase in mean neighborhood rent is associated with approximately a 6.29% increase in non citizen counts. However, there is an 80% chance that the increase in non citizen count may be any value between (3.96%, 8.77%), indicating that there is almost certainly a positive relationship between mean rent and non citizen count, but its magnitude may vary.
+- **Black Percentage**: When controlling for all other predictors, a 10% increase in the Black population in a neighborhood is associated with approximately a 4.83% increase in non citizen counts. However, there is an 80% chance that the increase in non citizen count may be any value between (2.82%, 6.94%), indicating that there is almost certainly a positive relationship between Black resident percentage and non citizen count, but its magnitude may vary.
+- **Latinx Percentage**: When controlling for all other predictors, a 10% increase in the Latinx population in a neighborhood is associated with approximately a 12.38% increase in non citizen count. However, there is an 80% chance that the increase in non citizen count may be any value between (9.54%, 15.34%), indicating that there is almost certainly a positive relationship between Latinx resident percentage and non citizen count, but its magnitude may vary.
+- **Asian Percentage**: When controlling for all other predictors, a 10% increase in the Asian population in a neighborhood is associated with approximately a 18.75% increase in non citizen count. However, there is an 80% chance that the increase in non citizen count may be any value between (15.16%, 22.34%), indicating that there is almost certainly a positive relationship between Asian resident percentage and non citizen count, but its magnitude may vary.
+
+
+### Model 5: Mean Neighborhood Rental Prices
+
+- **Excellent Subway Access**: When controlling for all other predictors, a neighborhood with excellent transit access is expected to have approximately a $0.72 increase in average rental prices than a neighborhood with poor transit access. There’s an 80% probability that this increase could lie anywhere between (0.180, 1.257) dollars, indicating that neighborhoods with excellent transit access almost certainly have higher mean rental prices than neighborhoods with poor access.
+- **Mean Income**: When controlling for all other predictors, a 100 dollar increase in mean neighborhood income is associated with approximately a $0.012 increase in average rental prices. However, there is a 80% chance that the increase associated with rental price increases may be any value between (0.011, 0.013) dollars, indicating that there is almost certainly a positive relationship between mean income and mean rental prices, but its magnitude may vary slightly.
+- **Black Percentage**: When controlling for all other predictors, a 10% increase in the Black population in a neighborhood is associated with approximately a $0.094 decrease in average rental prices. However, there is an 80% chance that the increase associated with rent may be any value between (-0.006, -0.184) dollars, indicating that there is a weak, negative relationship between Black resident percentage and rent, but its magnitude may vary.
+- **Asian Percentage**: When controlling for all other predictors, a 10% increase in the Asian population in a neighborhood is associated with approximately a $0.247 increase in average rental prices. However, there is an 80% chance that the increase associated with rent may be any value between (0.113, 0.383) dollars, indicating that there is almost certainly a positive relationship between Asian resident percentage and rent, but its magnitude may vary.
+- **School Count**: When controlling for all other predictors, for every school in a neighborhood there is an associated $0.034 decrease in average rental prices. However, there is an 80% chance that the decrease associated with rent may be any value between (-0.00067, -0.06777) dollars, indicating that there is a weak, negative relationship between school count and rent.
+
+### Model 6: Eviction Count
+
+- **Typical Subway Access**: When controlling for all other predictors, a neighborhood with typical access to the subway is expected to have approximately 40.08% more eviction counts than a neighborhood with poor subway access. However, there is an 80% chance that the relationship may be any value between (22.48%, 59.66%), indicating that neighborhoods with typical transit access almost certainly have an increase in eviction counts than neighborhoods with poor access.
+- **Excellent Subway Access**: When controlling for all other predictors, a neighborhood with excellent access to the subway is expected to have approximately 37.04% more eviction counts than a neighborhood with poor subway access. However, there is an 80% chance that the relationship may be any value between (19.51%, 57.55%), indicating that neighborhoods with excellent transit access almost certainly have an increase in eviction counts than neighborhoods with poor access.
+- **Gini Index**: When controlling for all other predictors, 1 increase in income inequality is associated with approximately a 2005.30% increase in the number of evictions. However, there is a 80% chance that the relationship may be any value between (293.39%, 11274.28%), indicating that there is almost certainly a strong, positive, relationship between these two variables, but its magnitude may vary.
+- **Mean Income**: When controlling for all other predictors, 100 dollar increases in mean neighborhood income are associated with approximately 0.1274% decreases in the number of evictions. However, there is a 80% chance that the relationship may be any value between (-0.0875%, -0.1676%), indicating that there is almost certainly a weak, negative, relationship between these two variables, but its magnitude may vary slightly.
+- **Mean Rent**: When controlling for all other predictors, 100 dollar increases in mean neighborhood rental prices are associated with approximately 4.27% increases in the number of evictions. However, there is a 80% chance that the relationship may be any value between (1.71%, 6.96%), indicating that there is almost certainly a positive relationship between these two variables, but its magnitude may vary slightly.
+- **Black Percent**: When controlling for all other predictors, 10% increases in the proportion of Black residents in a neighborhood are associated with approximately a 17.24% increase in the number of evictions. Further, there is a 80% chance that the relationship may be any value between (14.56%, 20.06%), indicating that there is almost certainly a strong, positive, relationship between these two variables, but its magnitude may vary slightly.
+- **Latinx Percent**: When controlling for all other predictors, a 10% increase in the proportion of Latinx residents in a neighborhood is associated with approximately a 7.88% increase in the number of evictions. Further, there is a 80% chance that the relationship may be any value between (3.81%, 12.10%), indicating that there is almost certainly a positive relationship between these two variables, but its magnitude may vary.
+- **Asian Percent**: When controlling for all other predictors, a 10% increase in the proportion of Asian residents in a neighborhood are associated with approximately a 5.63% decrease in the number of evictions. Further, there is a 80% chance that the relationship may be any value between (-2.02%, -9.24%), indicating that there is almost certainly a weak, negative, relationship between these two variables, but its magnitude may vary slightly.
+
+## Spatial Non-Citizen
+
+We fit a Besag model using a Poisson likelihood to study non-citizen counts across New York. 
+
+```{r}
+library(CARBayes)
+
+equation <- noncitizen_count ~ offset(log(total_pop)) + 
+    transportation_desert_3cat + 
+    borough  + gini_neighborhood +mean_income + mean_rent + unemployment_perc + 
+    black_perc + latinx_perc + asian_perc
+
+
+carbayes_noncit <- S.CARleroux(equation,
+                 data = modeling_data, 
+                 W = W, family = "poisson", 
+                 burnin = 200000, n.sample = 1000000, rho=1,
+                 thin = 10, verbose=F)
+
+
+
+tidy(moran.mc(x = as.vector(carbayes_noncit$residuals$response), listw = col_listw, nsim = 9999, alternative = "greater")) %>%
+  mutate(Term = "Residual", .before=1) %>%
+  kable(caption ="Residual Clustering - Non-Citizen Count") %>%
+  kable_styling()
+```
+
+We found no statistically significant residual clustering! The plot below shows them spatially. 
+
+```{r, fig.height=10*1, fig.width=10*1}
+modeling_data %>%
+  mutate(resid = carbayes_noncit$residuals$response) %>%
+  ggplot() +
+  geom_sf(aes(fill = resid), color = "#8f98aa")+
+  scale_fill_gradient(low = "#FCF5EE", high = "#5E76AD") +
+  theme_minimal() +
+  theme_minimal() +
+  ggtitle("CARBayes Besag:\nNon-Citizen Count Residuals ")+ 
+   theme(axis.text = element_blank(),
+        panel.grid.major = element_line("transparent"),
+        plot.title = element_text(family="DIN Condensed", size = 2* 30, face = "bold", hjust=.5),
+        legend.key.width = unit(.5, "in"),
+        legend.title = element_text(size = 25, face="bold", family="DIN Condensed"), 
+        legend.position = "bottom" ,
+        legend.text = element_text(size = 20, face="bold", family="DIN Condensed"))+
+  guides(fill = guide_colourbar(title = "Residual Error", title.position="top", title.hjust = 0.5))
+```
+
+Our model underpredicted a couple neighborhoods but it seems like those residual errors were not part of a systematic trend in misprediction.
+
+Our WAIC metrics for this spatial model on eviction counts is **dramatically** better than the best of our non-spatial models (Difference = 1011.296), indicating that this a much better fit to our data than our previous models. However our WAIC is still troublingly high.
+
+```{r, fig.height=5, fig.width=10}
+
+t(carbayes_noncit$modelfit)%>%
+  as_tibble() %>%
+  kable(align = "c", caption = "CARBayes Spatial Non-Citizen Model - DIC Metrics") %>% 
+  kable_styling()
+
+round(carbayes_noncit$summary.results[, 1:7], 4) %>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  rename(term = rowname) %>%
+  as_tibble() %>%
+  mutate(`Median`= ifelse(term == "(Intercept)", exp(`Median`), (exp(`Median`)-1)*100), 
+         `2.5%`= ifelse(term == "(Intercept)", exp(`2.5%`), (exp(`2.5%`)-1)*100), 
+         `97.5%` = ifelse(term == "(Intercept)", exp(`97.5%`), (exp(`97.5%`)-1)*100))%>%
+  filter(`2.5%`	> 0 & `97.5%` > 0 | `2.5%`	< 0 & `97.5%` < 0) %>%
+  mutate_if(is.numeric, ~round(., 4))  %>%
+  kable(align = "c", caption = "CARBayes Spatial Non-Citizen Model - Summary") %>% 
+  kable_styling()
+
+```
+
 
 ## Spatial Rent
 
@@ -1920,23 +2025,6 @@ t(carbayes_rent$modelfit)%>%
 
 Our WAIC metrics for this spatial model is slightly better than the best of our non-spatial models (Difference = 9.4086). Once again, in a more detailed analysis we could edit our spatial effect prior.
 
-```{r, fig.height=10*1, fig.width=10*1}
-round(carbayes_rent$summary.results[, 1:7], 4) %>%
-  as.data.frame() %>%
-  rownames_to_column() %>%
-  rename(term = rowname) %>%
-  as_tibble() %>%
-  mutate(`Median`= ifelse(term == "(Intercept)", exp(`Median`), (exp(`Median`)-1)*100), 
-         `2.5%`= ifelse(term == "(Intercept)", exp(`2.5%`), (exp(`2.5%`)-1)*100), 
-         `97.5%` = ifelse(term == "(Intercept)", exp(`97.5%`), (exp(`97.5%`)-1)*100))%>%
-  filter(`2.5%`	> 0 & `97.5%` > 0 | `2.5%`	< 0 & `97.5%` < 0) %>%
-  mutate_if(is.numeric, ~round(., 4))  %>%
-  kable(align = "c", caption = "CARBayes Spatial Rent Model - Summary") %>% 
-  kable_styling()
-
-```
-
-Here, the only significant predictor of is mean income which is positively associated with increased rental prices.
 
 ```{r, fig.height=10*1, fig.width=10*1}
 modeling_data %>%
@@ -2009,7 +2097,6 @@ modeling_data %>%
 ```
 
 Our residuals look fantastic! Woohoo!
-
 
 Our WAIC metrics for this spatial model on eviction counts is **dramatically** better than the best of our non-spatial models (Difference = 501.104), indicating that this a much better fit to our data than our previous models. 
 
