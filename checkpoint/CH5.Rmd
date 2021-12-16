@@ -638,7 +638,9 @@ df %>%
 ```
 We found that the original data demonstrates a bimodal distribution with observations heavily concentrated in 0-25% and 75-100%. This is partially due to the over-saturated coverage in Manhattan and the lack of subway access in the suburban neighborhoods of Queens.
 
-Further investigation into the proportions of each categories, we find that there is an unequal distribution of observations within different categories. The desert categories Poor and Typical combined have less observations than the category Excellent.
+Further investigation into the proportions of each categories, we find that there is an unequal distribution of observations within different categories. The categories Poor and Typical combined have less observations than the category Excellent. We think the unequal distribution is the probable cause of the inaccuracy of the Typical category.
+
+In further refinements of the experiment, we would like to tweak the cutoffs so that it strikes a balance between the equal distribution and the model accuracy (i.e. we want to make sure all three categories can be predicted with a similar accuracy).
 
 If you'd like to check out what happens as we vary our predictors in this ordinal model, we created a shiny app that would allow a user to manually vary the predictors. Click this [link](https://vichym.shinyapps.io/nyc_subway_desert_prediction/) to check it out!
 
