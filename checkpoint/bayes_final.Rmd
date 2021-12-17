@@ -267,7 +267,7 @@ nyc_naive <- read_csv(here("clean_data", "nyc_names_vichy_complied2.csv"))%>%
 nyc_naive %>% 
   ggplot(aes(x=perc_covered_by_transit, fill=transportation_desert_3cat)) + 
   geom_histogram(bins = 15) + 
-  labs(title="Subway Accesibilty Percent Distribution", y="Count", 
+  labs(title="Subway Accessibilty Percent Distribution", y="Count", 
        x="% of Neighborhood within Walking Distance of a Subway Stop")+
   geom_vline(xintercept = 25) + 
   geom_vline(xintercept = 75) +
@@ -306,9 +306,8 @@ nyc_compiled %>%
   scale_fill_manual(values=c("#996A37", "#EBDDC7", "#426350"),
                        guide = guide_legend(title = "Accessibility:"), na.value="#D6D6D6") +
   theme_minimal() +
-  ggtitle("Subway Accessibility by Neighborhood")+ 
+  ggtitle("Subway Accessibility \nby Neighborhood")+ 
   theme_minimal() +
-  ggtitle("Accesibility \nby Neighborhood")+ 
   theme(axis.text = element_blank(),
         panel.grid.major = element_line("transparent"),
         plot.title = element_text(family="DIN Condensed", size = 2* 28, face = "bold", hjust=.5),
@@ -351,7 +350,7 @@ naive2_prediction %>%
 ```
 
 
-Under 10-fold cross-validation, our Naive Bayes model had an overall cross-validated accuracy of 51.11\%. However, our predictions were most accurate when predicting Poor transportation access (78.12\%) and Excellent transportation access (72.62\%). The following plot describes the cross-validated accuracy breakdown by each observed transportation access category.
+Under 10-fold cross-validation, our Naive Bayes model had an overall cross-validated accuracy of 67.03\%. However, our predictions were most accurate when predicting Poor transportation access (84.21\%) and Excellent transportation access (77.36\%). The following plot describes the cross-validated accuracy breakdown by each observed transportation access category.
 
 
 
@@ -616,7 +615,7 @@ data_test %>%
   ggplot(aes(x=transportation_desert_3cat, fill=predicted_desert)) + 
   geom_bar(position="fill")+
   scale_y_continuous(labels = seq(0, 100, by = 25)) +
-  labs(title="Mean Accessibility Predictions by Observed Category", y="Proportion", x="")+
+  labs(title="Modal Accessibility Predictions by Observed Category", y="Proportion", x="")+
     theme(panel.grid.major.x = element_line("transparent"),
          # axis.text.y.left = element_blank(),
           axis.text.x.bottom = element_text(size = 12, face = "bold"),
@@ -1428,7 +1427,9 @@ rbind(table1, table2) %>%
   dplyr::select(-Model)%>% kable() %>% kable_styling()
 ```
 
-Using in-sample scaled MAE, it is evident that the differences between our two negative binomial models of non-citizen counts were minute. We would typically recommend using cross-validated error metrics to compare these models in other settings. However, because we intend to compare a hierarchical model to a non-hierarchical one, cross-validation works slightly differently. In the former case, cross-validation via the `prediction_summary_cv` function in `bayesrules` makes data permutations to represent a "new borough" rather than a set of arbitrary models. To circumvent these differences, we use the expected-log predictive density (ELPD) of each respective model to compare the performance of each model. The details of this approach can be found [here](https://www.bayesrulesbook.com/chapter-10.html#chapter-10-train-test).
+Using in-sample scaled MAE, it is evident that the differences between our two negative binomial models of non-citizen counts were minute. However, note that the mean absolute error metric of the non-hierarchical was slightly lower.
+
+We would typically recommend using cross-validated error metrics to compare these models in other settings. However, because we intend to compare a hierarchical model to a non-hierarchical one, cross-validation works slightly differently. In the former case, cross-validation via the `prediction_summary_cv` function in `bayesrules` makes data permutations to represent a "new borough" rather than a set of arbitrary models. To circumvent these differences, we use the expected-log predictive density (ELPD) of each respective model to compare the performance of each model. The details of this approach can be found [here](https://www.bayesrulesbook.com/chapter-10.html#chapter-10-train-test).
 
 
 ```{r}
@@ -1438,12 +1439,13 @@ hi_mod1_elpd <- loo(hi_noncit_model)
 # Compare the ELPD for our 2 models
 loo_compare(mod1_elpd, hi_mod1_elpd)  %>%
   as.data.frame() %>%
-  rownames_to_column("model") %>%
+  rownames_to_column("model") %>% 
+  mutate(model = ifelse(startsWith(model, "hi_"), "Hierarchical", "Non-Hierarchical")) %>%
   kable(caption = "Non-Citizen Count EPLD Metrics", align="c") %>%
   kable_styling()
 ```
 
-From the above ELPD rankings, it seems that the non-hierarchical model of non-citizen counts performed better than its hierarchical parallel. Explicitly, there was a decrease of .536 standard deviations when comparing the non-hierarchical to its hierarchical parallel.
+From the above ELPD rankings, it seems that the hierarchical model of non-citizen counts performed better than its non-hierarchical parallel. Explicitly, there was a decrease of .0.892 standard deviations when comparing the non-hierarchical to its hierarchical parallel.
 
 ```{r}
 modeling_data %>%
@@ -1466,7 +1468,7 @@ modeling_data %>%
    scale_color_manual(values=c("#996A37","#E9DBC2","#395645"))
 ```
 
-Our residuals are not perfect, given the slight heteroskedasticity as non-citizen count increased, but it seems that the distributions were almost perfectly comparable between the two models!
+Our residuals are not perfect, given the slight heteroskedasticity as non-citizen count increased, but it seems that the distributions were almost perfectly comparable between the two models with our non-hierarchical (black line) model overpredicting slightly more as non-citizen counts increase!
 
 
 ```{r, fig.height=10*1, fig.width=10*1}
@@ -1536,7 +1538,9 @@ rbind(waic_tab1, waic_tab2) %>%
 
 ```
 
-Our last error metric of non-citizen counts is the Watanabe–Akaike information criterion (WAIC). When comparing two models with the WAIC, the better predicting model would have a smaller WAIC value. Here, it seems that non-hierarchical model of non-citizen counts has the lowest WAIC, but the difference is marginal. Altogether, we choose the hierarchical model of non-citizen counts given its lower ELPD, WAIC, and spatial residual patterning.
+Our last error metric of non-citizen counts is the Watanabe–Akaike information criterion (WAIC). When comparing two models with the WAIC, the better predicting model would have a smaller WAIC value. Here, it seems that hierarchical model of non-citizen counts has the lowest WAIC, but the difference is marginal. 
+
+Altogether, we choose the hierarchical model of non-citizen counts given its lower ELPD, WAIC, and spatial residual patterning.
 
 ## Mean Neighborhood Rental Prices
 
@@ -1551,8 +1555,7 @@ rbind(table1, table2) %>%
   dplyr::select(-Model)%>% kable() %>% kable_styling()
 ```
 
-Once again, when using in-sample scaled MAE, the differences between our two models of mean rental prices were essentially minimal. Our predictions of the typical neighborhood rental price in both models were about 80 dollars away from their observed rental prices. However, the hierarchical model's scaled mean absolute error metrics indicate that across simulations, the observed value is about 0.3 standard deviations away from the medians of the posterior predictive distributions of rental prices. This is a nontrivial improvement from the .5 standard deviation in the case of the non-hierarchical distribution. 
-
+Once again, when using in-sample scaled MAE, the differences between our two models of mean rental prices were essentially minimal. Our predictions of the typical neighborhood rental price in both models were about 80 dollars away from their observed rental prices, with the hierarchical model performing slightly better. 
 
 ```{r}
 mod1_elpd <- loo(rent_model)
@@ -1561,7 +1564,8 @@ hi_mod1_elpd <- loo(hi_rent_model)
 # Compare the ELPD for our 2 models
 loo_compare(mod1_elpd, hi_mod1_elpd)  %>%
   as.data.frame() %>%
-  rownames_to_column("model") %>%
+  rownames_to_column("model") %>%  
+  mutate(model = ifelse(startsWith(model, "hi_"), "Hierarchical", "Non-Hierarchical")) %>%
   kable(caption = "Mean Rental Price EPLD Metrics", align="c") %>%
   kable_styling()
 ```
@@ -1590,7 +1594,7 @@ modeling_data %>%
    scale_color_manual(values=c("#996A37","#E9DBC2","#395645"))
 ```
 
-Our residuals look pretty good, but there is some increasing trend that we are underpredicting the rental prices as they increase. However, it seems that the residual distributions are almost perfectly comparable between the two models!
+Our residuals for both model look pretty good, but there is some increasing trend that we are underpredicting the rental prices as they increase. However, it seems that the residual distributions are almost perfectly comparable between the two models (teal = hierarchical, black = non-hierarchical)!
 
 
 ```{r, fig.height=10*1, fig.width=10*1}
@@ -1631,7 +1635,7 @@ hi_rent_resid <- modeling_data %>%
 ggarrange(rent_resid, hi_rent_resid, ncol=2, nrow=1)
 ```
 
-Regarding the non-hierarchical model, the distribution of our residuals indicates that our model's mispredictions are randomly distributed. Further, our residuals in the non-hierarchical model are relatively small compared to the hierarchical model. In the hierarchical model, there is a slight indication of systematic mispredictions that appear distributed by borough. Crucially, it seems that we are systematically overpredicting rental prices in both Queens (bottom right) and Brooklyn (bottom left), but with more over-predictions occurring for Brooklyn. 
+The distribution of our residuals indicates that our model's mispredictions are randomly distributed in both models. In the hierarchical model, there is a slight indication of systematic mispredictions that appear distributed by borough. Crucially, it seems that we are systematically overpredicting rental prices in both Queens (bottom right) and underpredicting in Manhattan (middle left).
 
 
 ```{r}
@@ -1661,7 +1665,9 @@ rbind(waic_tab1, waic_tab2) %>%
 
 ```
 
-The hierarchical model of rental prices has the lowest WAIC, but the difference is negligible. The hierarchical model's residual patterning, ELPD metric, in-sample residual errors, and WAIC indicate that the hierarchical version may be more appropriate.
+The hierarchical model of rental prices has the lowest WAIC, but the difference is negligible. 
+
+From the hierarchical model's residual patterning, ELPD metric, in-sample residual errors, and WAIC indicate that the hierarchical version may be more appropriate.
 
 
 ## Eviction Count
@@ -1676,7 +1682,7 @@ rbind(table1, table2) %>%
   dplyr::select(-Model)%>% kable() %>% kable_styling()
 ```
 
-Once again, when using in-sample scaled MAE, the differences between our two negative-binomial models of evictions count were minute. Our predictions of eviction counts in both models were about 40 cases away from their observed counts and with very similar scaled MAE metrics. 
+Once again, when using in-sample scaled MAE, the differences between our two negative-binomial models of evictions count were minute. Our predictions of eviction counts in both models were about 40 cases away from their observed counts and with very similar scaled MAE metrics, however the hierarchical model performed slightly worse. 
 
 
 ```{r}
@@ -1691,7 +1697,7 @@ loo_compare(mod1_elpd, hi_mod1_elpd)   %>%
   kable_styling()
 ```
 
-From the above ELPD rankings, it also seems that the hierarchical model of eviction counts performed better than its non-hierarchical parallel. Next, we will compare how these two models' residuals are spatially distributed.
+From the above ELPD rankings, it also seems that the non-hierarchical model of eviction counts performed better than its hierarchical parallel. Next, we will compare how these two models' residuals are spatially distributed.
 
 
 ```{r}
@@ -1786,7 +1792,7 @@ rbind(waic_tab1, waic_tab2) %>%
 
 ```
 
-It seems that the hierarchical model of eviction counts has the lowest WAIC, but only by .03 units. However, we select the hierarchical model of eviction counts from the hierarchical model's improved residual patterning, ELPD metric, in-sample error metrics, and WAIC.
+It seems that the non-hierarchical model of eviction counts has the lowest WAIC, but only by .03 units. However, we decide to select the non-hierarchical model due to its improved residual patterning, ELPD metric, in-sample error metrics, and WAIC.
 
 
 # Results & Discussion
@@ -1832,27 +1838,28 @@ We were surprised to find that the proportion of Asian residents in a neighborho
 Lastly, we found that mean rental prices were negatively associated with the number of schools in NYC, which is likely a byproduct of how excessively urban, well-connected areas in NYC do not typically have families with children living in them.
 
 
-### Model 6: Eviction Count
+### Model 3: Eviction Count
 
 We determined that many racial inequities associated with rental prices were replicated in the number of eviction counts by neighborhood. 
 
-Specifically, we found that even when considering the random-effects of borough and controlling for our covariates, neighborhood eviction counts were positively associated with income inequality, better subway access (Typical and Excellent), the percentages of Black \& Latinx residents, mean rental prices, and total neighborhood population count. In contrast, our models suggest that eviction counts were negatively associated with mean income and the percent of Asian residents.
+Specifically, we found that even when controlling for our covariates, neighborhood eviction counts were positively associated with income inequality, better subway access (Typical and Excellent), the percentages of Black \& Latinx residents, mean rental prices, and total neighborhood population count. In contrast, our models suggest that eviction counts were negatively associated with mean income and the percent of Asian residents.
 
 ```{r}
-draft_tidy <- tidy(hi_eviction_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
+draft_tidy <- tidy(eviction_model, effects = "fixed", conf.int = TRUE, conf.level = 0.8)%>% 
   mutate(estimate= ifelse(term == "(Intercept)", exp(estimate), (exp(estimate)-1)*100), 
          conf.low= ifelse(term == "(Intercept)", exp(conf.low), (exp(conf.low)-1)*100), 
          conf.high = ifelse(term == "(Intercept)", exp(conf.high), (exp(conf.high)-1)*100))%>%
   filter(conf.low	> 0 & conf.high > 0 | conf.low	< 0 & conf.high < 0) %>%
   arrange(desc(estimate)) 
 
-rbind(draft_tidy[5,],draft_tidy[1:4,], draft_tidy[6:10,]) %>%
+rbind(draft_tidy[4,],draft_tidy[1:3,], draft_tidy[5:10,]) %>%
   kable(align = "c", caption = "Eviction Model - Summary") %>% 
   kable_styling()
 ```
 
 
-We have confirmed that even after adjusting for the putative factors of economic instability and evictions (e.g., income, rental prices, and population size), neighborhoods with a substantial proportion of Black and Latinx residents in NYC are experiencing higher counts of eviction, despite tending to live in cheaper neighborhoods. Specifically, 10% increases in the percent of Black and Latinx residents are associated with approximately 17% and 8% increases from the typical eviction count across NYC. Once again, given the enforced precarity and exploitation of Black and Latinx communities in the United States, it is no surprise that eviction counts are associated with a neighborhood's racial composition.
+
+We have confirmed that even after adjusting for the putative factors of economic instability and evictions (e.g., income, rental prices, and population size), neighborhoods with a substantial proportion of Black and Latinx residents in NYC are experiencing higher counts of eviction, despite tending to live in cheaper neighborhoods. Specifically, 10\% increases in the percent of Black and Latinx residents are associated with approximately 17\% and 7\% increases from the typical eviction count across NYC, respectively. Once again, given the enforced precarity and exploitation of Black and Latinx communities in the United States, it is no surprise that eviction counts are associated with a neighborhood's racial composition.
 
 We were also surprised to find that the proportion of Asian residents in a neighborhood was negatively associated with eviction counts. This trend may be another byproduct of the economic stability and developed housing markets in specific Asian ethnic communities. Our results also affirm that within-neighborhood income inequalities can be critical factors in defining eviction counts, suggesting that racist housing policies alone do not sufficiently explain the housing inequities observed in NYC.
 
@@ -1919,10 +1926,10 @@ We interpret the significant predictors for each hierarchical model in the follo
 - **Asian percentage**: When controlling for all other predictors, a 10% increase in the Asian population in a neighborhood is associated with approximately a $0.247 increase in average rental prices. However, there is an 80% chance that the increase associated with rent may be any value between (0.113, 0.383) dollars, indicating that there is almost certainly a positive relationship between Asian resident percentage and rent, but its magnitude may vary.
 **School Count**: When controlling for all other predictors, there is an associated $0.034 decrease in average rental prices for every school in a neighborhood. However, there is an 80% chance that the decrease associated with rent may be any value between (-0.00067, -0.06777) dollars, indicating a weak, negative relationship between school count and rent.
 
-### Model 6: Eviction Count
+### Model 3: Eviction Count
 
-- **Typical Subway Access**: When controlling for all other predictors, a neighborhood with typical access to the subway is expected to have approximately 40.08% more eviction counts than a neighborhood with poor subway access. However, there is an 80% chance that the relationship may be any value between (22.48%, 59.66%), indicating that neighborhoods with typical transit access almost certainly have an increase in eviction counts than neighborhoods with poor access.
-- **Excellent Subway Access**: When controlling for all other predictors, a neighborhood with excellent access to the subway is expected to have approximately 37.04% more eviction counts than a neighborhood with poor subway access. However, there is an 80% chance that the relationship may be any value between (19.51%, 57.55%), indicating that neighborhoods with excellent transit access almost certainly have an increase in eviction counts than neighborhoods with poor access.
+- **Typical Subway Access**: When controlling for all other predictors, a neighborhood with typical access to the subway is expected to have approximately 40.07% more eviction counts than a neighborhood with poor subway access. However, there is an 80% chance that the relationship may be any value between (22.48%, 59.66%), indicating that neighborhoods with typical transit access almost certainly have an increase in eviction counts than neighborhoods with poor access.
+- **Excellent Subway Access**: When controlling for all other predictors, a neighborhood with excellent access to the subway is expected to have approximately 38.40% more eviction counts than a neighborhood with poor subway access. However, there is an 80% chance that the relationship may be any value between (19.51%, 57.55%), indicating that neighborhoods with excellent transit access almost certainly have an increase in eviction counts than neighborhoods with poor access.
 - **Gini Index**: When controlling for all other predictors, 5% increases in Gini-measured income inequality are associated with approximately a 83.50% increase in the number of evictions. However, there is an 80% chance that the relationship may be any value between (30.23%, 159.90%), indicating that there is almost certainly a strong, positive relationship between these two variables, but its magnitude may vary.
 - **Mean Income**: When controlling for all other predictors, 100 dollar increases in mean neighborhood income are associated with approximately 0.1274% decreases in the number of evictions. However, there is an 80% chance that the relationship may be any value between (-0.0875%, -0.1676%), indicating that there is almost certainly a weak, negative relationship between these two variables, but its magnitude may vary slightly.
 - **Mean Rent**: When controlling for all other predictors, 100 dollar increases in mean neighborhood rental prices are associated with approximately 4.27% increases in the number of evictions. However, there is an 80% chance that the relationship may be any value between (1.71%, 6.96%), indicating that there is almost certainly a positive relationship between these two variables, but its magnitude may vary slightly.
