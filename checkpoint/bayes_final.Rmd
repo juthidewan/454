@@ -268,7 +268,7 @@ nyc_naive %>%
   ggplot(aes(x=perc_covered_by_transit, fill=transportation_desert_3cat)) + 
   geom_histogram(bins = 15) + 
   labs(title="Subway Accesibilty Percent Distribution", y="Count", 
-       x="% of Neighborhood with Walking Distance of a Subway Stop")+
+       x="% of Neighborhood within Walking Distance of a Subway Stop")+
   geom_vline(xintercept = 25) + 
   geom_vline(xintercept = 75) +
     theme(panel.grid.major.x = element_line("transparent"),
@@ -281,18 +281,6 @@ nyc_naive %>%
         legend.text = element_text(size = 15, face="bold", family="DIN Condensed"))+
    scale_fill_manual(values=c("#996A37", "#EBDDC7", "#426350"),
                        guide = guide_legend(title = ""), na.value="#D6D6D6") 
-
-df <- as.tibble(rbind(c("Poor", ecdf(nyc_naive$perc_covered_by_transit)(25)), 
-      c("Typical", ecdf(nyc_naive$perc_covered_by_transit)(75) - ecdf(nyc_naive$perc_covered_by_transit)(25)),
-      c("Excellent", 1 - ecdf(nyc_naive$perc_covered_by_transit)(75)))) 
-
-  colnames(df) <- c("Subway Desert Category", "Prop")
-  
-  
-  
-df %>%
-  kable(align = "c", caption = "Ordinal Model - Transport Desert Proportions") %>% 
-  kable_styling() 
 ```
 
 We found that the original data has a bimodal distribution with observations heavily concentrated in 0-25% and 75-100%. This distribution is likely due to Manhattan's over-saturated transit coverage and the lack of subway access in the suburban neighborhoods of Queens. 
@@ -302,8 +290,8 @@ as_tibble(rbind(
   c("Poor", ecdf(nyc_naive$perc_covered_by_transit)(25)), 
   c("Typical", ecdf(nyc_naive$perc_covered_by_transit)(75) - ecdf(nyc_naive$perc_covered_by_transit)(25)),
   c("Excellent", 1 - ecdf(nyc_naive$perc_covered_by_transit)(75)))) %>%
-  set_colnames(c("Subway Desert Category", "Prop")) %>%
-  kable(align = "c", caption = "Ordinal Model - Transport Desert Proportions") %>% 
+  set_colnames(c("Access Level", "Proportion in Sample")) %>%
+  kable(align = "c", caption = "Access Level Sample Proportions") %>% 
   kable_styling() 
 ```
 
@@ -519,9 +507,9 @@ Here is an interpretation of the coefficients in the tidy table:
 
 - **Mean Income**: When controlling all other factors, for each additional dollar a given neighborhood's mean income has, the model estimates that the latent variable $y^*$ increases by 0.0000197. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (0.0000010, 0.0000383), indicating that there is almost certainly a positive relationship between mean income and $y^*$, but its magnitude may vary.
 
-**Percent Living Below the Poverty Line**: When controlling all other factors, for each additional % people below poverty a given neighborhood has, the model estimates that the latent variable $y^*$ increases by 0.0977415. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (0.0422522, 0.1576466), indicating that there is almost certainly a positive relationship between below poverty percentage and $y^*$, but its magnitude may vary.
+- **Percent Living Below the Poverty Line**: When controlling all other factors, for each additional % people below poverty a given neighborhood has, the model estimates that the latent variable $y^*$ increases by 0.0977415. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (0.0422522, 0.1576466), indicating that there is almost certainly a positive relationship between below poverty percentage and $y^*$, but its magnitude may vary.
 
-**Grocery Store Count**: When controlling all other factors, for each additional food and grocery store a given neighborhood has, the model estimates that the latent variable $y^*$ increases by 0.0224638. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (0.0138214, 0.0316698), indicating that there is almost certainly a positive relationship between the number of stores and $y^*$, but its magnitude may vary.
+- **Grocery Store Count**: When controlling all other factors, for each additional food and grocery store a given neighborhood has, the model estimates that the latent variable $y^*$ increases by 0.0224638. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (0.0138214, 0.0316698), indicating that there is almost certainly a positive relationship between the number of stores and $y^*$, but its magnitude may vary.
 
 - **Brooklyn**: When controlling all other factors, if a neighborhood is in Brooklyn, the model estimates that the latent variable $y^*$ increases by 0.1084268 compared to that neighborhood in the Bronx. However, there is an 80% chance that the increase in the latent variable $y^*$ may be any value between (-0.6968746, 0.8669477), indicating the relationship between a neighborhood being in Brooklyn and $y^*$ could be insignificant.
 
@@ -1224,7 +1212,7 @@ We list our hierarchical models and their predictors below:
   + Predictors: `transportation_desert_3cat`, `gini_neighborhood`, `mean_income`, `black_perc`, `latinx_perc`, `asian_perc`, `bus_count`,`school_count`,`store_count`, `noncitizen_perc`
   + Grouping: `borough`
 
-- Eviction CountHierarchical Model (6)
+- Eviction Count: Hierarchical Model (6)
   + Predictors: `transportation_desert_3cat`, `total_pop`, `gini_neighborhood`, `mean_income`, `mean_rent`, `black_perc`, `latinx_perc`, `asian_perc`,
   `bus_count`,`store_count`,`unemployment_perc`, `uninsured_perc`
   + Grouping: `borough`
@@ -1805,7 +1793,7 @@ It seems that the hierarchical model of eviction counts has the lowest WAIC, but
 
 ## Results
 
-Our previous section consistently demonstrated that all 3 of our hierarchical models performed better than our non-hierarchical models with respect to absolute error metrics, residual distributions, expected-log predictive densities, and WAICs. In this section, we detail our findings using the hierarchical models. In this section, we emphasize the broader conclusions of our models and only report the nature of the associations between our outcomes and predictors (e.g., positive or negative). For individualized interpretations of each predictor for each model, please see the ["Full Interpretations" section in the Appendix](https://freddybarragan.netlify.app/media/bayes/bayes_final.html#Appendix)!
+Our previous section consistently demonstrated that all 3 of our hierarchical models performed better than our non-hierarchical models with respect to absolute error metrics, residual distributions, expected-log predictive densities, and WAICs. In this section, we detail our findings using the hierarchical models. In this section, we emphasize the broader conclusions of our models and only report the nature of the associations between our outcomes and predictors (e.g., positive or negative). For individualized interpretations of each predictor for each model, please see the ["Full Interpretations" section in the appendix](https://freddybarragan.netlify.app/media/bayes/bayes_final.html#Appendix)!
 
 
 ### Model 4: Immigrant/Non-Citizen Count
@@ -1904,7 +1892,7 @@ rbind(noncit_moran, rent_moran, evict_moran) %>%
   
 ```
 
-As such, we could extend this work to the spatial domain using methods from the `CARBayes` or `INLA` packages. Following work by [Katie Jolly and Raven McKnight](https://www.ravenmcknight.com/post/carbayes-tutorial/), we have outlined a spatial workflow for both the eviction and rental price models using `CARBayes` in the [Appendix](file:///Users/freddy/Documents/GitHub/454/checkpoint/CH5.html#Appendix). However, because spatial models were beyond the scope of this project and class, we'd like to emphasize that in a more detailed analysis the models we outline in the Appendix would likely be adjusted to use different data distributions, spatial effect priors (e.g., BYM, Intrinsic CAR, etcetera), and different predictors' coefficient priors. Further, in a more detailed analysis, we would explicitly describe the mathematical construction of the models.
+As such, we could extend this work to the spatial domain using methods from the `CARBayes` or `INLA` packages. Following work by [Katie Jolly and Raven McKnight](https://www.ravenmcknight.com/post/carbayes-tutorial/), we have outlined a spatial workflow for both the eviction and rental price models using `CARBayes` in the [appendix](file:///Users/freddy/Documents/GitHub/454/checkpoint/CH5.html#Appendix). However, because spatial models were beyond the scope of this project and class, we'd like to emphasize that in a more detailed analysis the models we outline in the appendix would likely be adjusted to use different data distributions, spatial effect priors (e.g., BYM, Intrinsic CAR, etcetera), and different predictors' coefficient priors. Further, in a more detailed analysis, we would explicitly describe the mathematical construction of the models.
 
 # Appendix
 
